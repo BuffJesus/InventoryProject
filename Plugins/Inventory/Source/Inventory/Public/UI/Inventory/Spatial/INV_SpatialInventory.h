@@ -19,6 +19,7 @@ class INVENTORY_API UINV_SpatialInventory : public UINV_InventoryBase
 	
 public:
 	virtual void NativeOnInitialized() override;
+	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const override;
 	
 private:	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UWidgetSwitcher> Switcher;

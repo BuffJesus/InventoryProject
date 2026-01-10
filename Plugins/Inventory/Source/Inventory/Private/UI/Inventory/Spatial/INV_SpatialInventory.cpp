@@ -45,3 +45,8 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	
 	ShowEquippableGrid();
 }
+
+FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const
+{
+	return FINV_SlotAvailabilityResult();
+}

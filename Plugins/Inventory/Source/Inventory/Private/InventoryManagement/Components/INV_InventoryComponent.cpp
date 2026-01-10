@@ -26,7 +26,13 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 {
 	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
 	
-	OnNoRoomInInventory.Broadcast();
+	if (Result.TotalRoomToFill == 0)
+	{
+		OnNoRoomInInventory.Broadcast();
+		return;
+	}
+	
+	// TODO: Actually add item to inventory
 }
 
 void UINV_InventoryComponent::ConstructInventory()
