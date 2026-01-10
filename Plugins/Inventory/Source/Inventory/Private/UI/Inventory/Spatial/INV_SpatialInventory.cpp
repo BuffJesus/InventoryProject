@@ -42,4 +42,6 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	Button_Equippable->OnClicked.AddDynamic(this, &ThisClass::ShowEquippableGrid);
 	Button_Consumable->OnClicked.AddDynamic(this, &ThisClass::ShowConsumableGrid);
 	Button_Craftable->OnClicked.AddDynamic(this, &ThisClass::ShowCraftableGrid);
+	
+	ShowEquippableGrid();
 }
