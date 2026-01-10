@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Components/SlateWrapperTypes.h"
 #include "INV_InventoryComponent.generated.h"
 
 
@@ -26,7 +25,7 @@ private:
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
 	
 	void ConstructInventory();
-	void HandleInventoryMenu(ESlateVisibility Visibility = ESlateVisibility::Collapsed, bool bIsOpen = false);
+	void HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen);
 
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<UINV_InventoryBase> InventoryClass { nullptr };
