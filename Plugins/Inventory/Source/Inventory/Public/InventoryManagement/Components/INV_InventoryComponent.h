@@ -19,15 +19,19 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	void ToggleInventoryMenu();
 
 private:
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
 	
 	void ConstructInventory();
-	
+	void HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen);
+
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<UINV_InventoryBase> InventoryClass { nullptr };
 	
 	UPROPERTY()
 	TObjectPtr<UINV_InventoryBase> Inventory { nullptr };
+	
+	bool bInventoryMenuOpen = false;
 };
