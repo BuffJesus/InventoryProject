@@ -30,6 +30,6 @@ private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> CanvasPanel;
 	UPROPERTY() TArray<TObjectPtr<UINV_GridSlot>> GridSlots;
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_GridSlot> SlotClass;
-	UPROPERTY(EditAnywhere, Category = "INV|Grid") FIntPoint GridSize { 4, 8 };
+	UPROPERTY(EditAnywhere, Category = "INV|Grid") FIntPoint GridSize { 8, 4 };
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") float TileSize { 54.0f };
 };
