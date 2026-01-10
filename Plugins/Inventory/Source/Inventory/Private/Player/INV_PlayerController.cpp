@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Inventory.h"
+#include "Interaction/INV_Highlightable.h"
 #include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/HUD/INV_HUDWidget.h"
@@ -87,6 +88,11 @@ void AINV_PlayerController::TraceForItem()
 	
 	if (ThisActor.IsValid())
 	{
+		if (UActorComponent* HighlightableComponent { ThisActor->FindComponentByInterface(UINV_Highlightable::StaticClass()) }; IsValid(HighlightableComponent))
+		{
+			IINV_Highlightable::Execute_Highlight(HighlightableComponent);
+		}
+			
 		UINV_ItemComponent* ItemComponent { ThisActor->FindComponentByClass<UINV_ItemComponent>() };
 		if (!IsValid(ItemComponent)) return;
 		
@@ -95,6 +101,9 @@ void AINV_PlayerController::TraceForItem()
 	
 	if (LastActor.IsValid())
 	{
-		UE_LOG(LogInventory, Warning, TEXT("Item trace left actor: %s"), *LastActor->GetName());
+		if (UActorComponent* HighlightableComponent { LastActor->FindComponentByInterface(UINV_Highlightable::StaticClass()) }; IsValid(HighlightableComponent))
+		{
+			IINV_Highlightable::Execute_UnHighlight(HighlightableComponent);
+		}
 	}
 }
