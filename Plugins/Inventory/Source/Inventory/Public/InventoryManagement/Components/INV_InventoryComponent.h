@@ -16,10 +16,10 @@ class INVENTORY_API UINV_InventoryComponent : public UActorComponent
 
 public:
 	UINV_InventoryComponent();
+	void ToggleInventoryMenu();
 
 protected:
 	virtual void BeginPlay() override;
-	void ToggleInventoryMenu();
 
 private:
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
