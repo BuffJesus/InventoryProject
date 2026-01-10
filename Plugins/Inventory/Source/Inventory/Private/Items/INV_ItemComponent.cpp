@@ -5,6 +5,5 @@
 
 UINV_ItemComponent::UINV_ItemComponent()
 {
-	
 	PrimaryComponentTick.bCanEverTick = false;
 }
