@@ -7,7 +7,7 @@
 #include "INV_ItemComponent.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class INVENTORY_API UINV_ItemComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -18,6 +18,6 @@ public:
 	
 private:
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
-	FString PickupMessage { "Null Message" };
+	FString PickupMessage { TEXT("Null Message") };
 	
 };

@@ -46,7 +46,7 @@ private:
 	double TraceLength { 500.f };
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
-	TEnumAsByte<ECollisionChannel> ItemTraceChannel;
+	TEnumAsByte<ECollisionChannel> ItemTraceChannel { ECollisionChannel::ECC_GameTraceChannel1 };
 	
 	TWeakObjectPtr<AActor> ThisActor { nullptr };
 	TWeakObjectPtr<AActor> LastActor { nullptr };
