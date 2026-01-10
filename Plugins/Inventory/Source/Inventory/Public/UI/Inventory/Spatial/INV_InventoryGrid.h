@@ -7,6 +7,8 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+class UCanvasPanel;
+class UINV_GridSlot;
 /**
  * 
  */
@@ -17,8 +19,17 @@ class INVENTORY_API UINV_InventoryGrid : public UUserWidget
 	
 public:
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
+	virtual void NativeOnInitialized() override;
 	
 private:
+	void ConstructGrid();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };
+	
+	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> CanvasPanel;
+	UPROPERTY() TArray<TObjectPtr<UINV_GridSlot>> GridSlots;
+	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_GridSlot> SlotClass;
+	UPROPERTY(EditAnywhere, Category = "INV|Grid") FIntPoint GridSize;
+	UPROPERTY(EditAnywhere, Category = "INV|Grid") float TileSize;
 };
