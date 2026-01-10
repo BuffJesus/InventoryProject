@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Inventory.h"
+#include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/HUD/INV_HUDWidget.h"
 
@@ -77,11 +78,19 @@ void AINV_PlayerController::TraceForItem()
 	LastActor = ThisActor;
 	ThisActor = HitResult.GetActor();
 	
+	if (!ThisActor.IsValid())
+	{
+		if (IsValid(HUDWidget)) HUDWidget->HidePickupMessage();
+	}
+	
 	if (ThisActor == LastActor) return;
 	
 	if (ThisActor.IsValid())
 	{
-		UE_LOG(LogInventory, Warning, TEXT("Item trace hit actor: %s"), *ThisActor->GetName());
+		UINV_ItemComponent* ItemComponent { ThisActor->FindComponentByClass<UINV_ItemComponent>() };
+		if (!IsValid(ItemComponent)) return;
+		
+		if (IsValid(HUDWidget)) HUDWidget->ShowPickupMessage(ItemComponent->GetPickupMessage());
 	}
 	
 	if (LastActor.IsValid())
