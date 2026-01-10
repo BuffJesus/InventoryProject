@@ -22,6 +22,11 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 		: HandleInventoryMenu(ESlateVisibility::Visible, true);
 }
 
+void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
+{
+	OnNoRoomInInventory.Broadcast();
+}
+
 void UINV_InventoryComponent::ConstructInventory()
 {
 	OwningController = Cast<APlayerController>(GetOwner());
