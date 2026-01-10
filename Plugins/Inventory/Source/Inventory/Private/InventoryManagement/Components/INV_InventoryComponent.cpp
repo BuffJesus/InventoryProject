@@ -24,6 +24,8 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 
 void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 {
+	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
+	
 	OnNoRoomInInventory.Broadcast();
 }
 
