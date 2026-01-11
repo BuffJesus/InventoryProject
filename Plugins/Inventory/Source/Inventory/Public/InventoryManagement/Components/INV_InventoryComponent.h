@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "INV_InventoryComponent.generated.h"
 
+struct FINV_InventoryFastArray;
 class UINV_ItemComponent;
 class UINV_InventoryBase;
 
@@ -43,6 +45,9 @@ private:
 	
 	void ConstructInventory();
 	void HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen);
+	
+	UPROPERTY(Replicated)
+	FINV_InventoryFastArray InventoryFastArray;
 
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<UINV_InventoryBase> InventoryClass { nullptr };

@@ -84,7 +84,9 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
 {
+	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
 	
+	// TODO: Tell item component to destroy owning actor
 }
 
 void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
