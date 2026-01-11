@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 
 UINV_InventoryComponent::UINV_InventoryComponent()
@@ -31,6 +32,13 @@ void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
 		AddReplicatedSubObject(SubObj);
 
 	}
+}
+
+void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ThisClass, InventoryFastArray);
 }
 
 void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)

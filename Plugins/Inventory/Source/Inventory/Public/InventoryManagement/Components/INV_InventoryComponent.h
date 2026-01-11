@@ -23,6 +23,7 @@ public:
 	UINV_InventoryComponent();
 	void ToggleInventoryMenu();
 	void AddRepSubObj(UObject* SubObj);
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(Server, Reliable)
 	void Server_AddNewItem(UINV_ItemComponent* ItemComponent, int32 StackCount);
