@@ -4,7 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 
-UINV_InventoryComponent::UINV_InventoryComponent()
+UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
