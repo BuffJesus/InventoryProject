@@ -72,7 +72,7 @@ void UINV_InventoryComponent::ConstructInventory()
 	Inventory = CreateWidget<UINV_InventoryBase>(OwningController.Get(), InventoryClass);
 	checkf(Inventory, TEXT("Inventory cannot be null"));
 	Inventory->AddToViewport();
-	// Inventory->SetVisibility(ESlateVisibility::Collapsed);
+	Inventory->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen)

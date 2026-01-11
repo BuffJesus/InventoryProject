@@ -18,6 +18,8 @@ class INVENTORY_API UINV_InventoryItem : public UObject
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool IsSupportedForNetworking() const override { return true; }
+	
 	FORCEINLINE void SetItemManifest(const FINV_ItemManifest& Manifest)
 	{
 		ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
