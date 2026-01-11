@@ -6,6 +6,7 @@
 #include "Net/Serialization/FastArraySerializer.h"
 #include "INV_FastArray.generated.h"
 
+class UINV_ItemComponent;
 class UINV_InventoryComponent;
 class UINV_InventoryItem;
 
@@ -42,7 +43,7 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 		return FastArrayDeltaSerialize<FINV_InventoryEntry, FINV_InventoryFastArray>(Entries, DeltaParams, *this);
 	}
 	
-	UINV_InventoryItem* AddEntry(UINV_InventoryComponent* ItemComponent);
+	UINV_InventoryItem* AddEntry(UINV_ItemComponent* ItemComponent);
 	UINV_InventoryItem* AddEntry(UINV_InventoryItem* Item);
 	void RemoveEntry(UINV_InventoryItem* Item);
 	

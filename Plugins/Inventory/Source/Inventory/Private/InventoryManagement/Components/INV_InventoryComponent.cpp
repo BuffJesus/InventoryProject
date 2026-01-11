@@ -1,12 +1,14 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 
 UINV_InventoryComponent::UINV_InventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
+	bReplicateUsingRegisteredSubObjectList = true;
+	bInventoryMenuOpen = false;
 }
 
 void UINV_InventoryComponent::BeginPlay()
@@ -22,6 +24,15 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 		: HandleInventoryMenu(ESlateVisibility::Visible, true);
 }
 
+void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
+{
+	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))
+	{
+		AddReplicatedSubObject(SubObj);
+
+	}
+}
+
 void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 {
 	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
@@ -32,7 +43,16 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 		return;
 	}
 	
-	// TODO: Actually add item to inventory
+	if (Result.Item.IsValid() && Result.bStackable)
+	{
+		// Add stacks to item that already exists
+		Server_AddStacksToItem(ItemComponent, Result.TotalRoomToFill, Result.Remainder);
+	}
+	else if (Result.TotalRoomToFill > 0)
+	{
+		// Item does not yet exist in inventory. Create new entry and update all pertinent stats
+		Server_AddNewItem(ItemComponent, Result.bStackable ? Result.TotalRoomToFill : 0);
+	}
 }
 
 void UINV_InventoryComponent::ConstructInventory()
@@ -44,7 +64,7 @@ void UINV_InventoryComponent::ConstructInventory()
 	Inventory = CreateWidget<UINV_InventoryBase>(OwningController.Get(), InventoryClass);
 	checkf(Inventory, TEXT("Inventory cannot be null"));
 	Inventory->AddToViewport();
-	Inventory->SetVisibility(ESlateVisibility::Collapsed);
+	// Inventory->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen)
@@ -60,4 +80,15 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 			: OwningController->SetInputMode(FInputModeGameOnly());
 	
 	OwningController->SetShowMouseCursor(bIsOpen);
+}
+
+void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
+{
+	
+}
+
+void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
+	int32 Remainder)
+{
+	
 }
