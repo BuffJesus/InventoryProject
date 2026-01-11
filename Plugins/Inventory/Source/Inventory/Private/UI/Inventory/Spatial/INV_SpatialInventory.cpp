@@ -48,5 +48,7 @@ void UINV_SpatialInventory::NativeOnInitialized()
 
 FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const
 {
-	return FINV_SlotAvailabilityResult();
+	FINV_SlotAvailabilityResult Result;
+	Result.TotalRoomToFill = 1;
+	return Result;
 }
