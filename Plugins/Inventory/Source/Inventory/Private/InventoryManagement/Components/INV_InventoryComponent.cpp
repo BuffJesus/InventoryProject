@@ -94,6 +94,11 @@ void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponen
 {
 	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
 	
+	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
+	{
+		OnItemAdded.Broadcast(NewItem);
+	}
+	
 	// TODO: Tell item component to destroy owning actor
 }
 

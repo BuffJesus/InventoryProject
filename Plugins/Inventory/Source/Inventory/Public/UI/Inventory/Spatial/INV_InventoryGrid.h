@@ -7,6 +7,7 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+class UINV_InventoryComponent;
 class UCanvasPanel;
 class UINV_GridSlot;
 /**
@@ -21,7 +22,12 @@ public:
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	virtual void NativeOnInitialized() override;
 	
+	UFUNCTION()
+	void AddItem(UINV_InventoryItem* Item);
+	
 private:
+	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
+	
 	void ConstructGrid();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")
@@ -32,4 +38,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_GridSlot> SlotClass;
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") FIntPoint GridSize { 8, 4 };
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") float TileSize { 54.0f };
+	
+	bool MatchesCategory(const UINV_InventoryItem* Item) const;
 };
