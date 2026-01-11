@@ -12,14 +12,14 @@ public class Inventory : ModuleRules
 			new string[] {
 				// ... add public include paths required here ...
 			}
-			);
+		);
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
 			}
-			);
+		);
 			
 		
 		PublicDependencyModuleNames.AddRange(
@@ -28,7 +28,7 @@ public class Inventory : ModuleRules
 				"Core"
 				// ... add other public dependencies that you statically link with here ...
 			}
-			);
+		);
 			
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -41,10 +41,11 @@ public class Inventory : ModuleRules
 				"EnhancedInput",
 				"UMG",
 				"NetCore",
-				"GameplayTags"
+				"GameplayTags",
+				"StructUtils"
 				// ... add private dependencies that you statically link with here ...	
 			}
-			);
+		);
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(
@@ -52,6 +53,6 @@ public class Inventory : ModuleRules
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
-			);
+		);
 	}
 }
