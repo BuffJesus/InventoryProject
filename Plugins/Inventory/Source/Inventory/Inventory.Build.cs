@@ -40,7 +40,8 @@ public class Inventory : ModuleRules
 				"SlateCore", 
 				"EnhancedInput",
 				"UMG",
-				"NetCore"
+				"NetCore",
+				"GameplayTags"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
