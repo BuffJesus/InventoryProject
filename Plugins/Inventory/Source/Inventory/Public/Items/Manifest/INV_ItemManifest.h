@@ -23,7 +23,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };
 	
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory", meta = (Categories = "GameItems"))
 	FGameplayTag ItemType;
 };
 
