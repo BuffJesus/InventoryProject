@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Items/Fragments/INV_ItemFragment.h"
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+class UINV_SlottedItem;
 struct FINV_ItemManifest;
 class UINV_ItemComponent;
 class UINV_InventoryComponent;
@@ -27,13 +29,26 @@ public:
 	
 	UFUNCTION()
 	void AddItem(UINV_InventoryItem* Item);
-	
+
 private:
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
 	
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
 	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
 	void AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem);
+	FVector2D GetDrawSize(const FINV_GridFragment* GridFragment) const;
+	
+	void SetSlottedItemImageBrush(const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment,
+								  const UINV_SlottedItem* SlottedItem) const;
+	
+	UINV_SlottedItem* CreateSlottedItem(UINV_InventoryItem* Item, 
+										const bool bStackable, 
+										int32 Index, 
+										const FINV_GridFragment* GridFragment,
+										const FINV_ImageFragment* ImageFragment);
+	
+	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
+	void AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment, UINV_SlottedItem* SlottedItem);
 	
 	void ConstructGrid();
 	
@@ -41,9 +56,17 @@ private:
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };
 	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> CanvasPanel;
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_SlottedItem> SlottedItemClass;
+	
+	UPROPERTY() TMap<int32, TObjectPtr<UINV_SlottedItem>> SlottedItems;
+	
 	UPROPERTY() TArray<TObjectPtr<UINV_GridSlot>> GridSlots;
+	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_GridSlot> SlotClass;
+	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") FIntPoint GridSize { 8, 4 };
+	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") float TileSize { 54.0f };
 	
 	bool MatchesCategory(const UINV_InventoryItem* Item) const;
