@@ -9,15 +9,26 @@
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "Items/INV_InventoryItem.h"
+#include "Items/INV_ItemComponent.h"
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 
-FINV_SlotAvailabilityResult UINV_InventoryGrid::GetSlotAvailabilityResult(const UINV_ItemComponent* ItemComponent)
+FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
+{
+	return HasRoomForItem(ItemComponent->GetItemManifest());
+}
+
+FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest)
 {
 	FINV_SlotAvailabilityResult Result;
 	Result.TotalRoomToFill = 1;
 	return Result;
+}
+
+FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_InventoryItem* Item)
+{
+	return HasRoomForItem(Item->GetItemManifest());
 }
 
 void UINV_InventoryGrid::NativeOnInitialized()

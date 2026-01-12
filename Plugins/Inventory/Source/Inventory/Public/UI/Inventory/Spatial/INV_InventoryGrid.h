@@ -7,6 +7,7 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+struct FINV_ItemManifest;
 class UINV_ItemComponent;
 class UINV_InventoryComponent;
 class UCanvasPanel;
@@ -21,7 +22,8 @@ class INVENTORY_API UINV_InventoryGrid : public UUserWidget
 	
 public:
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
-	FINV_SlotAvailabilityResult GetSlotAvailabilityResult(const UINV_ItemComponent* ItemComponent);
+	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_ItemComponent* ItemComponent);
+	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
 	virtual void NativeOnInitialized() override;
 	
 	UFUNCTION()
@@ -29,6 +31,8 @@ public:
 	
 private:
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
+	
+	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
 	
 	void ConstructGrid();
 	
