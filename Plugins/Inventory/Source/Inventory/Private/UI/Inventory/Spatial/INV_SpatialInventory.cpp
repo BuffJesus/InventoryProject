@@ -54,9 +54,9 @@ FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemCompo
 {
 	switch (UINV_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent))
 	{
-		case EINV_ItemCategory::Equippable: return Grid_Equippable->GetSlotAvailabilityResult(ItemComponent);
-		case EINV_ItemCategory::Consumable: return Grid_Consumable->GetSlotAvailabilityResult(ItemComponent);
-		case EINV_ItemCategory::Craftable: return Grid_Craftable->GetSlotAvailabilityResult(ItemComponent);
+		case EINV_ItemCategory::Equippable: return Grid_Equippable->HasRoomForItem(ItemComponent);
+		case EINV_ItemCategory::Consumable: return Grid_Consumable->HasRoomForItem(ItemComponent);
+		case EINV_ItemCategory::Craftable: return Grid_Craftable->HasRoomForItem(ItemComponent);
 		default:
 		UE_LOG(LogInventory, Error, TEXT("Invalid item category for inventory slot availability check"));
 		return FINV_SlotAvailabilityResult();
