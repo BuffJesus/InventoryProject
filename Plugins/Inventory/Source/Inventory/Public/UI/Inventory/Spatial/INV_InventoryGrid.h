@@ -7,6 +7,7 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+class UINV_ItemComponent;
 class UINV_InventoryComponent;
 class UCanvasPanel;
 class UINV_GridSlot;
@@ -20,6 +21,7 @@ class INVENTORY_API UINV_InventoryGrid : public UUserWidget
 	
 public:
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
+	FINV_SlotAvailabilityResult GetSlotAvailabilityResult(const UINV_ItemComponent* ItemComponent);
 	virtual void NativeOnInitialized() override;
 	
 	UFUNCTION()

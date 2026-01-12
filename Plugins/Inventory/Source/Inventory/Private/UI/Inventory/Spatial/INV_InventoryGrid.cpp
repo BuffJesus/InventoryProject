@@ -13,6 +13,13 @@
 #include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 
+FINV_SlotAvailabilityResult UINV_InventoryGrid::GetSlotAvailabilityResult(const UINV_ItemComponent* ItemComponent)
+{
+	FINV_SlotAvailabilityResult Result;
+	Result.TotalRoomToFill = 1;
+	return Result;
+}
+
 void UINV_InventoryGrid::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
