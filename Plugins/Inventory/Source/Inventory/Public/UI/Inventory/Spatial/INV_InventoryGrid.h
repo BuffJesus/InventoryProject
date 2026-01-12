@@ -23,7 +23,6 @@ class INVENTORY_API UINV_InventoryGrid : public UUserWidget
 public:
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_ItemComponent* ItemComponent);
-	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
 	virtual void NativeOnInitialized() override;
 	
 	UFUNCTION()
@@ -33,6 +32,8 @@ private:
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
 	
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
+	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
+	void AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem);
 	
 	void ConstructGrid();
 	
