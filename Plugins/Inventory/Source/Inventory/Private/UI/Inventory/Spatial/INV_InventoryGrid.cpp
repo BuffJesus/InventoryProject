@@ -45,7 +45,9 @@ void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
 	
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Adding item to inventory grid"));
+	FINV_SlotAvailabilityResult Result { HasRoomForItem(Item) };
+	
+	// TODO: Create widget to show item icon and add to correct spot on grid
 }
 
 void UINV_InventoryGrid::ConstructGrid()
