@@ -22,7 +22,7 @@ struct INVENTORY_API FINV_ItemManifest
 	FGameplayTag GetItemType() const { return ItemType; }
 	
 private:
-	UPROPERTY(EditAnywhere,Category="Inventory",meta = (ExcludeBaseStruct, BaseStruct = "/Script/Inventory.Inv_ItemFragment"))
+	UPROPERTY(EditAnywhere,Category="Inventory",meta = (ExcludeBaseStruct))
 	TArray<TInstancedStruct<FInv_ItemFragment>> Fragments;
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
