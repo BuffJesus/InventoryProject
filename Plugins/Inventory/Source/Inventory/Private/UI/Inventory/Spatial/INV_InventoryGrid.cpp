@@ -64,6 +64,7 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 	for (const auto& Availability : Result.SlotAvailabilities)
 	{
 		AddItemAtIndex(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
+		
 	}
 }
 
@@ -116,6 +117,14 @@ void UINV_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FINV_Gr
 	const FVector2D DrawPos = UINV_WidgetUtils::GetPositionFromIndex(Index, GridSize.X) * TileSize;
 	const FVector2D DrawPosWithPadding = DrawPos + FVector2D(GridFragment->GetGridPadding());
 	CanvasSlot->SetPosition(DrawPosWithPadding);
+}
+
+void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index)
+{
+	checkf(GridSlots.IsValidIndex(Index), TEXT("Index out of bounds!"));
+	
+	UINV_GridSlot* GridSlot { GridSlots[Index] };
+	GridSlot->SetOccupiedTexture();
 }
 
 void UINV_InventoryGrid::ConstructGrid()
