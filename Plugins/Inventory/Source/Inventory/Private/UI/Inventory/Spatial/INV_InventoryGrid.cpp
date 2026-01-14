@@ -64,7 +64,7 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 	for (const auto& Availability : Result.SlotAvailabilities)
 	{
 		AddItemAtIndex(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
-		
+		UpdateGridSlots(NewItem, Availability.Index);
 	}
 }
 
