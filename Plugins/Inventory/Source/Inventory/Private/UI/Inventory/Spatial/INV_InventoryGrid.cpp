@@ -123,8 +123,16 @@ void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int3
 {
 	checkf(GridSlots.IsValidIndex(Index), TEXT("Index out of bounds!"));
 	
-	UINV_GridSlot* GridSlot { GridSlots[Index] };
-	GridSlot->SetOccupiedTexture();
+	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(NewItem, FragmentTags::GridFragment) };
+	if (!GridFragment) return;
+	
+	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	
+	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
+		[](UINV_GridSlot* GridSlot)
+	{
+		GridSlot->SetOccupiedTexture();
+	});
 }
 
 void UINV_InventoryGrid::ConstructGrid()
