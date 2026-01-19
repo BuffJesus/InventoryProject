@@ -50,7 +50,7 @@ private:
 	
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment, UINV_SlottedItem* SlottedItem);
-	void UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index);
+	void UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount);
 	
 	void ConstructGrid();
 	
