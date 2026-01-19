@@ -25,13 +25,18 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemCo
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest)
 {
 	FINV_SlotAvailabilityResult Result;
-	Result.TotalRoomToFill = 1;
+	Result.TotalRoomToFill = 7;
+	Result.bStackable = true;
 	
 	FINV_SlotAvailability SlotAvailability;
-	SlotAvailability.AmountToFill = 1;
+	SlotAvailability.AmountToFill = 2;
 	SlotAvailability.Index = 0;
-	
 	Result.SlotAvailabilities.Add(MoveTemp(SlotAvailability));
+	
+	FINV_SlotAvailability SlotAvailability2;
+	SlotAvailability2.AmountToFill = 5;
+	SlotAvailability2.Index = 1;
+	Result.SlotAvailabilities.Add(MoveTemp(SlotAvailability2));
 	
 	return Result;
 }
@@ -85,12 +90,16 @@ void UINV_InventoryGrid::SetSlottedItemImageBrush(const FINV_GridFragment* GridF
 	SlottedItem->SetImageBrush(Brush);
 }
 
-UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item, const bool bStackable, const int32 Index, const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment)
+UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item, const bool bStackable, const int32 StackAmount, 
+	const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment, const int32 Index)
 {
 	UINV_SlottedItem* SlottedItem { CreateWidget<UINV_SlottedItem>(GetOwningPlayer(), SlottedItemClass) };
 	SlottedItem->SetInventoryItem(Item);
 	SetSlottedItemImageBrush(GridFragment, ImageFragment, SlottedItem);
 	SlottedItem->SetGridIndex(Index);
+	SlottedItem->SetIsStackable(bStackable);
+	const int32 StackUpdateAmount = bStackable ? StackAmount : 0;
+	SlottedItem->UpdateStackCount(StackUpdateAmount);
 	
 	return SlottedItem;
 }
@@ -102,7 +111,7 @@ void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 In
 	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(Item, FragmentTags::IconFragment) };
 	if (!GridFragment || !ImageFragment) return;
 	
-	UINV_SlottedItem* SlottedItem = CreateSlottedItem(Item, bStackable, Index, GridFragment, ImageFragment);
+	UINV_SlottedItem* SlottedItem = CreateSlottedItem(Item, bStackable, StackAmount, GridFragment, ImageFragment, Index);
 	AddSlottedItemToCanvas(Index, GridFragment, SlottedItem);
 	
 	SlottedItems.Add(Index, SlottedItem);

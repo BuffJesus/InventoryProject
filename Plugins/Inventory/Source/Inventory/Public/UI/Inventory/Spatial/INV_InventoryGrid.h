@@ -43,9 +43,10 @@ private:
 	
 	UINV_SlottedItem* CreateSlottedItem(UINV_InventoryItem* Item, 
 										const bool bStackable, 
-										int32 Index, 
+										int32 StackAmount, 
 										const FINV_GridFragment* GridFragment,
-										const FINV_ImageFragment* ImageFragment);
+										const FINV_ImageFragment* ImageFragment,
+										const int32 Index);
 	
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment, UINV_SlottedItem* SlottedItem);

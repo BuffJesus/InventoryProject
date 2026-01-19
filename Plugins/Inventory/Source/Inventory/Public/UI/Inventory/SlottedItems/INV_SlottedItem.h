@@ -9,6 +9,7 @@
 #include "INV_SlottedItem.generated.h"
 
 class UImage;
+class UTextBlock;
 /**
  * 
  */
@@ -27,9 +28,12 @@ public:
 	FIntPoint GetGridDimensions() const { return GridDimensions; }
 	void SetInventoryItem(UINV_InventoryItem* Item) { InventoryItem = Item; }
 	void SetImageBrush(const FSlateBrush& Brush) const { Image_Icon->SetBrush(Brush); }
+	void UpdateStackCount(int32 StackCount);
 	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UImage> Image_Icon;
+	UPROPERTY(meta = (BindWidget)) TObjectPtr<UTextBlock> Text_StackCount;
+	
 	int32 GridIndex;
 	FIntPoint GridDimensions;
 	TWeakObjectPtr<UINV_InventoryItem> InventoryItem;
