@@ -51,15 +51,22 @@ private:
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment, UINV_SlottedItem* SlottedItem);
 	void UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount);
+	
 	bool HasRoomAtIndex(const UINV_GridSlot* GridSlot, 
 		const FIntPoint& Dimensions,
 		const TSet<int32>& CheckedIndices,
-		TSet<int32>& OutTentativelyClaimed);
+		TSet<int32>& OutTentativelyClaimed,
+		const FGameplayTag& ItemType);
+	
 	FIntPoint GetItemDimensions(const FINV_ItemManifest& Manifest) const;
-	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot, const TSet<int32>& CheckedIndices, TSet<int32> OutTentativelyClaimed) const;
+	
+	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot, 
+		const TSet<int32>& CheckedIndices, TSet<int32> OutTentativelyClaimed, const FGameplayTag& ItemType) const;
+	
 	bool IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index) const;
 	bool HasValidItem(const UINV_GridSlot* GridSlot) const;
 	bool IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const;
+	bool DoesItemTypeMatch(const UINV_InventoryItem* SubItem, const FGameplayTag& ItemType) const;
 	
 	void ConstructGrid();
 	

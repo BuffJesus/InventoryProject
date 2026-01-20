@@ -46,7 +46,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 		
 	    // can item fit (ie out of bounds)
 		TSet<int32> TentativelyClaimed;
-		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed))
+		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed, Manifest.GetItemType()))
 		{
 			continue;
 		}
@@ -65,14 +65,15 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 bool UINV_InventoryGrid::HasRoomAtIndex(const UINV_GridSlot* GridSlot, 
 	const FIntPoint& Dimensions, 
 	const TSet<int32>& CheckedIndices, 
-	TSet<int32>& OutTentativelyClaimed)
+	TSet<int32>& OutTentativelyClaimed,
+	const FGameplayTag& ItemType)
 {
 	// is there room at index (ie other items in way)
 	bool bHasRoomAtIndex = true;
 	UINV_InventoryStatics::ForEach2D(GridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X, 
 		[&](const UINV_GridSlot* SubGridSlot)
 		{
-			if (CheckSlotConstraints(GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed))
+			if (CheckSlotConstraints(GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed, ItemType))
 			{
 				OutTentativelyClaimed.Add(SubGridSlot->GetTileIndex());
 			}
@@ -92,7 +93,7 @@ FIntPoint UINV_InventoryGrid::GetItemDimensions(const FINV_ItemManifest& Manifes
 }
 
 bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot, 
-	const TSet<int32>& CheckedIndices, TSet<int32> OutTentativelyClaimed) const
+	const TSet<int32>& CheckedIndices, TSet<int32> OutTentativelyClaimed, const FGameplayTag& ItemType) const
 {
 	// index claimed
 	if (IsIndexClaimed(CheckedIndices, SubGridSlot->GetTileIndex())) return false;
@@ -108,7 +109,7 @@ bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot, con
 	if (!SubItem->IsStackable()) return false;
 	
 	// is item same type as item trying to add
-	
+	if (!DoesItemTypeMatch(SubItem, ItemType)) return false;
 	
 	// if yes, is slot a mack stack size already
 	return false;
@@ -127,6 +128,11 @@ bool UINV_InventoryGrid::HasValidItem(const UINV_GridSlot* GridSlot) const
 bool UINV_InventoryGrid::IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const
 {
 	return SubGridSlot->GetUpperLeftIndex() == GridSlot->GetTileIndex();
+}
+
+bool UINV_InventoryGrid::DoesItemTypeMatch(const UINV_InventoryItem* SubItem, const FGameplayTag& ItemType) const
+{
+	return SubItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType);
 }
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_InventoryItem* Item)
