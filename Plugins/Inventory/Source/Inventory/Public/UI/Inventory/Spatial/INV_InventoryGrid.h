@@ -56,17 +56,28 @@ private:
 		const FIntPoint& Dimensions,
 		const TSet<int32>& CheckedIndices,
 		TSet<int32>& OutTentativelyClaimed,
-		const FGameplayTag& ItemType);
+		const FGameplayTag& ItemType,
+		const int32 MaxStackSize);
 	
 	FIntPoint GetItemDimensions(const FINV_ItemManifest& Manifest) const;
 	
-	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot, 
-		const TSet<int32>& CheckedIndices, TSet<int32> OutTentativelyClaimed, const FGameplayTag& ItemType) const;
+	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot, 
+		const UINV_GridSlot* SubGridSlot, 
+		const TSet<int32>& CheckedIndices, 
+		TSet<int32> OutTentativelyClaimed, 
+		const FGameplayTag& ItemType,
+		const int32 MaxStackSize) const;
 	
 	bool IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index) const;
 	bool HasValidItem(const UINV_GridSlot* GridSlot) const;
 	bool IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const;
 	bool DoesItemTypeMatch(const UINV_InventoryItem* SubItem, const FGameplayTag& ItemType) const;
+	bool IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const;
+	
+	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
+		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
+	
+	int32 GetStackAmount(const UINV_GridSlot* GridSlot) const;
 	
 	void ConstructGrid();
 	
