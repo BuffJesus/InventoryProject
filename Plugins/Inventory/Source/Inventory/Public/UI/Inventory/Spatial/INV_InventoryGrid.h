@@ -84,6 +84,8 @@ private:
 	int32 GetStackAmount(const UINV_GridSlot* GridSlot) const;
 	
 	void ConstructGrid();
+	void Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
+	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	

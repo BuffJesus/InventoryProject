@@ -327,6 +327,39 @@ void UINV_InventoryGrid::ConstructGrid()
 	}
 }
 
+void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
+{
+	AssignHoverItem(ClickedInventoryItem);
+	// Remove clicked item from grid
+}
+
+void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
+{
+	if (!IsValid(HoverItem))
+	{
+		HoverItem = CreateWidget<UINV_HoverItem>(GetOwningPlayer(), HoverItemClass);
+	}
+	
+	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(InventoryItem, FragmentTags::GridFragment) };
+	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(InventoryItem, FragmentTags::IconFragment) };
+	if (!GridFragment || !ImageFragment) return;
+
+	const FVector2D DrawSize { GetDrawSize(GridFragment) };
+	
+	FSlateBrush IconBrush;
+	IconBrush.SetResourceObject(ImageFragment->GetIcon());
+	IconBrush.DrawAs = ESlateBrushDrawType::Image;
+	IconBrush.ImageSize = DrawSize * UWidgetLayoutLibrary::GetViewportScale(this);
+	
+	HoverItem->SetImageBrush(IconBrush);
+	HoverItem->SetGridDimensions(GridFragment->GetGridSize());
+	HoverItem->SetInventoryItem(InventoryItem);
+	HoverItem->SetIsStackable(InventoryItem->IsStackable());
+	
+	HoverItem->SetDesiredSizeInViewport(IconBrush.ImageSize);
+	HoverItem->AddToViewport();
+}
+
 void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 {
 	if (!MatchesCategory(Result.Item.Get())) return;
@@ -355,7 +388,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	
 	if (!IsValid(HoverItem) && IsLeftClick(MouseEvent))
 	{
-		// TODO: Pickup - Assign hover item, remove slotted item from grid
+		Pickup(ClickedInventoryItem, GridIndex);
 	}
 }
 
