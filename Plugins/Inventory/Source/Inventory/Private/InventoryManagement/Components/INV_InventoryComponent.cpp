@@ -121,6 +121,6 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 	if (Remainder == 0) ItemComponent->PickedUp();
 	else if (FINV_StackableFragment* StackableFragment = ItemComponent->GetItemManifest().GetFragmentOfTypeMutable<FINV_StackableFragment>())
 	{
-		
+		StackableFragment->SetStackCount(Remainder);
 	}
 }
