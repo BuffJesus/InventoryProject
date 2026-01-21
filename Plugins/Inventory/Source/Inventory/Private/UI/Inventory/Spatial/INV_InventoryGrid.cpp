@@ -379,7 +379,7 @@ void UINV_InventoryGrid::RemoveItemFromGrid(UINV_InventoryItem* InventoryItem, c
 	{
 		GridSlot->SetInventoryItem(nullptr);	
 		GridSlot->SetUpperLeftIndex(INDEX_NONE);	
-		GridSlot->SetOccupiedTexture();	
+		GridSlot->SetUnoccupiedTexture();	
 		GridSlot->SetAvailability(true);
 		GridSlot->SetStackCount(0);	
 	});
