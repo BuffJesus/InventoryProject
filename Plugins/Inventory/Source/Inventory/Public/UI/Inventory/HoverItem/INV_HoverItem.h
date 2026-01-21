@@ -38,6 +38,7 @@ public:
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual void NativeOnInitialized() override;
 
 private:
 	FVector2D CachedSize { FVector2D::ZeroVector };

@@ -15,6 +15,13 @@ void UINV_HoverItem::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	SetPositionInViewport(MousePosition - (CachedSize / 2.f), false);
 }
 
+void UINV_HoverItem::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+	
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
 void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
 {
 	Image_Icon->SetBrush(Brush);
