@@ -357,6 +357,7 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 	HoverItem->SetIsStackable(InventoryItem->IsStackable());
 	
 	HoverItem->SetDesiredSizeInViewport(IconBrush.ImageSize);
+	HoverItem->SetCachedSize(IconBrush.ImageSize);
 	HoverItem->AddToViewport();
 }
 

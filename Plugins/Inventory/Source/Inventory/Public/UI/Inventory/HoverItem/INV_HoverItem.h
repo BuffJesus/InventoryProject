@@ -34,13 +34,13 @@ public:
 	FORCEINLINE void SetGridDimensions(const FIntPoint Dimensions) { GridDimensions = Dimensions; }
 	UINV_InventoryItem* GetInventoryItem() const;
 	void SetInventoryItem(UINV_InventoryItem* Item);
-	
+	FORCEINLINE void SetCachedSize(const FVector2D& Size) { CachedSize = Size; }
+
 protected:
-	virtual void NativeConstruct() override;
-	virtual void NativeDestruct() override;	
-	
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 private:
-	void UpdatePosition();
+	FVector2D CachedSize { FVector2D::ZeroVector };
     
 	FTimerHandle PositionTimerHandle;
     

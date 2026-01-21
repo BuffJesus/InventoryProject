@@ -7,36 +7,12 @@
 #include "Components/Image.h"
 #include "Items/INV_InventoryItem.h"
 
-void UINV_HoverItem::NativeConstruct()
+void UINV_HoverItem::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	Super::NativeConstruct();
+	Super::NativeTick(MyGeometry, InDeltaTime);
     
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			PositionTimerHandle,
-			this,
-			&ThisClass::UpdatePosition,
-			PositionUpdateRate,
-			true // looping
-		);
-	}
-}
-
-void UINV_HoverItem::NativeDestruct()
-{
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(PositionTimerHandle);
-	}
-    
-	Super::NativeDestruct();
-}
-
-void UINV_HoverItem::UpdatePosition()
-{
-	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this) - (GetDesiredSize() / 2);
-	SetPositionInViewport(MousePosition, true);
+	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	SetPositionInViewport(MousePosition - (CachedSize / 2.f), false);
 }
 
 void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
