@@ -36,7 +36,7 @@ void UINV_HoverItem::NativeDestruct()
 void UINV_HoverItem::UpdatePosition()
 {
 	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this) - (GetDesiredSize() / 2);
-	SetPositionInViewport(MousePosition, false);
+	SetPositionInViewport(MousePosition, true);
 }
 
 void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
