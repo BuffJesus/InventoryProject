@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Items/INV_ItemComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 
@@ -44,6 +45,9 @@ void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 {
 	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
+	
+	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType()) };
+	Result.Item = FoundItem;
 	
 	if (Result.TotalRoomToFill == 0)
 	{
