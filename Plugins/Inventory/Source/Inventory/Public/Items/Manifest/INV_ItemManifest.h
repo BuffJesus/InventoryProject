@@ -28,7 +28,7 @@ struct INVENTORY_API FINV_ItemManifest
 	const T* GetFragmentOfType() const;
 	
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
-	const T* GetFragmentOfTypeMutable();
+	T* GetFragmentOfTypeMutable();
 	
 private:
 	UPROPERTY(EditAnywhere,Category="Inventory",meta = (ExcludeBaseStruct))
@@ -69,7 +69,7 @@ const T* FINV_ItemManifest::GetFragmentOfType() const
 }
 
 template <typename T> requires std::derived_from<T, FInv_ItemFragment>
-const T* FINV_ItemManifest::GetFragmentOfTypeMutable()
+T* FINV_ItemManifest::GetFragmentOfTypeMutable()
 {
 	for (TInstancedStruct<FInv_ItemFragment>& Fragment : Fragments)
 	{
