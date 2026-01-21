@@ -86,6 +86,7 @@ private:
 	void ConstructGrid();
 	void Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
+	void AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex, const int32 PreviousGridIndex);
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	

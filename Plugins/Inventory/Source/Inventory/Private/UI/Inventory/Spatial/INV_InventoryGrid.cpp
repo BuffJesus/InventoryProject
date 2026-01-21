@@ -329,7 +329,7 @@ void UINV_InventoryGrid::ConstructGrid()
 
 void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
-	AssignHoverItem(ClickedInventoryItem);
+	AssignHoverItem(ClickedInventoryItem, GridIndex, GridIndex);
 	// Remove clicked item from grid
 }
 
@@ -359,6 +359,15 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 	HoverItem->SetDesiredSizeInViewport(IconBrush.ImageSize);
 	HoverItem->SetCachedSize(IconBrush.ImageSize);
 	HoverItem->AddToViewport();
+}
+
+void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex,
+	const int32 PreviousGridIndex)
+{
+	AssignHoverItem(InventoryItem);
+	
+	HoverItem->SetPreviousGridIndex(PreviousGridIndex);
+	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? GridSlots[GridIndex]->GetStackCount() : 0);
 }
 
 void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
