@@ -35,7 +35,17 @@ public:
 	UINV_InventoryItem* GetInventoryItem() const;
 	void SetInventoryItem(UINV_InventoryItem* Item);
 	
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;	
+	
 private:
+	void UpdatePosition();
+    
+	FTimerHandle PositionTimerHandle;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Hover Item")
+	float PositionUpdateRate = 0.016f; // ~60fps
 	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UImage> Image_Icon;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UTextBlock> Text_StackCount;

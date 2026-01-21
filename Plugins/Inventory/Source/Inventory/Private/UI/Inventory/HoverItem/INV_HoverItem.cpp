@@ -2,9 +2,42 @@
 
 
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "Items/INV_InventoryItem.h"
+
+void UINV_HoverItem::NativeConstruct()
+{
+	Super::NativeConstruct();
+    
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			PositionTimerHandle,
+			this,
+			&ThisClass::UpdatePosition,
+			PositionUpdateRate,
+			true // looping
+		);
+	}
+}
+
+void UINV_HoverItem::NativeDestruct()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PositionTimerHandle);
+	}
+    
+	Super::NativeDestruct();
+}
+
+void UINV_HoverItem::UpdatePosition()
+{
+	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this) - (GetDesiredSize() / 2);
+	SetPositionInViewport(MousePosition, false);
+}
 
 void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
 {
