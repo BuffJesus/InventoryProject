@@ -8,6 +8,7 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+class UINV_HoverItem;
 class UINV_SlottedItem;
 struct FINV_ItemManifest;
 class UINV_ItemComponent;
@@ -73,6 +74,9 @@ private:
 	bool IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const;
 	bool DoesItemTypeMatch(const UINV_InventoryItem* SubItem, const FGameplayTag& ItemType) const;
 	bool IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const;
+	bool MatchesCategory(const UINV_InventoryItem* Item) const;
+	bool IsRightClick(const FPointerEvent& MouseEvent) const;
+	bool IsLeftClick(const FPointerEvent& MouseEvent) const;
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
@@ -102,5 +106,6 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") float TileSize { 54.0f };
 	
-	bool MatchesCategory(const UINV_InventoryItem* Item) const;
+	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_HoverItem> HoverItemClass;
+	UPROPERTY() TObjectPtr<UINV_HoverItem> HoverItem;
 };

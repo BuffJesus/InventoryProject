@@ -16,6 +16,7 @@
 #include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
+#include "UI/Inventory/HoverItem/INV_HoverItem.h"
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -349,10 +350,26 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("GridIndex: %d"), GridIndex));
+	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
+	UINV_InventoryItem* ClickedInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
+	
+	if (!IsValid(HoverItem) && IsLeftClick(MouseEvent))
+	{
+		// TODO: Pickup - Assign hover item, remove slotted item from grid
+	}
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 {
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
+}
+
+bool UINV_InventoryGrid::IsRightClick(const FPointerEvent& MouseEvent) const
+{
+	return MouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
+}
+
+bool UINV_InventoryGrid::IsLeftClick(const FPointerEvent& MouseEvent) const
+{
+	return MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 }
