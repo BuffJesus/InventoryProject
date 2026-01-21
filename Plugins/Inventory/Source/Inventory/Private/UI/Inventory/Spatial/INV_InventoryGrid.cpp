@@ -55,7 +55,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 		}
 		
 	    // how much to fill
-		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(StackableFragment, MaxStackSize, AmountToFill, GridSlot);
+		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
 		if (AmountToFillInSlot == 0) continue;
 		
 		CheckedIndices.Append(TentativelyClaimed);
