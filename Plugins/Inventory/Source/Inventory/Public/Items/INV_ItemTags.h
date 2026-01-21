@@ -37,6 +37,11 @@ namespace GameItems
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Small)
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Large)
 			}
+			namespace Frog
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Small)
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Large)
+			}
 		}
 	}
 	

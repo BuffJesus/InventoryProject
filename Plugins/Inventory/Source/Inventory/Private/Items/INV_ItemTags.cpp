@@ -36,6 +36,11 @@ namespace GameItems
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Small, "GameItems.Consumables.Potions.Blue.Small", "Small Blue Potion")
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Large, "GameItems.Consumables.Potions.Blue.Large", "Large Blue Potion")
 			}
+			namespace Frog
+			{
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Small, "GameItems.Consumables.Potions.Frog.Small", "Small Frog Potion")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Large, "GameItems.Consumables.Potions.Frog.Large", "Large Frog Potion")
+			}
 		}
 	}
 
