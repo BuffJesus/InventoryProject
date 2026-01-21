@@ -29,10 +29,14 @@ public:
 	const FINV_ItemManifest& GetItemManifest() const { return ItemManifest.Get<FINV_ItemManifest>(); }
 	FINV_ItemManifest& GetItemManifestMutable() { return ItemManifest.GetMutable<FINV_ItemManifest>(); }
 	bool IsStackable() const;
+	FORCEINLINE int32 GetTotalStackCount() const { return TotalStackCount; }
+	FORCEINLINE void SetTotalStackCount(int32 Count) { TotalStackCount = Count; }
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/Inventory.INV_ItemManifest"), Replicated)
 	FInstancedStruct ItemManifest;
+	
+	UPROPERTY(Replicated) int32 TotalStackCount { 0 };
 };
 
 template <typename FragmentType>

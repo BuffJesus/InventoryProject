@@ -1,7 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
+#include "Items/Fragments/INV_ItemFragment.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 
@@ -97,17 +99,28 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
 {
 	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
+	NewItem->SetTotalStackCount(StackCount);
 	
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
 	{
 		OnItemAdded.Broadcast(NewItem);
 	}
 	
-	// TODO: Tell item component to destroy owning actor
+	ItemComponent->PickedUp();
 }
 
 void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
 	int32 Remainder)
 {
-	GEngine->DrawOnscreenDebugMessages()
+	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
+	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(ItemType) };
+	if (!IsValid(Item)) return;
+	
+	Item->SetTotalStackCount(Item->GetTotalStackCount() + StackCount);
+	
+	if (Remainder == 0) ItemComponent->PickedUp();
+	else if (FINV_StackableFragment* StackableFragment = ItemComponent->GetItemManifest().GetFragmentOfTypeMutable<FINV_StackableFragment>())
+	{
+		
+	}
 }

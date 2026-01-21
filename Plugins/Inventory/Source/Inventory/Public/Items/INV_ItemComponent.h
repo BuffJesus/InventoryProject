@@ -16,8 +16,14 @@ class INVENTORY_API UINV_ItemComponent : public UActorComponent
 public:
 	UINV_ItemComponent();
 	FORCEINLINE FString GetPickupMessage() const { return PickupMessage; }
-	FINV_ItemManifest GetItemManifest() const { return ItemManifest; }
+	FORCEINLINE FINV_ItemManifest GetItemManifest() const { return ItemManifest; }
+	FORCEINLINE bool GetDestroyOnPickup() const { return bIsDestroyedOnPickup; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void PickedUp();
+	
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category="INV|Inventory")
+	void OnPickedUp();
 	
 private:
 	UPROPERTY(Replicated, EditAnywhere, Category="INV|Inventory")
@@ -25,5 +31,8 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
 	FString PickupMessage { TEXT("Null Message") };
+	
+	UPROPERTY(EditAnywhere, Category="INV|Inventory")
+	bool bIsDestroyedOnPickup { false };
 	
 };
