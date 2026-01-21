@@ -109,5 +109,5 @@ void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponen
 void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
 	int32 Remainder)
 {
-	
+	GEngine->DrawOnscreenDebugMessages()
 }
