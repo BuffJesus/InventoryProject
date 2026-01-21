@@ -7,12 +7,14 @@
 #include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "INV_InventoryComponent.generated.h"
 
+struct FINV_SlotAvailabilityResult;
 struct FINV_InventoryFastArray;
 class UINV_ItemComponent;
 class UINV_InventoryBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryItemChange, UINV_InventoryItem*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNoRoomInInventory);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FStackChange, const FINV_SlotAvailabilityResult&, Result);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class INVENTORY_API UINV_InventoryComponent : public UActorComponent
@@ -37,6 +39,7 @@ public:
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
 	FNoRoomInInventory OnNoRoomInInventory;
+	FStackChange OnStackChange;
 
 protected:
 	virtual void BeginPlay() override;

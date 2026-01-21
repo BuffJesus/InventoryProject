@@ -81,6 +81,8 @@ private:
 	
 	void ConstructGrid();
 	
+	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };
 	
