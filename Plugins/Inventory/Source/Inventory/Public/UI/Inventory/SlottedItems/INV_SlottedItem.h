@@ -5,11 +5,14 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
-#include "Items/INV_InventoryItem.h"
 #include "INV_SlottedItem.generated.h"
 
+class UINV_InventoryItem;
 class UImage;
 class UTextBlock;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemClicked, int32, GridIndex, const FPointerEvent&, MouseEvent);
+
 /**
  * 
  */
@@ -19,6 +22,8 @@ class INVENTORY_API UINV_SlottedItem : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	
 	bool IsStackable() const { return bIsStackable; }
 	void SetIsStackable(bool bStackable) { bIsStackable = bStackable; }
 	UImage* GetImageIcon() const { return Image_Icon; }
@@ -26,9 +31,12 @@ public:
 	int32 GetGridIndex() const { return GridIndex; }
 	void SetGridDimensions(const FIntPoint Dimensions) { GridDimensions = Dimensions; }
 	FIntPoint GetGridDimensions() const { return GridDimensions; }
+	UINV_InventoryItem* GetInventoryItem() const { return InventoryItem.Get(); }
 	void SetInventoryItem(UINV_InventoryItem* Item) { InventoryItem = Item; }
 	void SetImageBrush(const FSlateBrush& Brush) const { Image_Icon->SetBrush(Brush); }
 	void UpdateStackCount(int32 StackCount);
+	
+	FSlottedItemClicked OnSlottedItemClicked;
 	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UImage> Image_Icon;
