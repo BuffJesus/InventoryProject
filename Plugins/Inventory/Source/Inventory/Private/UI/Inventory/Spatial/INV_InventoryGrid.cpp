@@ -212,7 +212,13 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	
 	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
+	const FVector2D CanvasSize = UINV_WidgetUtils::GetWidgetSize(CanvasPanel);
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	
+	if (CursorExitedCanvas(CanvasPos, CanvasSize, MousePos))
+	{
+		return;
+	}
 	
 	UpdateTileParams(CanvasPos, MousePos);
 }
@@ -566,4 +572,17 @@ bool UINV_InventoryGrid::IsRightClick(const FPointerEvent& MouseEvent) const
 bool UINV_InventoryGrid::IsLeftClick(const FPointerEvent& MouseEvent) const
 {
 	return MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
+}
+
+bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize,
+	const FVector2D& Loc)
+{
+	bLastMouseWithinCanvas = bMouseWithinCanvas;
+	bMouseWithinCanvas = UINV_WidgetUtils::IsWithinBounds(BoundaryPos, BoundarySize, Loc);
+	if (!bMouseWithinCanvas && bLastMouseWithinCanvas)
+	{
+		// TODO: unhighlightslot
+		return true;
+	}
+	return false;
 }

@@ -78,6 +78,7 @@ private:
 	bool MatchesCategory(const UINV_InventoryItem* Item) const;
 	bool IsRightClick(const FPointerEvent& MouseEvent) const;
 	bool IsLeftClick(const FPointerEvent& MouseEvent) const;
+	bool CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Loc);
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
@@ -128,4 +129,7 @@ private:
 	
 	// Index where an item would be placed if we click on grid at valid location
 	int32 ItemDropIndex { INDEX_NONE };
+	
+	bool bMouseWithinCanvas { false };
+	bool bLastMouseWithinCanvas { false };
 };
