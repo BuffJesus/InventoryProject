@@ -27,7 +27,8 @@ public:
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_ItemComponent* ItemComponent);
 	virtual void NativeOnInitialized() override;
-	
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 	UFUNCTION()
 	void AddItem(UINV_InventoryItem* Item);
 
@@ -88,6 +89,11 @@ private:
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex, const int32 PreviousGridIndex);
 	void RemoveItemFromGrid(UINV_InventoryItem* InventoryItem, const int32 GridIndex);
+	void UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos);
+	void OnTileParamsUpdated(const FINV_TileParams& Params);
+	
+	const FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
+	EINV_TileQuadrant CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	
@@ -112,4 +118,7 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_HoverItem> HoverItemClass;
 	UPROPERTY() TObjectPtr<UINV_HoverItem> HoverItem;
+	
+	FINV_TileParams TileParams;
+	FINV_TileParams LastTileParams;
 };

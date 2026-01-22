@@ -207,6 +207,69 @@ void UINV_InventoryGrid::NativeOnInitialized()
 	InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
 }
 
+void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	
+	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
+	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	
+	UpdateTileParams(CanvasPos, MousePos);
+}
+
+const FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const
+{
+	return FIntPoint{
+		static_cast<int32>(FMath::FloorToInt((MousePos.X - CanvasPos.X) / TileSize)),
+		static_cast<int32>(FMath::FloorToInt((MousePos.Y - CanvasPos.Y) / TileSize))
+	};
+}
+
+EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const
+{
+	// Calculate relative pos withing current tile
+	const float TileLocalX = FMath::Fmod(MousePos.X - CanvasPos.X, TileSize);
+	const float TileLocalY = FMath::Fmod(MousePos.Y - CanvasPos.Y, TileSize);
+	
+	// Determine quadrant mouse is in
+	const bool bIsTop = TileLocalY < TileSize / 2.f; // Top if Y is in upper half
+	const bool bIsLeft = TileLocalX < TileSize / 2.f; // Left if X is in left half
+	
+	EINV_TileQuadrant HoveredTileQuadrant { EINV_TileQuadrant::None };
+	if (bIsTop && bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::TopLeft;
+	else if (bIsTop && !bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::TopRight;
+	else if (!bIsTop && bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::BottomLeft;
+	else HoveredTileQuadrant = EINV_TileQuadrant::BottomRight;
+	
+	return HoveredTileQuadrant;
+}
+
+void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos)
+{
+	// If mouse not in canvas panel, return
+	// Calculate tile quadrant, index, and coords
+	const FIntPoint HoveredTileCoords { CalculateHoverCoordinates(CanvasPos, MousePos) };
+	
+	LastTileParams = TileParams;
+	TileParams.TileCoordinates = HoveredTileCoords;
+	TileParams.TileIndex = UINV_WidgetUtils::GetIndexFromPosition(HoveredTileCoords, GridSize.X);
+	TileParams.TileQuadrant = CalculateTileQuadrant(CanvasPos, MousePos);
+	
+	OnTileParamsUpdated(TileParams);
+}
+
+void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
+{
+	if (!IsValid(HoverItem)) return;
+	
+	// Get hover item dimensions
+	// Calculate starting coord for highlighting
+	// Check hover pos
+		// in grid bounds?
+		// any items in way?
+		// if yes, only one item in way? (can we swap?)
+}
+
 void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
