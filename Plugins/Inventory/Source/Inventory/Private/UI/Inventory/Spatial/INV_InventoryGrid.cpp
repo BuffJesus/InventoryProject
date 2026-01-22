@@ -36,19 +36,19 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 	int32 AmountToFill { StackableFragment ? StackableFragment->GetStackCount() : 1 };
 	
 	TSet<int32> CheckedIndices;
-	// For each Gridslot:
+	// For each GridSlot:
 	for (const auto& GridSlot : GridSlots)
 	{
 	    // if no more to fill, break from loop
 	    if (AmountToFill == 0) break;
 		
-	    // is index claimed
+	    // is index claimed?
 		if (IsIndexClaimed(CheckedIndices, GridSlot->GetTileIndex())) continue;
 		
-		// is item inside of grid bounds
+		// is the item inside grid bounds?
 		if (!IsInGridBounds(GridSlot->GetTileIndex(), GetItemDimensions(Manifest))) continue;
 		
-	    // can item fit (ie out of bounds)
+	    // can item fit (i.e., out of bounds)
 		TSet<int32> TentativelyClaimed;
 		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed, Manifest.GetItemType(), MaxStackSize))
 		{
@@ -88,7 +88,7 @@ bool UINV_InventoryGrid::HasRoomAtIndex(const UINV_GridSlot* GridSlot,
 	const FGameplayTag& ItemType,
 	const int32 MaxStackSize)
 {
-	// is there room at index (ie other items in way)
+	// is there room at index (i.e., other items in the way)?
 	bool bHasRoomAtIndex = true;
 	UINV_InventoryStatics::ForEach2D(GridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X, 
 		[&](const UINV_GridSlot* SubGridSlot)
@@ -119,7 +119,7 @@ bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
 	const FGameplayTag& ItemType, 
 	const int32 MaxStackSize) const
 {
-	// index claimed
+	// index claimed?
 	if (IsIndexClaimed(CheckedIndices, SubGridSlot->GetTileIndex())) return false;
 	
 	// has valid item
@@ -132,10 +132,10 @@ bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
 	const UINV_InventoryItem* SubItem { SubGridSlot->GetInventoryItem().Get() };
 	if (!SubItem->IsStackable()) return false;
 	
-	// is item same type as item trying to add
+	// is item same type as the item trying to add?
 	if (!DoesItemTypeMatch(SubItem, ItemType)) return false;
 	
-	// if yes, is slot a mack stack size already
+	// if yes, is slot a max stack size already
 	if (GridSlot->GetStackCount() >= MaxStackSize) return false;
 	
 	return true;
@@ -172,10 +172,10 @@ bool UINV_InventoryGrid::IsInGridBounds(const int32 StartIndex, const FIntPoint&
 int32 UINV_InventoryGrid::DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize,
 	const int32 AmountToFill, const UINV_GridSlot* GridSlot) const
 {
-	// calculate room in slot
+	// calculate room in the slot
 	const int32 RoomInSlot = MaxStackSize - GetStackAmount(GridSlot);
 	
-	// if stackable, need min btwn amounttofill and roominslot
+	// if stackable, need min between amount to fill and room in slot
 	return bStackable ? FMath::Min(AmountToFill, RoomInSlot) : 1;
 }
 
@@ -217,7 +217,7 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	UpdateTileParams(CanvasPos, MousePos);
 }
 
-const FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const
+FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
 	return FIntPoint{
 		static_cast<int32>(FMath::FloorToInt((MousePos.X - CanvasPos.X) / TileSize)),
@@ -232,14 +232,14 @@ EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& Can
 	const float TileLocalY = FMath::Fmod(MousePos.Y - CanvasPos.Y, TileSize);
 	
 	// Determine quadrant mouse is in
-	const bool bIsTop = TileLocalY < TileSize / 2.f; // Top if Y is in upper half
-	const bool bIsLeft = TileLocalX < TileSize / 2.f; // Left if X is in left half
+	const bool bIsTop = TileLocalY < TileSize / 2.f; // Top if Y is in the upper half
+	const bool bIsLeft = TileLocalX < TileSize / 2.f; // Left if X is in the left half
 	
 	EINV_TileQuadrant HoveredTileQuadrant { EINV_TileQuadrant::None };
 	if (bIsTop && bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::TopLeft;
 	else if (bIsTop && !bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::TopRight;
 	else if (!bIsTop && bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::BottomLeft;
-	else HoveredTileQuadrant = EINV_TileQuadrant::BottomRight;
+	else if (!bIsTop && !bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::BottomRight;
 	
 	return HoveredTileQuadrant;
 }
@@ -270,8 +270,8 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	
 	// Check hover pos
 		// in grid bounds?
-		// any items in way?
-		// if yes, only one item in way? (can we swap?)
+		// any items in the way?
+		// if yes, only one item in the way? (can we swap?)
 }
 
 FIntPoint UINV_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions,
@@ -469,7 +469,7 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, cons
 	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? GridSlots[GridIndex]->GetStackCount() : 0);
 }
 
-void UINV_InventoryGrid::RemoveItemFromGrid(UINV_InventoryItem* InventoryItem, const int32 GridIndex)
+void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex)
 {
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(InventoryItem, FragmentTags::GridFragment) };
 	if (!GridFragment) return;

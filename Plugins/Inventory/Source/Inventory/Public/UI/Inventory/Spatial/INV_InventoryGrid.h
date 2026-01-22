@@ -88,11 +88,11 @@ private:
 	void Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex, const int32 PreviousGridIndex);
-	void RemoveItemFromGrid(UINV_InventoryItem* InventoryItem, const int32 GridIndex);
+	void RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex);
 	void UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos);
 	void OnTileParamsUpdated(const FINV_TileParams& Params);
-	
-	const FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
+
+	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions, const EINV_TileQuadrant Quadrant) const;
 	EINV_TileQuadrant CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	
