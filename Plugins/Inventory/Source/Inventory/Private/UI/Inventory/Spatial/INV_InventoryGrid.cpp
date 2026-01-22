@@ -266,7 +266,7 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	const FIntPoint Dimensions { HoverItem->GetGridDimensions() };
 	
 	// Calculate starting coord for highlighting
-	
+	const FIntPoint StartingCoord { CalculateStartingCoordinate(Params.TileCoordinates, Dimensions, Params.TileQuadrant) };
 	
 	// Check hover pos
 		// in grid bounds?
