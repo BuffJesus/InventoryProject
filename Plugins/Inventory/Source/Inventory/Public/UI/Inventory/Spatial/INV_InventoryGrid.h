@@ -95,7 +95,7 @@ private:
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions, const EINV_TileQuadrant Quadrant) const;
 	EINV_TileQuadrant CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
-	FINV_SpaceQueryResult CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions) const;
+	FINV_SpaceQueryResult CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions);
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	
