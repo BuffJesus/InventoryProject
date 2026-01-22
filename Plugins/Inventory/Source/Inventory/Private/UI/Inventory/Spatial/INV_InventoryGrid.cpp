@@ -263,11 +263,47 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	if (!IsValid(HoverItem)) return;
 	
 	// Get hover item dimensions
+	const FIntPoint Dimensions { HoverItem->GetGridDimensions() };
+	
 	// Calculate starting coord for highlighting
+	
+	
 	// Check hover pos
 		// in grid bounds?
 		// any items in way?
 		// if yes, only one item in way? (can we swap?)
+}
+
+FIntPoint UINV_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions,
+	const EINV_TileQuadrant Quadrant) const
+{
+	const int32 HasEvenWidth = Dimensions.X % 2 == 0 ? 1 : 0;
+	const int32 HasEvenHeight = Dimensions.Y % 2 == 0 ? 1 : 0;
+	
+	FIntPoint StartingCoord;
+	switch (Quadrant)
+	{
+	case EINV_TileQuadrant::TopLeft:
+			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f);
+			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f);
+		break;
+		case EINV_TileQuadrant::TopRight:
+			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f) + HasEvenWidth;
+			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f);
+		break;
+		case EINV_TileQuadrant::BottomLeft:
+			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f);
+			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f) + HasEvenHeight;
+		break;
+		case EINV_TileQuadrant::BottomRight:
+			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f) + HasEvenWidth;
+			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f) + HasEvenHeight;
+		break;
+	default:
+		UE_LOG(LogInventory, Error, TEXT("Invalid tile quadrant: %d"), static_cast<int32>(Quadrant));
+		return FIntPoint(-1, -1);
+	}
+	return StartingCoord;
 }
 
 void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
