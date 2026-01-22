@@ -48,14 +48,14 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 		// is the item inside grid bounds?
 		if (!IsInGridBounds(GridSlot->GetTileIndex(), GetItemDimensions(Manifest))) continue;
 		
-	    // can item fit (i.e., out of bounds)
+	    // can item fit (i.e., out of bounds)?
 		TSet<int32> TentativelyClaimed;
 		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed, Manifest.GetItemType(), MaxStackSize))
 		{
 			continue;
 		}
 		
-	    // how much to fill
+	    // how much to fill?
 		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
 		if (AmountToFillInSlot == 0) continue;
 		
@@ -73,7 +73,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 		
 		AmountToFill -= AmountToFillInSlot;
 		
-		// How much remaining
+		// How much remaining?
 		Result.Remainder = AmountToFill;
 		
 		if (AmountToFill == 0) return Result;
@@ -122,20 +122,20 @@ bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
 	// index claimed?
 	if (IsIndexClaimed(CheckedIndices, SubGridSlot->GetTileIndex())) return false;
 	
-	// has valid item
+	// has valid item?
 	if (!HasValidItem(SubGridSlot)) return true;
 	
-	// is this grid slot upper left slot
+	// is this grid slot upper left slot?
 	if (!IsUpperLeftSlot(GridSlot, SubGridSlot)) return false;
 	
-	// if yes, is stackable
+	// if yes, is stackable?
 	const UINV_InventoryItem* SubItem { SubGridSlot->GetInventoryItem().Get() };
 	if (!SubItem->IsStackable()) return false;
 	
 	// is item same type as the item trying to add?
 	if (!DoesItemTypeMatch(SubItem, ItemType)) return false;
 	
-	// if yes, is slot a max stack size already
+	// if yes, is slot a max stack size already?
 	if (GridSlot->GetStackCount() >= MaxStackSize) return false;
 	
 	return true;
