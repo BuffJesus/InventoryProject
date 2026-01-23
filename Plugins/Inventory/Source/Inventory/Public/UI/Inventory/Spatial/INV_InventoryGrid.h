@@ -92,6 +92,8 @@ private:
 	void RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex);
 	void UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos);
 	void OnTileParamsUpdated(const FINV_TileParams& Params);
+	void HighlightSlots(const int32 Index, const FIntPoint& Dimensions);
+	void UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions, const EINV_TileQuadrant Quadrant) const;
@@ -132,4 +134,6 @@ private:
 	
 	bool bMouseWithinCanvas { false };
 	bool bLastMouseWithinCanvas { false };
+	int32 LastHighlightedIndex { INDEX_NONE };
+	FIntPoint LastHighlightedDimensions;
 };

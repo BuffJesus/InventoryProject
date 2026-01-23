@@ -252,7 +252,8 @@ EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& Can
 
 void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos)
 {
-	// If mouse not in canvas panel, return
+	if (!bMouseWithinCanvas) return;
+	
 	// Calculate tile quadrant, index, and coords
 	const FIntPoint HoveredTileCoords { CalculateHoverCoordinates(CanvasPos, MousePos) };
 	
@@ -276,6 +277,47 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	ItemDropIndex = UINV_WidgetUtils::GetIndexFromPosition(StartingCoord, GridSize.X);
 	
 	CurrentQueryResult = CheckHoverPosition(StartingCoord, Dimensions);
+	
+	if (CurrentQueryResult.bHasSpace)
+	{
+		HighlightSlots(ItemDropIndex, Dimensions);
+		return;
+	}
+	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
+	
+	if (CurrentQueryResult.ValidItem.IsValid())
+	{
+		// TODO: There's a single item in this space. We can swap or add stacks.
+	}
+}
+
+void UINV_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dimensions)
+{
+	if (!bMouseWithinCanvas) return;
+	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
+	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
+		[&](UINV_GridSlot* GridSlot)
+	{
+		GridSlot->SetOccupiedTexture();		
+	});
+	LastHighlightedDimensions = Dimensions;
+	LastHighlightedIndex = Index;
+}
+
+void UINV_InventoryGrid::UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions)
+{
+	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
+		[&](UINV_GridSlot* GridSlot)
+	{
+		if (GridSlot->GetAvailability())
+		{
+			GridSlot->SetUnoccupiedTexture();
+		}
+		else
+		{
+			GridSlot->SetOccupiedTexture();
+		}	
+	});
 }
 
 FINV_SpaceQueryResult UINV_InventoryGrid::CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions) 
@@ -581,7 +623,7 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	bMouseWithinCanvas = UINV_WidgetUtils::IsWithinBounds(BoundaryPos, BoundarySize, Loc);
 	if (!bMouseWithinCanvas && bLastMouseWithinCanvas)
 	{
-		// TODO: unhighlightslot
+		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
 		return true;
 	}
 	return false;
