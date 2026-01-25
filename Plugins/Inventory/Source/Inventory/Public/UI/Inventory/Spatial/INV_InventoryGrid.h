@@ -8,6 +8,7 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryGrid.generated.h"
 
+enum class EINV_GridSlotState : uint8;
 class UINV_HoverItem;
 class UINV_SlottedItem;
 struct FINV_ItemManifest;
@@ -94,6 +95,7 @@ private:
 	void OnTileParamsUpdated(const FINV_TileParams& Params);
 	void HighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 	void UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions);
+	void ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState);
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions, const EINV_TileQuadrant Quadrant) const;

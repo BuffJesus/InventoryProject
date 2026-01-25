@@ -320,6 +320,23 @@ void UINV_InventoryGrid::UnHighlightSlots(const int32 Index, const FIntPoint& Di
 	});
 }
 
+void UINV_InventoryGrid::ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState)
+{
+	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
+	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, [State = GridSlotState](UINV_GridSlot* GridSlot)
+	{
+		switch (State)
+		{
+			case EINV_GridSlotState::Occupied: GridSlot->SetOccupiedTexture(); break;
+			case EINV_GridSlotState::Unoccupied: GridSlot->SetUnoccupiedTexture(); break;
+			case EINV_GridSlotState::GrayedOut: GridSlot->SetGrayedOutTexture(); break;
+			case EINV_GridSlotState::Selected: GridSlot->SetSelectedTexture(); break;
+		}
+	});
+	LastHighlightedIndex = Index;
+	LastHighlightedDimensions = Dimensions;
+}
+
 FINV_SpaceQueryResult UINV_InventoryGrid::CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions) 
 {
 	FINV_SpaceQueryResult Result;
