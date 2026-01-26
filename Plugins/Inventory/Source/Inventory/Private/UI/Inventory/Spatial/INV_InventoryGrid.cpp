@@ -285,9 +285,12 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	}
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
 	
-	if (CurrentQueryResult.ValidItem.IsValid())
+	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
 	{
-		// TODO: There's a single item in this space. We can swap or add stacks.
+		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(CurrentQueryResult.ValidItem.Get(), FragmentTags::GridFragment) };
+		if (!GridFragment) return;
+		
+		ChangeHoverType(CurrentQueryResult.UpperLeftIndex, Dimensions, EINV_GridSlotState::GrayedOut);
 	}
 }
 
@@ -517,8 +520,34 @@ void UINV_InventoryGrid::ConstructGrid()
 			GridCPS->SetPosition(TilePosition * TileSize);
 			
 			GridSlots.Add(GridSlot);
+			GridSlot->GridSlotClicked.AddDynamic(this, &ThisClass::OnGridSlotClicked);
+			GridSlot->GridSlotHovered.AddDynamic(this, &ThisClass::OnGridSlotHovered);
+			GridSlot->GridSlotUnhovered.AddDynamic(this, &ThisClass::OnGridSlotUnhovered);
 		}
 	}
+}
+
+void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	
+}
+
+void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	if (IsValid(HoverItem)) return;
+	
+	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
+	if (!GridSlot->GetAvailability()) return;
+	GridSlot->SetOccupiedTexture();
+} 
+
+void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	if (IsValid(HoverItem)) return;
+	
+	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
+	if (!GridSlot->GetAvailability()) return;
+	GridSlot->SetGrayedOutTexture();
 }
 
 void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
