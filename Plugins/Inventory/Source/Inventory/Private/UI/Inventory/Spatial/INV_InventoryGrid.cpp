@@ -547,7 +547,7 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 	
 	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
 	if (!GridSlot->GetAvailability()) return;
-	GridSlot->SetGrayedOutTexture();
+	GridSlot->SetUnoccupiedTexture();
 }
 
 void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
