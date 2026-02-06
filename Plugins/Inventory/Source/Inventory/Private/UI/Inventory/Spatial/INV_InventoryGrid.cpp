@@ -529,7 +529,20 @@ void UINV_InventoryGrid::ConstructGrid()
 
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	if (!IsValid(HoverItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
+	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
+	{
+		OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
+		return;
+	}
+	
+	auto GridSlot = GridSlots[ItemDropIndex];
+	if (!GridSlot->GetInventoryItem().IsValid())
+	{
+		//TODO: Put item down at this index
+	}
 }
 
 void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
