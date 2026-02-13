@@ -8,6 +8,7 @@
 
 TArray<UINV_InventoryItem*> FINV_InventoryFastArray::GetAllItems() const
 {
+	// Return a list of valid items.
 	TArray<UINV_InventoryItem*> Results;
 	Results.Reserve(Entries.Num());
 	for (const auto& Entry : Entries)
@@ -20,6 +21,7 @@ TArray<UINV_InventoryItem*> FINV_InventoryFastArray::GetAllItems() const
 
 void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
+	// Notify about items that are being removed.
 	UINV_InventoryComponent* IC { Cast<UINV_InventoryComponent>(Owner) };
 	if (!IsValid(IC)) return;
 	for (int32 Index : RemovedIndices)
@@ -38,6 +40,7 @@ void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> Remove
 
 void FINV_InventoryFastArray::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
+	// Notify about items that were added.
 	UINV_InventoryComponent* IC { Cast<UINV_InventoryComponent>(Owner) };
 	if (!IsValid(IC)) return;
 	for (int32 Index : AddedIndices)
@@ -48,6 +51,7 @@ void FINV_InventoryFastArray::PostReplicatedAdd(const TArrayView<int32> AddedInd
 
 UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemComponent)
 {
+	// Create a new item object from the pickup manifest.
 	checkf(Owner, TEXT("Owner cannot be null when adding an item to the inventory fast array"));
 	AActor* OwningActor { Owner->GetOwner() };
 	checkf(OwningActor->HasAuthority(), TEXT("Only the owning actor can add items to the inventory fast array"));
@@ -65,6 +69,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemCo
 
 UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_InventoryItem* Item)
 {
+	// Insert an existing item object.
 	checkf(Owner, TEXT("Owner cannot be null when adding an item to the inventory fast array"));
 	AActor* OwningActor { Owner->GetOwner() };
 	checkf(OwningActor->HasAuthority(), TEXT("Only the owning actor can add items to the inventory fast array"));
@@ -78,6 +83,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_InventoryItem* Item)
 
 void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 {
+	// Remove an entry and mark the array dirty.
 	for (auto EntryIt { Entries.CreateIterator() }; EntryIt; ++EntryIt)
 	{
 		FINV_InventoryEntry& Entry { *EntryIt };

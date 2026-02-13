@@ -20,6 +20,7 @@ void AINV_PlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	// Continuously trace for items in front of the camera.
 	TraceForItem();
 }
 
@@ -33,6 +34,7 @@ void AINV_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	// Apply input mapping contexts.
 	UEnhancedInputLocalPlayerSubsystem* Subsystem { ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()) };
 	if (IsValid(Subsystem))
 	{
@@ -48,6 +50,7 @@ void AINV_PlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 	
+	// Bind input actions.
 	UEnhancedInputComponent* EnhancedInputComponent { CastChecked<UEnhancedInputComponent>(InputComponent) };
 	
 	EnhancedInputComponent->BindAction(PrimaryInteractAction, ETriggerEvent::Started, this, &ThisClass::PrimaryInteract);
@@ -56,6 +59,7 @@ void AINV_PlayerController::SetupInputComponent()
 
 void AINV_PlayerController::PrimaryInteract()
 {
+	// Try to pick up the item we are looking at.
 	if (!ThisActor.IsValid()) return;
 	UINV_ItemComponent* ItemComponent { ThisActor->FindComponentByClass<UINV_ItemComponent>() };
 	if (!IsValid(ItemComponent) || !InventoryComponent.IsValid()) return;
@@ -67,6 +71,7 @@ void AINV_PlayerController::CreateHUDWidget()
 {
 	if (!IsLocalController()) return;
 	
+	// Create and show the HUD widget.
 	if (IsValid(HUDWidgetClass))
 	{
 		HUDWidget = CreateWidget<UINV_HUDWidget>(GetWorld(), HUDWidgetClass);
@@ -76,6 +81,7 @@ void AINV_PlayerController::CreateHUDWidget()
 
 void AINV_PlayerController::TraceForItem()
 {
+	// Trace from the center of the viewport.
 	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
 	
 	FVector2D ViewportSize;
@@ -85,6 +91,7 @@ void AINV_PlayerController::TraceForItem()
 	FVector Forward;
 	if (!UGameplayStatics::DeprojectScreenToWorld(this, ViewportCenter, TraceStart, Forward)) return;
 	
+	// Line trace forward.
 	const FVector TraceEnd = TraceStart + Forward * TraceLength;
 	FHitResult HitResult;
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ItemTraceChannel);

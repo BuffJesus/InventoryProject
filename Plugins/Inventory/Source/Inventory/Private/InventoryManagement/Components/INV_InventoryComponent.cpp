@@ -11,6 +11,7 @@ UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+	// Replicate items as registered subobjects.
 	bReplicateUsingRegisteredSubObjectList = true;
 	bInventoryMenuOpen = false;
 }
@@ -24,12 +25,14 @@ void UINV_InventoryComponent::BeginPlay()
 
 void UINV_InventoryComponent::ToggleInventoryMenu()
 {
+	// Toggle UI visibility and input mode.
 	bInventoryMenuOpen ? HandleInventoryMenu(ESlateVisibility::Collapsed, false)
 		: HandleInventoryMenu(ESlateVisibility::Visible, true);
 }
 
 void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
 {
+	// Only register when replication is ready.
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))
 	{
 		AddReplicatedSubObject(SubObj);
@@ -50,6 +53,7 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 	if (!IsValid(Inventory)) return;
 	if (!GetOwner()) return;
 	
+	// Ask the UI for available space and stacking info.
 	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
 	
 	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType()) };
@@ -57,19 +61,20 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 	
 	if (Result.TotalRoomToFill == 0)
 	{
+		// No room to add.
 		OnNoRoomInInventory.Broadcast();
 		return;
 	}
 	
 	if (Result.Item.IsValid() && Result.bStackable)
 	{
-		// Add stacks to item that already exists
+		// Add stacks to an existing item.
 		OnStackChange.Broadcast(Result);
 		Server_AddStacksToItem(ItemComponent, Result.TotalRoomToFill, Result.Remainder);
 	}
 	else if (Result.TotalRoomToFill > 0)
 	{
-		// Item does not yet exist in inventory. Create new entry and update all pertinent stats
+		// Create a new inventory entry.
 		Server_AddNewItem(ItemComponent, Result.bStackable ? Result.TotalRoomToFill : 0);
 	}
 }
@@ -80,6 +85,7 @@ void UINV_InventoryComponent::ConstructInventory()
 	checkf(OwningController.IsValid(), TEXT("OwningController cannot be null"));
 	if (!OwningController->IsLocalController()) return;
 	
+	// Build and hide the inventory widget for local players.
 	Inventory = CreateWidget<UINV_InventoryBase>(OwningController.Get(), InventoryClass);
 	checkf(Inventory, TEXT("Inventory cannot be null"));
 	Inventory->AddToViewport();
@@ -90,6 +96,7 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 {
 	if (!IsValid(Inventory)) return;
 	
+	// Update visibility and input mode.
 	Inventory->SetVisibility(Visibility);
 	bInventoryMenuOpen = bIsOpen;
 	
@@ -106,6 +113,7 @@ void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponen
 	if (!IsValid(ItemComponent)) return;
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 	
+	// Create and replicate a new item.
 	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
 	NewItem->SetTotalStackCount(StackCount);
 	
@@ -123,6 +131,7 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 	if (!IsValid(ItemComponent)) return;
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 	
+	// Update existing stack count and handle remainder.
 	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
 	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(ItemType) };
 	if (!IsValid(Item)) return;

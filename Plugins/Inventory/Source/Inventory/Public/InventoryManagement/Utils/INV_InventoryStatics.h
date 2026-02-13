@@ -19,13 +19,16 @@ class INVENTORY_API UINV_InventoryStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 	
 public:
+	// Helper to find the inventory component on a controller.
 	UFUNCTION(BlueprintCallable, Category="INV|Inventory")
 	static UINV_InventoryComponent* GetInventoryComponent(const APlayerController* PlayerController);
 	
+	// Convenience for pulling category from an item component.
 	UFUNCTION(BlueprintCallable, Category="INV|Inventory")
 	static EINV_ItemCategory GetItemCategoryFromItemComp(UINV_ItemComponent* ItemComponent);
 	
 	template<typename T, typename FuncT>
+	// Iterate a 2D region inside a flat array.
 	static void ForEach2D(TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns, const FuncT& Function);
 };
 

@@ -23,7 +23,9 @@ class INVENTORY_API UINV_InventoryComponent : public UActorComponent
 
 public:
 	UINV_InventoryComponent();
+	// Shows or hides the inventory UI widget.
 	void ToggleInventoryMenu();
+	// Registers a UObject for replication when using the subobject list.
 	void AddRepSubObj(UObject* SubObj);
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -34,6 +36,7 @@ public:
 	void Server_AddStacksToItem(UINV_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder);
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Inventory", BlueprintAuthorityOnly)
+	// Entry point for adding an item to the inventory.
 	void TryAddItem(UINV_ItemComponent* ItemComponent);
 	
 	FInventoryItemChange OnItemAdded;
@@ -45,19 +48,26 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
 	
+	// Creates the inventory UI widget for local controllers.
 	void ConstructInventory();
+	// Sets UI visibility and input mode.
 	void HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen);
 	
+	// Replicated list of inventory items.
 	UPROPERTY(Replicated)
 	FINV_InventoryFastArray InventoryFastArray;
 
+	// Widget class used to build the inventory UI.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<UINV_InventoryBase> InventoryClass { nullptr };
 	
+	// Actual widget instance for this component.
 	UPROPERTY()
 	TObjectPtr<UINV_InventoryBase> Inventory { nullptr };
 	
+	// Tracks menu state for toggle logic.
 	bool bInventoryMenuOpen = false;
 };

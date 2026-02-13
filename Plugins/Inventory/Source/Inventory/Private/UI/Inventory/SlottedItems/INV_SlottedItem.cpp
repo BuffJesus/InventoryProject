@@ -6,12 +6,14 @@
 
 FReply UINV_SlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	// Forward click to grid logic.
 	OnSlottedItemClicked.Broadcast(GridIndex, MouseEvent);
 	return FReply::Handled();
 }
 
 void UINV_SlottedItem::UpdateStackCount(int32 StackCount)
 {
+	// Show or hide stack count text.
 	if (StackCount > 0)
 	{
 		Text_StackCount->SetVisibility(ESlateVisibility::Visible);

@@ -25,19 +25,24 @@ class INVENTORY_API UINV_InventoryGrid : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	// Category filter for items in this grid.
 	FORCEINLINE EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
+	// Check if an item component can fit.
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_ItemComponent* ItemComponent);
 	virtual void NativeOnInitialized() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UFUNCTION()
+	// Adds a replicated item to the UI grid.
 	void AddItem(UINV_InventoryItem* Item);
 
 private:
+	// Owning inventory component for events.
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
 	
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
 	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
+	// Apply UI updates for item placement.
 	void AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem);
 	FVector2D GetDrawSize(const FINV_GridFragment* GridFragment) const;
 	

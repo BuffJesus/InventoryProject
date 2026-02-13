@@ -9,6 +9,7 @@
 
 void UINV_HoverItem::Clear()
 {
+	// Reset all hover state and visuals.
 	SetInventoryItem(nullptr);
 	SetIsStackable(false);
 	SetPreviousGridIndex(INDEX_NONE);
@@ -20,6 +21,7 @@ void UINV_HoverItem::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
     
+	// Keep the hover widget centered on the mouse.
 	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
 	SetPositionInViewport(MousePosition - (CachedSize / 2.f), false);
 }
@@ -28,16 +30,19 @@ void UINV_HoverItem::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	
+	// Hover item should not block input.
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
 void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
 {
+	// Apply the icon brush.
 	Image_Icon->SetBrush(Brush);
 }
 
 void UINV_HoverItem::UpdateStackCount(const int32 Count) const
 {
+	// Update stack count text.
 	if (Count > 0)
 	{
 		Text_StackCount->SetText(FText::AsNumber(Count));
@@ -51,6 +56,7 @@ void UINV_HoverItem::UpdateStackCount(const int32 Count) const
 
 FGameplayTag UINV_HoverItem::GetItemType() const
 {
+	// Pull the item tag from the backing item.
 	if (InventoryItem.IsValid())
 	{
 		return InventoryItem->GetItemManifest().GetItemType();
@@ -60,6 +66,7 @@ FGameplayTag UINV_HoverItem::GetItemType() const
 
 void UINV_HoverItem::SetIsStackable(bool bStacks)
 {
+	// Hide stack count when not stackable.
 	bIsStackable = bStacks;
 	if (!bStacks)
 	{

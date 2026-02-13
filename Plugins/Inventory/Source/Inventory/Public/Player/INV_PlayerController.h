@@ -23,16 +23,21 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Input")
+	// Toggle the inventory UI.
 	void ToggleInventory();
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
 private:
+	// Interact with the item under the crosshair.
 	void PrimaryInteract();
+	// Create the HUD widget for this player.
 	void CreateHUDWidget();
+	// Trace forward to find highlightable items.
 	void TraceForItem();
 	
+	// Cached inventory component.
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input")
@@ -51,11 +56,14 @@ private:
 	TObjectPtr<UINV_HUDWidget> HUDWidget;
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
+	// How far to trace for items.
 	double TraceLength { 500.f };
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
+	// Collision channel used for item tracing.
 	TEnumAsByte<ECollisionChannel> ItemTraceChannel { ECollisionChannel::ECC_GameTraceChannel1 };
 	
+	// Current and previous trace hits.
 	TWeakObjectPtr<AActor> ThisActor { nullptr };
 	TWeakObjectPtr<AActor> LastActor { nullptr };
 };

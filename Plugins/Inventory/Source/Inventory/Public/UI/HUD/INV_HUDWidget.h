@@ -19,12 +19,16 @@ public:
 	virtual void NativeOnInitialized() override;
 	
 	UFUNCTION(BlueprintImplementableEvent, Category="INV|Inventory")
+	// Show pickup prompt in the HUD.
 	void ShowPickupMessage(const FString& Message);	
 	
 	UFUNCTION(BlueprintImplementableEvent, Category="INV|Inventory")
+	// Hide pickup prompt in the HUD.
 	void HidePickupMessage();
 	
 private:
+	// Message widget used for info text.
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UINV_InfoMessage> InfoMessage;
+	// Called when inventory is full.
 	UFUNCTION() void OnNoRoom();
 };

@@ -8,6 +8,7 @@ void UINV_GridSlot::NativeOnMouseEnter(const FGeometry& MyGeometry, const FPoint
 {
 	Super::NativeOnMouseEnter(MyGeometry, MouseEvent);
 	
+	// Forward hover event with index.
 	GridSlotHovered.Broadcast(TileIndex, MouseEvent);
 }
 
@@ -15,35 +16,41 @@ void UINV_GridSlot::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	Super::NativeOnMouseLeave(MouseEvent);
 	
+	// Forward unhover event with index.
 	GridSlotUnhovered.Broadcast(TileIndex, MouseEvent);
 }
 
 FReply UINV_GridSlot::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	// Forward click event with index.
 	GridSlotClicked.Broadcast(TileIndex, MouseEvent);
 	return FReply::Handled();
 }
 
 void UINV_GridSlot::SetUnoccupiedTexture()
 {
+	// Visual state for empty slot.
 	GridSlotState = EINV_GridSlotState::Unoccupied;
 	Image_GridSlot->SetBrush(Brush_Unoccupied);
 }
 
 void UINV_GridSlot::SetOccupiedTexture()
 {
+	// Visual state for occupied slot.
 	GridSlotState = EINV_GridSlotState::Occupied;
 	Image_GridSlot->SetBrush(Brush_Occupied);
 }
 
 void UINV_GridSlot::SetSelectedTexture()
 {
+	// Visual state for selected slot.
 	GridSlotState = EINV_GridSlotState::Selected;
 	Image_GridSlot->SetBrush(Brush_Selected);
 }
 
 void UINV_GridSlot::SetGrayedOutTexture()
 {
+	// Visual state for blocked slot.
 	GridSlotState = EINV_GridSlotState::GrayedOut;
 	Image_GridSlot->SetBrush(Brush_GrayedOut);
 }

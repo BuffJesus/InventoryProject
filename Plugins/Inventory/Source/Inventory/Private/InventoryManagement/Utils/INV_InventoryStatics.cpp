@@ -7,6 +7,7 @@
 
 UINV_InventoryComponent* UINV_InventoryStatics::GetInventoryComponent(const APlayerController* PlayerController)
 {
+	// Find the inventory component on the controller.
 	if (!IsValid(PlayerController)) return nullptr;
 	UINV_InventoryComponent* InventoryComponent { PlayerController->FindComponentByClass<UINV_InventoryComponent>() };
 	return InventoryComponent;
@@ -14,6 +15,7 @@ UINV_InventoryComponent* UINV_InventoryStatics::GetInventoryComponent(const APla
 
 EINV_ItemCategory UINV_InventoryStatics::GetItemCategoryFromItemComp(UINV_ItemComponent* ItemComponent)
 {
+	// Return the category from the manifest.
 	if (!IsValid(ItemComponent)) return EINV_ItemCategory::None;
 	return ItemComponent->GetItemManifest().GetItemCategory();
 }

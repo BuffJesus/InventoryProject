@@ -10,12 +10,14 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
+	// Replicate manifest data and stack count.
 	DOREPLIFETIME(ThisClass, ItemManifest);
 	DOREPLIFETIME(ThisClass, TotalStackCount);
 }
 
 bool UINV_InventoryItem::IsStackable() const
 {
+	// Stackable if a stack fragment exists.
 	const FINV_StackableFragment* StackableFragment { GetItemManifest().GetFragmentOfType<FINV_StackableFragment>() };
 	return StackableFragment != nullptr;
 }

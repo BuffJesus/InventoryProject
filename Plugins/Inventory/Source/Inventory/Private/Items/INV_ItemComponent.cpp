@@ -14,11 +14,13 @@ void UINV_ItemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
+	// Replicate static manifest data for this pickup.
 	DOREPLIFETIME(ThisClass, ItemManifest);
 }
 
 void UINV_ItemComponent::PickedUp()
 {
+	// Notify BP and optionally destroy the actor.
 	OnPickedUp();
 	if (GetDestroyOnPickup() == true)
 	{

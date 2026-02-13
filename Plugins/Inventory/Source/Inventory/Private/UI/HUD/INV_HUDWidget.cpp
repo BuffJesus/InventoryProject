@@ -10,6 +10,7 @@ void UINV_HUDWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	
+	// Bind to inventory events.
 	UINV_InventoryComponent* InventoryComponent { UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()) };
 	if (IsValid(InventoryComponent))
 	{
@@ -19,6 +20,7 @@ void UINV_HUDWidget::NativeOnInitialized()
 
 void UINV_HUDWidget::OnNoRoom()
 {
+	// Show a temporary warning message.
 	if (!IsValid(InfoMessage)) { return; }
 	InfoMessage->SetMessage(FText::FromString("No room in inventory!"));
 }

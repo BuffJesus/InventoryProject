@@ -18,6 +18,7 @@ class INVENTORY_API UINV_InventoryBase : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	// Base hook for asking if an item can fit.
 	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const
 	{
 		return FINV_SlotAvailabilityResult();

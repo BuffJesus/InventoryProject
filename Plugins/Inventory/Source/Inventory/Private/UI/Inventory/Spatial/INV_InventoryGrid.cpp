@@ -25,6 +25,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemCo
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest)
 {
+	// Walk the grid and compute how much space we can fill.
 	FINV_SlotAvailabilityResult Result;
 	
 	// Determine if item is stackable
@@ -200,6 +201,7 @@ void UINV_InventoryGrid::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	
+	// Build slots and wire up inventory events.
 	ConstructGrid();
 	
 	InventoryComponent = UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
@@ -214,6 +216,7 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	
+	// Track mouse position for hover placement.
 	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
 	const FVector2D CanvasSize = UINV_WidgetUtils::GetWidgetSize(CanvasPanel);
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
@@ -236,7 +239,7 @@ FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasP
 
 EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
-	// Calculate relative pos withing current tile
+	// Calculate relative pos within current tile
 	const float TileLocalX = FMath::Fmod(MousePos.X - CanvasPos.X, TileSize);
 	const float TileLocalY = FMath::Fmod(MousePos.Y - CanvasPos.Y, TileSize);
 	
@@ -283,6 +286,7 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	
 	if (CurrentQueryResult.bHasSpace)
 	{
+		// Free space: highlight potential drop area.
 		HighlightSlots(ItemDropIndex, Dimensions);
 		return;
 	}
@@ -411,6 +415,7 @@ void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
 	
+	// Compute placement and update UI.
 	FINV_SlotAvailabilityResult Result { HasRoomForItem(Item) };
 	AddItemToIndices(Result, Item);
 }
@@ -459,6 +464,7 @@ UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item
 void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable,
                                         const int32 StackAmount)
 {
+	// Build the slotted widget and place it on the canvas.
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment) };
 	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(Item, FragmentTags::IconFragment) };
 	if (!GridFragment || !ImageFragment) return;
@@ -486,6 +492,7 @@ void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int3
 	
 	if (bStackableItem)
 	{
+		// Store stack count on the upper-left slot.
 		GridSlots[Index]->SetStackCount(StackAmount);
 	}
 	
@@ -497,6 +504,7 @@ void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int3
 	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
 		[&](UINV_GridSlot* GridSlot)
 	{
+		// Mark all slots as occupied by this item.
 		GridSlot->SetInventoryItem(NewItem);	
 		GridSlot->SetUpperLeftIndex(Index);	
 		GridSlot->SetOccupiedTexture();
@@ -506,6 +514,7 @@ void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int3
 
 void UINV_InventoryGrid::ConstructGrid()
 {
+	// Create grid slots and place them on the canvas.
 	GridSlots.Reserve(GridSize.X * GridSize.Y);
 	
 	for (int32 j = 0; j < GridSize.Y; ++j)
@@ -532,6 +541,7 @@ void UINV_InventoryGrid::ConstructGrid()
 
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	// If we have a hover item, try to place it.
 	if (!IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
@@ -551,6 +561,7 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 {
+	// Convert hover item into a slotted item.
 	AddItemAtIndex(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	UpdateGridSlots(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	ClearHoverItem();
@@ -560,6 +571,7 @@ void UINV_InventoryGrid::ClearHoverItem()
 {
 	if (!IsValid(HoverItem)) return;
 	
+	// Remove hover widget from the viewport.
 	HoverItem->Clear();
 	HoverItem->RemoveFromParent();
 	HoverItem = nullptr;
@@ -587,12 +599,14 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 
 void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
+	// Convert a slotted item into a hover item.
 	AssignHoverItem(ClickedInventoryItem, GridIndex, GridIndex);
 	RemoveItemFromGrid(ClickedInventoryItem, GridIndex);
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 {
+	// Create and configure the hover widget.
 	if (!IsValid(HoverItem))
 	{
 		HoverItem = CreateWidget<UINV_HoverItem>(GetOwningPlayer(), HoverItemClass);
@@ -635,6 +649,7 @@ void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryI
 	
 	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, GridFragment->GetGridSize(), GridSize.X, [&](UINV_GridSlot* GridSlot)
 	{
+		// Clear slot state.
 		GridSlot->SetInventoryItem(nullptr);	
 		GridSlot->SetUpperLeftIndex(INDEX_NONE);	
 		GridSlot->SetUnoccupiedTexture();	
@@ -654,6 +669,7 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 {
 	if (!MatchesCategory(Result.Item.Get())) return;
 	
+	// Apply stack changes to existing slots.
 	for (const auto& Availability : Result.SlotAvailabilities)
 	{
 		if (Availability.bItemAtIndex)

@@ -26,6 +26,7 @@ class INVENTORY_API UINV_GridSlot : public UUserWidget
 	GENERATED_BODY()
 	
 public:
+	// Hover/click events for the grid.
 	virtual void NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& MouseEvent) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -42,6 +43,7 @@ public:
 	FORCEINLINE bool GetAvailability() const { return bAvailable; }
 	FORCEINLINE void SetAvailability(bool bIsAvailable) { bAvailable = bIsAvailable; }
 	
+	// Updates slot visuals.
 	void SetUnoccupiedTexture();
 	void SetOccupiedTexture();
 	void SetSelectedTexture();
@@ -52,12 +54,18 @@ public:
 	FGridSlotEvent GridSlotUnhovered;
 	
 private:
+	// Index in the grid array.
 	int32 TileIndex { INDEX_NONE };
+	// Stack count at this slot.
 	int32 StackCount { 0 };
+	// Upper-left index for multi-tile items.
 	int32 UpperLeftIndex { INDEX_NONE };
+	// Item currently in this slot.
 	TWeakObjectPtr<UINV_InventoryItem> InventoryItem;
+	// If false, slot is occupied.
 	bool bAvailable { true };
 	
+	// Image widget used for slot visuals.
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UImage> Image_GridSlot;
 	
 	UPROPERTY(EditAnywhere, Category="INV|Grid")

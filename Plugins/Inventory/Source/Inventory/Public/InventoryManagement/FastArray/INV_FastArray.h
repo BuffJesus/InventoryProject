@@ -11,7 +11,7 @@ class UINV_ItemComponent;
 class UINV_InventoryComponent;
 class UINV_InventoryItem;
 
-// A single entry in the inventory
+// A single replicated inventory entry.
 USTRUCT(BlueprintType)
 struct FINV_InventoryEntry : public FFastArraySerializerItem
 {
@@ -21,10 +21,11 @@ struct FINV_InventoryEntry : public FFastArraySerializerItem
 private:
 	friend struct FINV_InventoryFastArray;
 	friend UINV_InventoryComponent;
+	// The actual item object for this entry.
 	UPROPERTY() TObjectPtr<UINV_InventoryItem> Item { nullptr };
 };
 
-// List of inventory items
+// Replicated list of inventory items.
 USTRUCT(BlueprintType)
 struct FINV_InventoryFastArray : public FFastArraySerializer
 {
@@ -51,7 +52,9 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 
 private:
 	friend UINV_InventoryComponent;
+	// FastArray entries replicated to clients.
 	UPROPERTY() TArray<FINV_InventoryEntry> Entries;
+	// Owning component used for callbacks.
 	UPROPERTY(NotReplicated) TObjectPtr<UActorComponent> Owner { nullptr };
 };
 

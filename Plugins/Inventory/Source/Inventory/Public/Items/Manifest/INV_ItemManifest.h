@@ -17,8 +17,11 @@ USTRUCT(BlueprintType)
 struct INVENTORY_API FINV_ItemManifest
 {
 	GENERATED_BODY()
+	// Create an inventory item object from this manifest.
 	UINV_InventoryItem* CreateItem(UObject* NewOuter) const;
+	// High-level category for UI placement.
 	EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
+	// Gameplay tag that identifies the item type.
 	FGameplayTag GetItemType() const { return ItemType; }
 	
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
@@ -31,12 +34,15 @@ struct INVENTORY_API FINV_ItemManifest
 	T* GetFragmentOfTypeMutable();
 	
 private:
+	// Item fragments that describe behavior and UI.
 	UPROPERTY(EditAnywhere,Category="Inventory",meta = (ExcludeBaseStruct))
 	TArray<TInstancedStruct<FInv_ItemFragment>> Fragments;
 	
+	// Item category used by grids.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };
 	
+	// Gameplay tag for item type.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory", meta = (Categories = "GameItems"))
 	FGameplayTag ItemType;
 };

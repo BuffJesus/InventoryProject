@@ -20,9 +20,12 @@ class INVENTORY_API UINV_HoverItem : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	// Set the hover icon image.
 	void SetImageBrush(const FSlateBrush& Brush) const;
+	// Update stack count text.
 	void UpdateStackCount(const int32 Count) const;
 	
+	// Cached item type for quick comparisons.
 	FGameplayTag GetItemType() const;
 	FORCEINLINE int32 GetStackCount() const { return StackCount; }
 	FORCEINLINE void SetStackCount(int32 Count) { StackCount = Count; }
@@ -36,6 +39,7 @@ public:
 	void SetInventoryItem(UINV_InventoryItem* Item);
 	FORCEINLINE void SetCachedSize(const FVector2D& Size) { CachedSize = Size; }
 	
+	// Reset hover item state.
 	void Clear();
 
 protected:
@@ -43,19 +47,27 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 private:
+	// Cached size used to center the hover widget on the cursor.
 	FVector2D CachedSize { FVector2D::ZeroVector };
-    
+     
+	// Reserved for timed position updates (currently unused).
 	FTimerHandle PositionTimerHandle;
-    
+     
 	UPROPERTY(EditDefaultsOnly, Category = "Hover Item")
+	// How often the hover item updates (in seconds).
 	float PositionUpdateRate = 0.016f; // ~60fps
 	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UImage> Image_Icon;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UTextBlock> Text_StackCount;
 	
+	// Index this item came from.
 	int32 PreviousGridIndex { INDEX_NONE };
+	// Size in grid tiles.
 	FIntPoint GridDimensions;
+	// Backing inventory item.
 	TWeakObjectPtr<UINV_InventoryItem> InventoryItem;
+	// Whether the item uses stacks.
 	bool bIsStackable { false };
+	// Stack count shown on hover.
 	int32 StackCount { 0 };
 };
