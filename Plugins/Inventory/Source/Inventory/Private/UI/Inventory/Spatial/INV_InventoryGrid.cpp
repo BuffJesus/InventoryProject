@@ -549,6 +549,7 @@ void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 {
 	AddItemAtIndex(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	UpdateGridSlots(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
+	ClearHoverItem();
 }
 
 void UINV_InventoryGrid::ClearHoverItem()
