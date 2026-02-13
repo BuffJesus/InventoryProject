@@ -37,6 +37,45 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 	int32 AmountToFill { StackableFragment ? StackableFragment->GetStackCount() : 1 };
 	
 	TSet<int32> CheckedIndices;
+	
+	// For stackable items, top off existing matching stacks before searching for empty slots.
+	if (Result.bStackable)
+	{
+		for (const auto& SlottedItemPair : SlottedItems)
+		{
+			const TObjectPtr<UINV_SlottedItem> SlottedItem = SlottedItemPair.Value;
+			if (!IsValid(SlottedItem)) continue;
+			
+			const UINV_InventoryItem* ExistingItem = SlottedItem->GetInventoryItem();
+			if (!IsValid(ExistingItem)) continue;
+			if (!ExistingItem->GetItemManifest().GetItemType().MatchesTagExact(Manifest.GetItemType())) continue;
+			
+			const int32 GridIndex = SlottedItemPair.Key;
+			if (!GridSlots.IsValidIndex(GridIndex)) continue;
+			const UINV_GridSlot* GridSlot = GridSlots[GridIndex];
+			if (!IsValid(GridSlot)) continue;
+			
+			const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
+			if (AmountToFillInSlot <= 0) continue;
+			
+			CheckedIndices.Add(GridIndex);
+			
+			Result.TotalRoomToFill += AmountToFillInSlot;
+			Result.SlotAvailabilities.Emplace(
+				FINV_SlotAvailability{
+					HasValidItem(GridSlot) ? GridSlot->GetUpperLeftIndex() : GridSlot->GetTileIndex(),
+					Result.bStackable ? AmountToFillInSlot : 0,
+					HasValidItem(GridSlot)
+				}
+			);
+			
+			AmountToFill -= AmountToFillInSlot;
+			Result.Remainder = AmountToFill;
+			
+			if (AmountToFill == 0) return Result;
+		}
+	}
+	
 	// For each GridSlot:
 	for (const auto& GridSlot : GridSlots)
 	{
