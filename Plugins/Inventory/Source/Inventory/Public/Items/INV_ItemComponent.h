@@ -15,8 +15,9 @@ class INVENTORY_API UINV_ItemComponent : public UActorComponent
 
 public:
 	UINV_ItemComponent();
-	FORCEINLINE FString GetPickupMessage() const { return PickupMessage; }
-	FORCEINLINE FINV_ItemManifest GetItemManifest() const { return ItemManifest; }
+	FORCEINLINE const FString& GetPickupMessage() const { return PickupMessage; }
+	FORCEINLINE const FINV_ItemManifest& GetItemManifest() const { return ItemManifest; }
+	FORCEINLINE FINV_ItemManifest& GetItemManifestMutable() { return ItemManifest; }
 	FORCEINLINE bool GetDestroyOnPickup() const { return bIsDestroyedOnPickup; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void PickedUp();

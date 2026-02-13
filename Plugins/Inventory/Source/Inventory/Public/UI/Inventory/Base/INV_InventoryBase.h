@@ -18,7 +18,7 @@ class INVENTORY_API UINV_InventoryBase : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	FORCEINLINE virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const
+	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const
 	{
 		return FINV_SlotAvailabilityResult();
 	}
