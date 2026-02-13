@@ -1255,10 +1255,12 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	UINV_InventoryItem* RightClickedItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(RightClickedItem)) return;
+	if (IsValid(GridSlots[GridIndex]->GetItemPopUp())) return;
 	if (!ItemPopUpClass) return;
 	if (!OwningCanvasPanel.IsValid()) return;
 	
 	ItemPopUp = CreateWidget<UINV_ItemPopUp>(this, ItemPopUpClass);
+	GridSlots[GridIndex]->SetItemPopUp(ItemPopUp);
 	if (!IsValid(ItemPopUp)) return;
 	
 	OwningCanvasPanel->AddChild(ItemPopUp);

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Items/INV_InventoryItem.h"
+#include "UI/ItemPopUp/INV_ItemPopUp.h"
 #include "INV_GridSlot.generated.h"
 
 class UImage;
@@ -42,6 +43,16 @@ public:
 	FORCEINLINE void SetStackCount(int32 Count) { StackCount = Count; }
 	FORCEINLINE bool GetAvailability() const { return bAvailable; }
 	FORCEINLINE void SetAvailability(bool bIsAvailable) { bAvailable = bIsAvailable; }
+	FORCEINLINE UINV_ItemPopUp* GetItemPopUp() const { return ItemPopUp.Get(); }
+	FORCEINLINE void SetItemPopUp(UINV_ItemPopUp* PopUp)
+	{
+		ItemPopUp = PopUp;
+		if (IsValid(ItemPopUp.Get()))
+		{
+			ItemPopUp->SetGridIndex(GetTileIndex());
+			ItemPopUp->OnNativeDestruct.AddUObject(this, &ThisClass::OnItemPopUpDestruct);
+		}
+	}
 	
 	// Updates slot visuals.
 	void SetUnoccupiedTexture();
@@ -62,6 +73,7 @@ private:
 	int32 UpperLeftIndex { INDEX_NONE };
 	// Item currently in this slot.
 	TWeakObjectPtr<UINV_InventoryItem> InventoryItem;
+	TWeakObjectPtr<UINV_ItemPopUp> ItemPopUp;
 	// If false, slot is occupied.
 	bool bAvailable { true };
 	
@@ -82,5 +94,5 @@ private:
 	
 	EINV_GridSlotState GridSlotState { EINV_GridSlotState::Unoccupied };
 	
-	
+	UFUNCTION() void OnItemPopUpDestruct(UUserWidget* Menu);
 };

@@ -54,3 +54,8 @@ void UINV_GridSlot::SetGrayedOutTexture()
 	GridSlotState = EINV_GridSlotState::GrayedOut;
 	Image_GridSlot->SetBrush(Brush_GrayedOut);
 }
+
+void UINV_GridSlot::OnItemPopUpDestruct(UUserWidget* Menu)
+{
+	ItemPopUp.Reset();
+}
