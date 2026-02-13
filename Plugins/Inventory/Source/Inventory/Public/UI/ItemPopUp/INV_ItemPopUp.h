@@ -18,6 +18,9 @@ class INVENTORY_API UINV_ItemPopUp : public UUserWidget
 {
 	GENERATED_BODY()
 	
+public:
+	virtual void NativeOnInitialized() override;
+	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UButton> Button_Split;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UButton> Button_Drop;
@@ -25,4 +28,9 @@ private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USlider> Slider_Split;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UTextBlock> Text_SplitAmount;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USizeBox> SizeBox_Root;
+	
+	UFUNCTION() void SplitButtonClicked();
+	UFUNCTION() void DropButtonClicked();
+	UFUNCTION() void ConsumeButtonClicked();
+	UFUNCTION() void SliderValueChanged(float Value);
 };
