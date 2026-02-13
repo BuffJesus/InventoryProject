@@ -17,6 +17,7 @@
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
+#include "UI/ItemPopUp/INV_ItemPopUp.h"
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -768,6 +769,11 @@ void UINV_InventoryGrid::HideCursor()
 	SetCursorWidget(GetHiddenCursorWidget());
 }
 
+void UINV_InventoryGrid::SetOwningCanvas(UCanvasPanel* OwningCanvas)
+{
+	OwningCanvasPanel = OwningCanvas;
+}
+
 void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
 {
 	if (!IsValid(GetOwningPlayer())) return;
@@ -1134,6 +1140,11 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		Pickup(ClickedInventoryItem, GridIndex);
 		return;
 	}
+	
+	if (IsRightClick(MouseEvent))
+	{
+		CreateItemPopup(GridIndex);
+	}
 
 	// For spatial placement (especially partial-overlap cases), prefer swap/displacement over stack logic.
 	if (IsValid(HoverItem))
@@ -1195,6 +1206,20 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	}
 	// Swap with hover item
 	SwapWithHoverItem(ClickedInventoryItem, GridIndex);
+}
+
+void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
+{
+	UINV_InventoryItem* RightClickedItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
+	if (!IsValid(RightClickedItem)) return;
+	
+	ItemPopUp = CreateWidget<UINV_ItemPopUp>(this, ItemPopUpClass);
+	
+	OwningCanvasPanel->AddChild(ItemPopUp);
+	UCanvasPanelSlot* CanvasSlot { UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp) };
+	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	CanvasSlot->SetPosition(MousePos);
+	CanvasSlot->SetSize(ItemPopUp->GetBoxSize());
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
