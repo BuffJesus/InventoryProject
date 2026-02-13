@@ -17,7 +17,8 @@ enum class EINV_GridSlotState : uint8
 	Unoccupied,
 	Occupied,
 	Selected,
-	GrayedOut
+	GrayedOut,
+	DisplacedPreview
 };
 
 UCLASS()
@@ -48,6 +49,7 @@ public:
 	void SetOccupiedTexture();
 	void SetSelectedTexture();
 	void SetGrayedOutTexture();
+	void SetDisplacedPreviewTexture();
 	
 	FGridSlotEvent GridSlotClicked;
 	FGridSlotEvent GridSlotHovered;
@@ -79,6 +81,9 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category="INV|Grid")
 	FSlateBrush Brush_GrayedOut;
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid")
+	FSlateBrush Brush_DisplacedPreview;
 	
 	EINV_GridSlotState GridSlotState { EINV_GridSlotState::Unoccupied };
 	
