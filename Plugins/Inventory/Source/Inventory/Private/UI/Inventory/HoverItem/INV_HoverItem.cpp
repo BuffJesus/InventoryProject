@@ -40,8 +40,10 @@ void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
 	Image_Icon->SetBrush(Brush);
 }
 
-void UINV_HoverItem::UpdateStackCount(const int32 Count) const
+void UINV_HoverItem::UpdateStackCount(const int32 Count)
 {
+	StackCount = Count;
+	
 	// Update stack count text.
 	if (Count > 0)
 	{

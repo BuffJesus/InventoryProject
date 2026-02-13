@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -35,6 +35,9 @@ public:
 	UFUNCTION()
 	// Adds a replicated item to the UI grid.
 	void AddItem(UINV_InventoryItem* Item);
+	
+	void ShowCursor();
+	void HideCursor();
 
 private:
 	// Owning inventory component for events.
@@ -61,6 +64,20 @@ private:
 	void UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount);
 	void PutDownOnIndex(const int32 Index);
 	void ClearHoverItem();
+	void SetCursorWidget(UUserWidget* CursorWidget);
+	
+	UUserWidget* GetVisibleCursorWidget();
+	UUserWidget* GetHiddenCursorWidget();
+	UUserWidget* GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget, const TSubclassOf<UUserWidget>& WidgetClass);
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	TSubclassOf<UUserWidget> VisibleCursorWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	TSubclassOf<UUserWidget> HiddenCursorWidgetClass;
+	
+	UPROPERTY() TObjectPtr<UUserWidget> VisibleCursorWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> HiddenCursorWidget;
 	
 	bool HasRoomAtIndex(const UINV_GridSlot* GridSlot, 
 		const FIntPoint& Dimensions,
@@ -150,3 +167,4 @@ private:
 	int32 LastHighlightedIndex { INDEX_NONE };
 	FIntPoint LastHighlightedDimensions;
 };
+

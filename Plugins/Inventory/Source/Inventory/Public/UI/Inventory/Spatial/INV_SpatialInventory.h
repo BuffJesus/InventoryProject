@@ -36,6 +36,8 @@ private:
 	
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
+	
+	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
 };
 
 

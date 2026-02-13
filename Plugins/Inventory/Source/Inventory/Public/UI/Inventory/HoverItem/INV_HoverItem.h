@@ -23,7 +23,7 @@ public:
 	// Set the hover icon image.
 	void SetImageBrush(const FSlateBrush& Brush) const;
 	// Update stack count text.
-	void UpdateStackCount(const int32 Count) const;
+	void UpdateStackCount(const int32 Count);
 	
 	// Cached item type for quick comparisons.
 	FGameplayTag GetItemType() const;
