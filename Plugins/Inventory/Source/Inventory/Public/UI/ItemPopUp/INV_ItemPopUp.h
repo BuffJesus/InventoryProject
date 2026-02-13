@@ -4,12 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/SizeBox.h"
 #include "INV_ItemPopUp.generated.h"
 
 class USizeBox;
 class UTextBlock;
 class USlider;
 class UButton;
+
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FPopUpMenuSplit, int32, SplitAmount, int32, Index);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FPopUpMenuDrop, int32, Index);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FPopUpMenuConsume, int32, Index);
+
 /**
  * 
  */
@@ -20,6 +26,22 @@ class INVENTORY_API UINV_ItemPopUp : public UUserWidget
 	
 public:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+	
+	int32 GetSplitAmount() const;
+	int32 GetGridIndex() const { return GridIndex; }
+	
+	FPopUpMenuSplit OnSplit;
+	FPopUpMenuDrop OnDrop;
+	FPopUpMenuConsume OnConsume;
+	
+	void ExecuteAndClose(const TFunctionRef<bool()>& Action);
+	void CollapseSplitButton() const;
+	void CollapseConsumeButton() const;
+	void SetSliderParams(const float Max, const float Value) const;
+	void SetGridIndex(int32 Index) { GridIndex = Index; }
+	
+	FVector2D GetBoxSize() const { return FVector2D(SizeBox_Root->GetWidthOverride(), SizeBox_Root->GetHeightOverride()); }
 	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UButton> Button_Split;
@@ -28,6 +50,8 @@ private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USlider> Slider_Split;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UTextBlock> Text_SplitAmount;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USizeBox> SizeBox_Root;
+	
+	int32 GridIndex { INDEX_NONE };
 	
 	UFUNCTION() void SplitButtonClicked();
 	UFUNCTION() void DropButtonClicked();

@@ -332,6 +332,18 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	}
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
 	HighlightBlockingItems(CurrentQueryResult.BlockingUpperLeftIndices);
+
+	// Show the exact hovered-item placement footprint with a distinct visual.
+	if (IsInGridBounds(ItemDropIndex, Dimensions))
+	{
+		UINV_InventoryStatics::ForEach2D(GridSlots, ItemDropIndex, Dimensions, GridSize.X,
+			[](UINV_GridSlot* GridSlot)
+		{
+			GridSlot->SetSelectedTexture();
+		});
+		LastHighlightedIndex = ItemDropIndex;
+		LastHighlightedDimensions = Dimensions;
+	}
 }
 
 void UINV_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dimensions)
@@ -652,6 +664,60 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 	{
 		OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
 		return;
+	}
+
+	// If the hovered footprint blocks exactly one item, allow swap even when the clicked tile is empty.
+	if (CurrentQueryResult.BlockingUpperLeftIndices.Num() == 1)
+	{
+		const int32 BlockingUpperLeftIndex = CurrentQueryResult.BlockingUpperLeftIndices[0];
+		if (GridSlots.IsValidIndex(BlockingUpperLeftIndex) &&
+			GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().IsValid())
+		{
+			OnSlottedItemClicked(BlockingUpperLeftIndex, MouseEvent);
+			return;
+		}
+	}
+
+	// Multi-blocker case: if clicked tile is empty, choose a best-fit anchor from overlapped blockers.
+	if (!GridSlots[GridIndex]->GetInventoryItem().IsValid() && CurrentQueryResult.BlockingUpperLeftIndices.Num() > 1)
+	{
+		int32 BestAnchorIndex = INDEX_NONE;
+		int32 BestScore = TNumericLimits<int32>::Lowest();
+		
+		const UINV_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
+		const FGameplayTag HoverItemType = IsValid(HoverInventoryItem)
+			? HoverInventoryItem->GetItemManifest().GetItemType()
+			: FGameplayTag();
+		
+		for (const int32 BlockingUpperLeftIndex : CurrentQueryResult.BlockingUpperLeftIndices)
+		{
+			if (!GridSlots.IsValidIndex(BlockingUpperLeftIndex)) continue;
+			
+			const UINV_InventoryItem* BlockingItem = GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().Get();
+			if (!IsValid(BlockingItem)) continue;
+			
+			const FINV_GridFragment* BlockingGridFragment { GetFragment<FINV_GridFragment>(BlockingItem, FragmentTags::GridFragment) };
+			const FIntPoint BlockingDimensions = BlockingGridFragment ? BlockingGridFragment->GetGridSize() : FIntPoint(1, 1);
+			const int32 BlockingArea = BlockingDimensions.X * BlockingDimensions.Y;
+			
+			// Prefer larger anchors; bias toward same-type so "same item" swaps behave intuitively.
+			const bool bSameTypeAsHover = HoverItemType.IsValid() &&
+				BlockingItem->GetItemManifest().GetItemType().MatchesTagExact(HoverItemType);
+			const int32 Score = BlockingArea + (bSameTypeAsHover ? 1000 : 0);
+			
+			if (Score > BestScore)
+			{
+				BestScore = Score;
+				BestAnchorIndex = BlockingUpperLeftIndex;
+			}
+		}
+		
+		if (GridSlots.IsValidIndex(BestAnchorIndex) &&
+			GridSlots[BestAnchorIndex]->GetInventoryItem().IsValid())
+		{
+			OnSlottedItemClicked(BestAnchorIndex, MouseEvent);
+			return;
+		}
 	}
 
 	// Multi-item overlap case: if clicked tile belongs to an item, route through slotted-item swap logic.
@@ -1068,6 +1134,22 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		Pickup(ClickedInventoryItem, GridIndex);
 		return;
 	}
+
+	// For spatial placement (especially partial-overlap cases), prefer swap/displacement over stack logic.
+	if (IsValid(HoverItem))
+	{
+		const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
+		const FINV_GridFragment* ClickedGridFragment { GetFragment<FINV_GridFragment>(ClickedInventoryItem, FragmentTags::GridFragment) };
+		const FIntPoint ClickedDimensions = ClickedGridFragment ? ClickedGridFragment->GetGridSize() : FIntPoint(1, 1);
+		const bool bDirectSameSlotDrop = GridSlots.IsValidIndex(ItemDropIndex) && ItemDropIndex == GridIndex;
+		const bool bIsSingleTileInteraction = HoverDimensions == FIntPoint(1, 1) && ClickedDimensions == FIntPoint(1, 1);
+		
+		if (!bDirectSameSlotDrop || !bIsSingleTileInteraction)
+		{
+			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
+			return;
+		}
+	}
 	
 	// Do the hovered and clicked item share type, are they stackable?
 	if (IsSameStackable(ClickedInventoryItem))
@@ -1098,6 +1180,14 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		// Clicked slot already full, do nothing (maybe play sound?)
 		if (StackDetails.RoomInClickedSlot == 0)
 		{
+			// If this is the exact same slot the hover came from, keep existing no-op behavior.
+			if (HoverItem->GetPreviousGridIndex() == GridIndex)
+			{
+				return;
+			}
+			
+			// No stack operation possible; fall back to regular swap/displacement behavior.
+			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
 			return;
 		}
 		
