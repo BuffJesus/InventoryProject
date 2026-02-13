@@ -336,7 +336,8 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(CurrentQueryResult.ValidItem.Get(), FragmentTags::GridFragment) };
 		if (!GridFragment) return;
 		
-		ChangeHoverType(CurrentQueryResult.UpperLeftIndex, Dimensions, EINV_GridSlotState::GrayedOut);
+		// Show the footprint of the occupied item we're hovering over (not the held item).
+		ChangeHoverType(CurrentQueryResult.UpperLeftIndex, GridFragment->GetGridSize(), EINV_GridSlotState::GrayedOut);
 	}
 }
 
