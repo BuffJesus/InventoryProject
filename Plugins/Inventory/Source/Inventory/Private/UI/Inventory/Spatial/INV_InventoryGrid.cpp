@@ -203,8 +203,11 @@ void UINV_InventoryGrid::NativeOnInitialized()
 	ConstructGrid();
 	
 	InventoryComponent = UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
-	InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
-	InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
+	if (InventoryComponent.IsValid())
+	{
+		InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
+		InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
+	}
 }
 
 void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -531,6 +534,7 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 {
 	if (!IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
+	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
 	
 	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
 	{
@@ -654,8 +658,13 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 	{
 		if (Availability.bItemAtIndex)
 		{
+			if (!GridSlots.IsValidIndex(Availability.Index)) continue;
+			TObjectPtr<UINV_SlottedItem>* SlottedItemPtr = SlottedItems.Find(Availability.Index);
+			if (!SlottedItemPtr) continue;
+			UINV_SlottedItem* SlottedItem = SlottedItemPtr->Get();
+			if (!IsValid(SlottedItem)) continue;
+			
 			const auto& GridSlot { GridSlots[Availability.Index] };
-			const auto& SlottedItem { SlottedItems.FindChecked(Availability.Index) };
 			SlottedItem->UpdateStackCount(GridSlot->GetStackCount() + Availability.AmountToFill);
 			GridSlot->SetStackCount(GridSlot->GetStackCount() + Availability.AmountToFill);
 		}

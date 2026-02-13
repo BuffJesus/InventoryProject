@@ -5,7 +5,6 @@
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/INV_InventoryItem.h"
-#include "Tests/ToolMenusTestUtilities.h"
 
 TArray<UINV_InventoryItem*> FINV_InventoryFastArray::GetAllItems() const
 {
@@ -25,7 +24,15 @@ void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> Remove
 	if (!IsValid(IC)) return;
 	for (int32 Index : RemovedIndices)
 	{
-		IC->OnItemRemoved.Broadcast(Entries[Index].Item);
+		if (!Entries.IsValidIndex(Index)) continue;
+		if (UINV_InventoryItem* RemovedItem = Entries[Index].Item)
+		{
+			IC->OnItemRemoved.Broadcast(RemovedItem);
+			if (IC->IsUsingRegisteredSubObjectList() && IC->IsReadyForReplication())
+			{
+				IC->RemoveReplicatedSubObject(RemovedItem);
+			}
+		}
 	}
 }
 

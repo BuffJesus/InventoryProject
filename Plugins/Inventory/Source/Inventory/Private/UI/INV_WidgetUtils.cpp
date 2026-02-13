@@ -8,6 +8,7 @@
 
 FVector2D UINV_WidgetUtils::GetWidgetPosition(UWidget* Widget)
 {
+	if (!IsValid(Widget)) return FVector2D::ZeroVector;
 	const FGeometry Geometry = Widget->GetCachedGeometry();
 	FVector2D PixelPos;
 	FVector2D ViewportPos;
@@ -17,6 +18,7 @@ FVector2D UINV_WidgetUtils::GetWidgetPosition(UWidget* Widget)
 
 FVector2D UINV_WidgetUtils::GetWidgetSize(UWidget* Widget)
 {
+	if (!IsValid(Widget)) return FVector2D::ZeroVector;
 	const FGeometry Geometry = Widget->GetCachedGeometry();
 	return Geometry.GetLocalSize();
 }

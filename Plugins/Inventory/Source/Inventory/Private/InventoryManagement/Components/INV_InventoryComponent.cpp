@@ -46,6 +46,10 @@ void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 {
+	if (!IsValid(ItemComponent)) return;
+	if (!IsValid(Inventory)) return;
+	if (!GetOwner()) return;
+	
 	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
 	
 	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType()) };
@@ -99,6 +103,9 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
 {
+	if (!IsValid(ItemComponent)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	
 	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
 	NewItem->SetTotalStackCount(StackCount);
 	
@@ -113,6 +120,9 @@ void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponen
 void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
 	int32 Remainder)
 {
+	if (!IsValid(ItemComponent)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	
 	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
 	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(ItemType) };
 	if (!IsValid(Item)) return;
