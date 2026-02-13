@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Blueprint/UserWidget.h"
+#include "Items/INV_InventoryItem.h"
 #include "INV_HoverItem.generated.h"
 
 class UTextBlock;
-class UINV_InventoryItem;
 class UImage;
 
 /**
