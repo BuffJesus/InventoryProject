@@ -4,7 +4,7 @@
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "Items/INV_InventoryItem.h"
 
-UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter)
+UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter) const
 {
 	UINV_InventoryItem* Item { NewObject<UINV_InventoryItem>(NewOuter, UINV_InventoryItem::StaticClass()) };
 	Item->SetItemManifest(*this);

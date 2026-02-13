@@ -17,7 +17,7 @@ USTRUCT(BlueprintType)
 struct INVENTORY_API FINV_ItemManifest
 {
 	GENERATED_BODY()
-	UINV_InventoryItem* CreateItem(UObject* NewOuter);
+	UINV_InventoryItem* CreateItem(UObject* NewOuter) const;
 	EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	FGameplayTag GetItemType() const { return ItemType; }
 	
