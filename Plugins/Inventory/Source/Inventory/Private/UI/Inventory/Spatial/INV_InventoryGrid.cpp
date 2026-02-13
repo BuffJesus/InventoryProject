@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
@@ -650,6 +650,17 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 	UpdateGridSlots(TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
 }
 
+void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
+{
+	UINV_GridSlot* GridSlot { GridSlots[Index] };
+	GridSlot->SetStackCount(HoveredStackCount);
+	
+	UINV_SlottedItem* ClickedSlottedItem { SlottedItems.FindChecked(Index) };
+	ClickedSlottedItem->UpdateStackCount(HoveredStackCount);
+	
+	HoverItem->UpdateStackCount(ClickedStackCount);
+}
+
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
                                                  const TSubclassOf<UUserWidget>& WidgetClass)
 {
@@ -784,6 +795,17 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 	}
 }
 
+FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem)
+{
+	const int32 ClickedStackCount { GridSlots[GridIndex]->GetStackCount() };
+	const FINV_StackableFragment* StackableFragment { ClickedInventoryItem->GetItemManifest().GetFragmentOfType<FINV_StackableFragment>() };
+	const int32 MaxStackSize { StackableFragment->GetMaxStackSize() };
+	const int32 RoomInClickedSlot { MaxStackSize - ClickedStackCount };
+	const int32 HoveredStackCount { HoverItem->GetStackCount() };
+
+	return FINV_StackDetails { ClickedStackCount, RoomInClickedSlot, HoveredStackCount, MaxStackSize };
+}
+
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
@@ -798,7 +820,13 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	// Do the hovered and clicked item share type, are they stackable?
 	if (IsSameStackable(ClickedInventoryItem))
 	{
-		// Should we swap stack counts?
+		const FINV_StackDetails StackDetails = CalculateStackDetails(GridIndex, ClickedInventoryItem);
+
+		// Should we swap stack counts? (Room in clicked slot == 0 && HoveredStackCount < MaxStackSize)
+		if (ShouldSwapStackCounts(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount, StackDetails.MaxStackSize))
+		{
+			SwapStackCounts(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
+		}
 		// Should we consume hover item's stacks?
 		// Should we fill in the stacks of the clicked item? (and not consume hover item)
 		// Is there no room in clicked slot?
@@ -841,4 +869,10 @@ bool UINV_InventoryGrid::IsSameStackable(const UINV_InventoryItem* ClickedInvent
 	const bool bIsSameItem = ClickedInventoryItem == HoverItem->GetInventoryItem();
 	const bool bIsStackable = HoverItem->IsStackable();
 	return bIsSameItem && bIsStackable;
+}
+
+bool UINV_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount,
+	const int32 MaxStackSize) const
+{
+	return RoomInClickedSlot == 0 && HoveredStackCount < MaxStackSize;
 }

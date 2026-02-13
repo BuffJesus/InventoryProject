@@ -73,13 +73,27 @@ USTRUCT()
 struct FINV_SpaceQueryResult
 {
 	GENERATED_BODY()
-	
+
 	// True if space queried has no items in it
 	bool bHasSpace { false };
-	
+
 	// Valid if there's a single item we can swap with
 	TWeakObjectPtr<UINV_InventoryItem> ValidItem { nullptr };
-	
+
 	// Upper left index of valid item, if there is one
 	int32 UpperLeftIndex { INDEX_NONE };
+};
+
+USTRUCT()
+struct FINV_StackDetails
+{
+	GENERATED_BODY()
+	FINV_StackDetails() {}
+	FINV_StackDetails(int32 ClickedCount, int32 Room, int32 HoveredCount, int32 MaxSize)
+		: ClickedStackCount(ClickedCount), RoomInClickedSlot(Room), HoveredStackCount(HoveredCount), MaxStackSize(MaxSize) {}
+
+	int32 ClickedStackCount { 0 };
+	int32 RoomInClickedSlot { 0 };
+	int32 HoveredStackCount { 0 };
+	int32 MaxStackSize { 0 };
 };

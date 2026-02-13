@@ -66,6 +66,7 @@ private:
 	void ClearHoverItem();
 	void SetCursorWidget(UUserWidget* CursorWidget);
 	void SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
+	void SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);
 	
 	UUserWidget* GetVisibleCursorWidget();
 	UUserWidget* GetHiddenCursorWidget();
@@ -106,6 +107,7 @@ private:
 	bool IsLeftClick(const FPointerEvent& MouseEvent) const;
 	bool CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Loc);
 	bool IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const;
+	bool ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize) const;
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
@@ -129,7 +131,8 @@ private:
 	FINV_SpaceQueryResult CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions);
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
-	
+	FINV_StackDetails CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem);
+
 	UFUNCTION() void OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
 	
 	UFUNCTION() void OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
