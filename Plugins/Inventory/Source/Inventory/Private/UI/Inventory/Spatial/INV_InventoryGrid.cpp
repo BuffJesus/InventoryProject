@@ -725,9 +725,9 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 	auto MarkFootprint = [&](const int32 StartIndex, const FIntPoint& Dimensions, const bool bOccupied)
 	{
 		UINV_InventoryStatics::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
-			[&](const UINV_GridSlot* Slot)
+			[&](const UINV_GridSlot* GridSlotRef)
 		{
-			SimulatedOccupied[Slot->GetTileIndex()] = bOccupied;
+			SimulatedOccupied[GridSlotRef->GetTileIndex()] = bOccupied;
 		});
 	};
 
@@ -751,9 +751,9 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 
 		bool bCanFit = true;
 		UINV_InventoryStatics::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
-			[&](const UINV_GridSlot* Slot)
+			[&](const UINV_GridSlot* GridSlotRef)
 		{
-			if (SimulatedOccupied[Slot->GetTileIndex()])
+			if (SimulatedOccupied[GridSlotRef->GetTileIndex()])
 			{
 				bCanFit = false;
 			}
