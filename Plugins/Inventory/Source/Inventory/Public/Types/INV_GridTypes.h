@@ -82,6 +82,9 @@ struct FINV_SpaceQueryResult
 
 	// Upper left index of valid item, if there is one
 	int32 UpperLeftIndex { INDEX_NONE };
+
+	// All unique upper-left indices overlapped by current hover footprint.
+	TArray<int32> BlockingUpperLeftIndices;
 };
 
 USTRUCT()

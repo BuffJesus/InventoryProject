@@ -127,6 +127,8 @@ private:
 	void OnTileParamsUpdated(const FINV_TileParams& Params);
 	void HighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 	void UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions);
+	void HighlightBlockingItems(const TArray<int32>& BlockingUpperLeftIndices);
+	void UnHighlightBlockingItems();
 	void ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState);
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
@@ -175,5 +177,6 @@ private:
 	bool bLastMouseWithinCanvas { false };
 	int32 LastHighlightedIndex { INDEX_NONE };
 	FIntPoint LastHighlightedDimensions;
+	TArray<int32> LastGrayedOutUpperLeftIndices;
 };
 

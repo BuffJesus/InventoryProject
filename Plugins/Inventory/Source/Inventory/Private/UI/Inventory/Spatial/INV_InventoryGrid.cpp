@@ -326,19 +326,12 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	if (CurrentQueryResult.bHasSpace)
 	{
 		// Free space: highlight potential drop area.
+		UnHighlightBlockingItems();
 		HighlightSlots(ItemDropIndex, Dimensions);
 		return;
 	}
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-	
-	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
-	{
-		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(CurrentQueryResult.ValidItem.Get(), FragmentTags::GridFragment) };
-		if (!GridFragment) return;
-		
-		// Show the footprint of the occupied item we're hovering over (not the held item).
-		ChangeHoverType(CurrentQueryResult.UpperLeftIndex, GridFragment->GetGridSize(), EINV_GridSlotState::GrayedOut);
-	}
+	HighlightBlockingItems(CurrentQueryResult.BlockingUpperLeftIndices);
 }
 
 void UINV_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dimensions)
@@ -415,8 +408,54 @@ FINV_SpaceQueryResult UINV_InventoryGrid::CheckHoverPosition(const FIntPoint& Po
 		Result.ValidItem = GridSlots[Index]->GetInventoryItem();
 		Result.UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
 	}
+
+	Result.BlockingUpperLeftIndices = OccupiedUpperLeftIndices.Array();
 	
 	return Result;
+}
+
+void UINV_InventoryGrid::HighlightBlockingItems(const TArray<int32>& BlockingUpperLeftIndices)
+{
+	UnHighlightBlockingItems();
+	LastHighlightedIndex = INDEX_NONE;
+	LastHighlightedDimensions = FIntPoint::ZeroValue;
+	
+	for (const int32 UpperLeftIndex : BlockingUpperLeftIndices)
+	{
+		if (!GridSlots.IsValidIndex(UpperLeftIndex)) continue;
+		const UINV_InventoryItem* BlockingItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
+		if (!IsValid(BlockingItem)) continue;
+		
+		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(BlockingItem, FragmentTags::GridFragment) };
+		if (!GridFragment) continue;
+		
+		LastGrayedOutUpperLeftIndices.Add(UpperLeftIndex);
+		UINV_InventoryStatics::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridSize.X,
+			[](UINV_GridSlot* GridSlot)
+		{
+			GridSlot->SetGrayedOutTexture();
+		});
+	}
+}
+
+void UINV_InventoryGrid::UnHighlightBlockingItems()
+{
+	for (const int32 UpperLeftIndex : LastGrayedOutUpperLeftIndices)
+	{
+		if (!GridSlots.IsValidIndex(UpperLeftIndex)) continue;
+		const UINV_InventoryItem* BlockingItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
+		if (!IsValid(BlockingItem)) continue;
+		
+		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(BlockingItem, FragmentTags::GridFragment) };
+		if (!GridFragment) continue;
+		
+		UINV_InventoryStatics::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridSize.X,
+			[](UINV_GridSlot* GridSlot)
+		{
+			GridSlot->SetOccupiedTexture();
+		});
+	}
+	LastGrayedOutUpperLeftIndices.Reset();
 }
 
 FIntPoint UINV_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions,
@@ -1065,6 +1104,7 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	if (!bMouseWithinCanvas && bLastMouseWithinCanvas)
 	{
 		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
+		UnHighlightBlockingItems();
 		return true;
 	}
 	return false;
