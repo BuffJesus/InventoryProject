@@ -677,6 +677,19 @@ void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, c
 	HighlightSlots(Index, Dimensions);
 }
 
+void UINV_InventoryGrid::FillInStack(const int32 FillAmount, const int32 Remainder, const int32 Index)
+{
+	UINV_GridSlot* GridSlot { GridSlots[Index] };
+	const int32 NewStackCount = GridSlot->GetStackCount() + FillAmount;
+	
+	GridSlot->SetStackCount(NewStackCount);
+	
+	UINV_SlottedItem* ClickedSlottedItem { SlottedItems.FindChecked(Index) };
+	ClickedSlottedItem->UpdateStackCount(NewStackCount);
+	
+	HoverItem->UpdateStackCount(Remainder);
+}
+
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
                                                  const TSubclassOf<UUserWidget>& WidgetClass)
 {
@@ -842,15 +855,23 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		if (ShouldSwapStackCounts(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount, StackDetails.MaxStackSize))
 		{
 			SwapStackCounts(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
+			return;
 		}
 		
 		// Should we consume hover item's stacks? (Room in clicked slot >= HoveredStackCount)
 		if (ShouldConsumeHoverItemStacks(StackDetails.HoveredStackCount, StackDetails.RoomInClickedSlot))
 		{
 			ConsumeHoverItemStacks(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
+			return;
 		}
 		
 		// Should we fill in the stacks of the clicked item? (and not consume hover item)
+		if (ShouldFillInStack(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount))
+		{
+			FillInStack(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount - StackDetails.RoomInClickedSlot, GridIndex);
+			return;
+		}
+		
 		// Is there no room in clicked slot?
 		return;
 	}
@@ -902,4 +923,9 @@ bool UINV_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, co
 bool UINV_InventoryGrid::ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const
 {
 	return RoomInClickedSlot >= HoveredStackCount;
+}
+
+bool UINV_InventoryGrid::ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const
+{
+	return RoomInClickedSlot < HoveredStackCount;
 }

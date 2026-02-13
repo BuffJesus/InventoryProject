@@ -68,6 +68,7 @@ private:
 	void SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	void SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);
 	void ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);
+	void FillInStack(const int32 FillAmount, const int32 Remainder, const int32 Index);
 	
 	UUserWidget* GetVisibleCursorWidget();
 	UUserWidget* GetHiddenCursorWidget();
@@ -110,6 +111,7 @@ private:
 	bool IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const;
 	bool ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize) const;
 	bool ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const;
+	bool ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const;
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
