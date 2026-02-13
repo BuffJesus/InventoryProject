@@ -591,9 +591,20 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
 		return;
 	}
-	
-	auto GridSlot = GridSlots[ItemDropIndex];
-	if (!GridSlot->GetInventoryItem().IsValid())
+
+	// Multi-item overlap case: if clicked tile belongs to an item, route through slotted-item swap logic.
+	if (GridSlots[GridIndex]->GetInventoryItem().IsValid())
+	{
+		const int32 UpperLeftIndex = GridSlots[GridIndex]->GetUpperLeftIndex();
+		if (GridSlots.IsValidIndex(UpperLeftIndex))
+		{
+			OnSlottedItemClicked(UpperLeftIndex, MouseEvent);
+		}
+		return;
+	}
+
+	// Only place directly when the whole hovered footprint is actually free.
+	if (CurrentQueryResult.bHasSpace)
 	{
 		PutDownOnIndex(ItemDropIndex);
 	}
@@ -638,16 +649,163 @@ void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
 void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
 	if (!IsValid(HoverItem)) return;
-	
-	UINV_InventoryItem* TempInventoryItem { HoverItem->GetInventoryItem() };
+	if (!IsValid(ClickedInventoryItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
+	if (!GridSlots[GridIndex]->GetInventoryItem().IsValid()) return;
+
+	UINV_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
+	const FINV_GridFragment* HoverGridFragment { GetFragment<FINV_GridFragment>(HoverInventoryItem, FragmentTags::GridFragment) };
+	if (!HoverGridFragment) return;
+
+	// Prefer the computed hover drop index, but fall back to clicked index if needed.
+	const int32 TargetDropIndex = GridSlots.IsValidIndex(ItemDropIndex) ? ItemDropIndex : GridIndex;
+	if (!IsInGridBounds(TargetDropIndex, HoverGridFragment->GetGridSize())) return;
+
+	// Gather all unique overlapped items under the hovered footprint.
+	TSet<int32> OverlappedUpperLeftIndices;
+	UINV_InventoryStatics::ForEach2D(GridSlots, TargetDropIndex, HoverGridFragment->GetGridSize(), GridSize.X,
+		[&](const UINV_GridSlot* GridSlot)
+	{
+		if (GridSlot->GetInventoryItem().IsValid())
+		{
+			OverlappedUpperLeftIndices.Add(GridSlot->GetUpperLeftIndex());
+		}
+	});
+
+	if (!OverlappedUpperLeftIndices.Contains(GridIndex))
+	{
+		// Only allow swap when the clicked item is one of the overlapped blockers.
+		return;
+	}
+
+	struct FDisplacedItemPlan
+	{
+		UINV_InventoryItem* Item { nullptr };
+		int32 SourceIndex { INDEX_NONE };
+		int32 TargetIndex { INDEX_NONE };
+		int32 StackCount { 0 };
+		bool bStackable { false };
+		FIntPoint Dimensions { 1, 1 };
+	};
+
+	TArray<FDisplacedItemPlan> DisplacedItems;
+	DisplacedItems.Reserve(OverlappedUpperLeftIndices.Num());
+
+	// Build candidate list for all overlapped blockers except the clicked one (which becomes new hover item).
+	for (const int32 OverlappedIndex : OverlappedUpperLeftIndices)
+	{
+		if (OverlappedIndex == GridIndex) continue;
+		if (!GridSlots.IsValidIndex(OverlappedIndex)) return;
+
+		UINV_GridSlot* SourceSlot = GridSlots[OverlappedIndex];
+		UINV_InventoryItem* SourceItem = SourceSlot->GetInventoryItem().Get();
+		if (!IsValid(SourceItem)) return;
+
+		const FINV_GridFragment* SourceGridFragment { GetFragment<FINV_GridFragment>(SourceItem, FragmentTags::GridFragment) };
+		if (!SourceGridFragment) return;
+
+		DisplacedItems.Add(FDisplacedItemPlan{
+			SourceItem,
+			OverlappedIndex,
+			INDEX_NONE,
+			SourceSlot->GetStackCount(),
+			SourceItem->IsStackable(),
+			SourceGridFragment->GetGridSize()
+		});
+	}
+
+	// Build occupancy simulation so we can validate all relocations before mutating UI state.
+	TArray<bool> SimulatedOccupied;
+	SimulatedOccupied.Init(false, GridSlots.Num());
+	for (int32 Index = 0; Index < GridSlots.Num(); ++Index)
+	{
+		SimulatedOccupied[Index] = GridSlots[Index]->GetInventoryItem().IsValid();
+	}
+
+	auto MarkFootprint = [&](const int32 StartIndex, const FIntPoint& Dimensions, const bool bOccupied)
+	{
+		UINV_InventoryStatics::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
+			[&](const UINV_GridSlot* Slot)
+		{
+			SimulatedOccupied[Slot->GetTileIndex()] = bOccupied;
+		});
+	};
+
+	// Free all overlapped blockers (clicked + others), then reserve target footprint for hovered item.
+	for (const int32 OverlappedIndex : OverlappedUpperLeftIndices)
+	{
+		if (!GridSlots.IsValidIndex(OverlappedIndex)) return;
+		UINV_InventoryItem* SourceItem = GridSlots[OverlappedIndex]->GetInventoryItem().Get();
+		if (!IsValid(SourceItem)) return;
+
+		const FINV_GridFragment* SourceGridFragment { GetFragment<FINV_GridFragment>(SourceItem, FragmentTags::GridFragment) };
+		if (!SourceGridFragment) return;
+
+		MarkFootprint(OverlappedIndex, SourceGridFragment->GetGridSize(), false);
+	}
+	MarkFootprint(TargetDropIndex, HoverGridFragment->GetGridSize(), true);
+
+	auto CanFitAt = [&](const int32 StartIndex, const FIntPoint& Dimensions) -> bool
+	{
+		if (!IsInGridBounds(StartIndex, Dimensions)) return false;
+
+		bool bCanFit = true;
+		UINV_InventoryStatics::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
+			[&](const UINV_GridSlot* Slot)
+		{
+			if (SimulatedOccupied[Slot->GetTileIndex()])
+			{
+				bCanFit = false;
+			}
+		});
+		return bCanFit;
+	};
+
+	// Plan destinations for all displaced blockers using first-fit.
+	for (FDisplacedItemPlan& Plan : DisplacedItems)
+	{
+		for (int32 CandidateIndex = 0; CandidateIndex < GridSlots.Num(); ++CandidateIndex)
+		{
+			if (!CanFitAt(CandidateIndex, Plan.Dimensions)) continue;
+
+			Plan.TargetIndex = CandidateIndex;
+			MarkFootprint(CandidateIndex, Plan.Dimensions, true);
+			break;
+		}
+
+		if (Plan.TargetIndex == INDEX_NONE)
+		{
+			// Not enough room to relocate all blockers safely.
+			return;
+		}
+	}
+
 	const int32 TempStackCount { HoverItem->GetStackCount() };
 	const bool bTempIsStackable { HoverItem->IsStackable() };
-	
-	// Keep same previous grid index
-	AssignHoverItem(ClickedInventoryItem, GridIndex, HoverItem->GetPreviousGridIndex());
-	RemoveItemFromGrid(ClickedInventoryItem, GridIndex);
-	AddItemAtIndex(TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
-	UpdateGridSlots(TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
+	const int32 HoverPreviousIndex = HoverItem->GetPreviousGridIndex();
+
+	// Keep same previous grid index for the newly hovered clicked item.
+	AssignHoverItem(ClickedInventoryItem, GridIndex, HoverPreviousIndex);
+
+	// Remove all overlapped blockers now that we know relocation is possible.
+	for (const int32 OverlappedIndex : OverlappedUpperLeftIndices)
+	{
+		if (!GridSlots.IsValidIndex(OverlappedIndex)) continue;
+		UINV_InventoryItem* SourceItem = GridSlots[OverlappedIndex]->GetInventoryItem().Get();
+		if (!IsValid(SourceItem)) continue;
+		RemoveItemFromGrid(SourceItem, OverlappedIndex);
+	}
+
+	// Place hovered item at destination.
+	AddItemAtIndex(HoverInventoryItem, TargetDropIndex, bTempIsStackable, TempStackCount);
+	UpdateGridSlots(HoverInventoryItem, TargetDropIndex, bTempIsStackable, TempStackCount);
+
+	// Re-home displaced blockers.
+	for (const FDisplacedItemPlan& Plan : DisplacedItems)
+	{
+		AddItemAtIndex(Plan.Item, Plan.TargetIndex, Plan.bStackable, Plan.StackCount);
+		UpdateGridSlots(Plan.Item, Plan.TargetIndex, Plan.bStackable, Plan.StackCount);
+	}
 }
 
 void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
@@ -872,7 +1030,12 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 			return;
 		}
 		
-		// Is there no room in clicked slot?
+		// Clicked slot already full, do nothing (maybe play sound?)
+		if (StackDetails.RoomInClickedSlot == 0)
+		{
+			return;
+		}
+		
 		return;
 	}
 	// Swap with hover item
