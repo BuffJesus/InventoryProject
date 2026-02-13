@@ -452,10 +452,33 @@ void UINV_InventoryGrid::UnHighlightBlockingItems()
 		UINV_InventoryStatics::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridSize.X,
 			[](UINV_GridSlot* GridSlot)
 		{
-			GridSlot->SetOccupiedTexture();
+			if (GridSlot->GetAvailability())
+			{
+				GridSlot->SetUnoccupiedTexture();
+			}
+			else
+			{
+				GridSlot->SetOccupiedTexture();
+			}
 		});
 	}
 	LastGrayedOutUpperLeftIndices.Reset();
+}
+
+void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
+{
+	for (UINV_GridSlot* GridSlot : GridSlots)
+	{
+		if (!IsValid(GridSlot)) continue;
+		if (GridSlot->GetAvailability())
+		{
+			GridSlot->SetUnoccupiedTexture();
+		}
+		else
+		{
+			GridSlot->SetOccupiedTexture();
+		}
+	}
 }
 
 FIntPoint UINV_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions,
@@ -845,6 +868,9 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 		AddItemAtIndex(Plan.Item, Plan.TargetIndex, Plan.bStackable, Plan.StackCount);
 		UpdateGridSlots(Plan.Item, Plan.TargetIndex, Plan.bStackable, Plan.StackCount);
 	}
+
+	// Ensure no stale hover-highlight textures remain after relocation.
+	RefreshGridSlotVisualsFromAvailability();
 }
 
 void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)

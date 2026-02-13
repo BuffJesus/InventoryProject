@@ -129,6 +129,7 @@ private:
 	void UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 	void HighlightBlockingItems(const TArray<int32>& BlockingUpperLeftIndices);
 	void UnHighlightBlockingItems();
+	void RefreshGridSlotVisualsFromAvailability();
 	void ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState);
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
