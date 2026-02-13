@@ -12,6 +12,8 @@ class UImage;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemClicked, int32, GridIndex, const FPointerEvent&, MouseEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemHovered, int32, GridIndex, const FPointerEvent&, MouseEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemUnhovered, int32, GridIndex, const FPointerEvent&, MouseEvent);
 
 /**
  * 
@@ -24,6 +26,8 @@ class INVENTORY_API UINV_SlottedItem : public UUserWidget
 public:
 	// Handles click on the item image.
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& MouseEvent) override;
 	
 	bool IsStackable() const { return bIsStackable; }
 	void SetIsStackable(bool bStackable) { bIsStackable = bStackable; }
@@ -39,6 +43,8 @@ public:
 	void UpdateStackCount(int32 StackCount);
 	
 	FSlottedItemClicked OnSlottedItemClicked;
+	FSlottedItemHovered OnSlottedItemHovered;
+	FSlottedItemUnhovered OnSlottedItemUnhovered;
 	
 private:
 	// Icon image in the widget.
@@ -47,7 +53,7 @@ private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UTextBlock> Text_StackCount;
 	
 	// Grid index this item is anchored to.
-	int32 GridIndex;
+	int32 GridIndex { INDEX_NONE };
 	// Size in grid tiles.
 	FIntPoint GridDimensions;
 	// Backing inventory item.

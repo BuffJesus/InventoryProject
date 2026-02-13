@@ -572,6 +572,8 @@ UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item
 	const int32 StackUpdateAmount = bStackable ? StackAmount : 0;
 	SlottedItem->UpdateStackCount(StackUpdateAmount);
 	SlottedItem->OnSlottedItemClicked.AddDynamic(this, &ThisClass::OnSlottedItemClicked);
+	SlottedItem->OnSlottedItemHovered.AddDynamic(this, &ThisClass::OnSlottedItemHovered);
+	SlottedItem->OnSlottedItemUnhovered.AddDynamic(this, &ThisClass::OnSlottedItemUnhovered);
 	
 	return SlottedItem;
 }
@@ -1024,6 +1026,40 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 	GridSlot->SetUnoccupiedTexture();
 }
 
+void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	if (IsValid(HoverItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
+
+	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
+	if (!IsValid(HoveredInventoryItem)) return;
+
+	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(HoveredInventoryItem, FragmentTags::GridFragment) };
+	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+
+	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
+	{
+		GridSlot->SetSelectedTexture();
+	});
+}
+
+void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	if (IsValid(HoverItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
+
+	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
+	if (!IsValid(HoveredInventoryItem)) return;
+
+	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(HoveredInventoryItem, FragmentTags::GridFragment) };
+	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+
+	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
+	{
+		GridSlot->SetOccupiedTexture();
+	});
+}
+
 void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
 	// Convert a slotted item into a hover item.
@@ -1134,6 +1170,11 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 {
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
 	UINV_InventoryItem* ClickedInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
+
+	if (!IsValid(ClickedInventoryItem))
+	{
+		return;
+	}
 	
 	if (!IsValid(HoverItem) && IsLeftClick(MouseEvent))
 	{
@@ -1144,6 +1185,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	if (IsRightClick(MouseEvent))
 	{
 		CreateItemPopup(GridIndex);
+		return;
 	}
 
 	// For spatial placement (especially partial-overlap cases), prefer swap/displacement over stack logic.
@@ -1210,13 +1252,18 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 {
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	UINV_InventoryItem* RightClickedItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(RightClickedItem)) return;
+	if (!ItemPopUpClass) return;
+	if (!OwningCanvasPanel.IsValid()) return;
 	
 	ItemPopUp = CreateWidget<UINV_ItemPopUp>(this, ItemPopUpClass);
+	if (!IsValid(ItemPopUp)) return;
 	
 	OwningCanvasPanel->AddChild(ItemPopUp);
 	UCanvasPanelSlot* CanvasSlot { UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp) };
+	if (!IsValid(CanvasSlot)) return;
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
 	CanvasSlot->SetPosition(MousePos);
 	CanvasSlot->SetSize(ItemPopUp->GetBoxSize());
@@ -1253,6 +1300,11 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 
 bool UINV_InventoryGrid::IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const
 {
+	if (!IsValid(HoverItem) || !IsValid(ClickedInventoryItem))
+	{
+		return false;
+	}
+
 	const bool bIsSameItem = ClickedInventoryItem == HoverItem->GetInventoryItem();
 	const bool bIsStackable = HoverItem->IsStackable();
 	return bIsSameItem && bIsStackable;

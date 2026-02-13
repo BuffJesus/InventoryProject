@@ -11,6 +11,18 @@ FReply UINV_SlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, co
 	return FReply::Handled();
 }
 
+void UINV_SlottedItem::NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	Super::NativeOnMouseEnter(MyGeometry, MouseEvent);
+	OnSlottedItemHovered.Broadcast(GridIndex, MouseEvent);
+}
+
+void UINV_SlottedItem::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	Super::NativeOnMouseLeave(MouseEvent);
+	OnSlottedItemUnhovered.Broadcast(GridIndex, MouseEvent);
+}
+
 void UINV_SlottedItem::UpdateStackCount(int32 StackCount)
 {
 	// Show or hide stack count text.

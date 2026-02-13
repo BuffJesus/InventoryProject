@@ -151,6 +151,8 @@ private:
 	FINV_StackDetails CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem);
 
 	UFUNCTION() void OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
+	UFUNCTION() void OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent);
+	UFUNCTION() void OnSlottedItemUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent);
 	
 	UFUNCTION() void OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent);
