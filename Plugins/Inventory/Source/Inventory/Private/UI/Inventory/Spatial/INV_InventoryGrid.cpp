@@ -373,7 +373,6 @@ void UINV_InventoryGrid::ChangeHoverType(const int32 Index, const FIntPoint& Dim
 			case EINV_GridSlotState::Occupied: GridSlot->SetOccupiedTexture(); break;
 			case EINV_GridSlotState::Unoccupied: GridSlot->SetUnoccupiedTexture(); break;
 			case EINV_GridSlotState::GrayedOut: GridSlot->SetGrayedOutTexture(); break;
-			case EINV_GridSlotState::DisplacedPreview: GridSlot->SetDisplacedPreviewTexture(); break;
 			case EINV_GridSlotState::Selected: GridSlot->SetSelectedTexture(); break;
 		}
 	});
@@ -434,7 +433,7 @@ void UINV_InventoryGrid::HighlightBlockingItems(const TArray<int32>& BlockingUpp
 		UINV_InventoryStatics::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridSize.X,
 			[](UINV_GridSlot* GridSlot)
 		{
-			GridSlot->SetDisplacedPreviewTexture();
+			GridSlot->SetGrayedOutTexture();
 		});
 	}
 }

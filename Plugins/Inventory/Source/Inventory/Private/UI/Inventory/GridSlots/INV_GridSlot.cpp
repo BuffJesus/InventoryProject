@@ -54,10 +54,3 @@ void UINV_GridSlot::SetGrayedOutTexture()
 	GridSlotState = EINV_GridSlotState::GrayedOut;
 	Image_GridSlot->SetBrush(Brush_GrayedOut);
 }
-
-void UINV_GridSlot::SetDisplacedPreviewTexture()
-{
-	// Visual state for items that will be displaced by a placement.
-	GridSlotState = EINV_GridSlotState::DisplacedPreview;
-	Image_GridSlot->SetBrush(Brush_DisplacedPreview);
-}
