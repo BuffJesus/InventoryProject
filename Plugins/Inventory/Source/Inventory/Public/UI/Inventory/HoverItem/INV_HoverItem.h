@@ -35,6 +35,8 @@ public:
 	UINV_InventoryItem* GetInventoryItem() const;
 	void SetInventoryItem(UINV_InventoryItem* Item);
 	FORCEINLINE void SetCachedSize(const FVector2D& Size) { CachedSize = Size; }
+	
+	void Clear();
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;

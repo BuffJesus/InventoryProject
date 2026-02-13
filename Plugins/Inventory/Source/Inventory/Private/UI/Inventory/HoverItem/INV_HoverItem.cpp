@@ -7,6 +7,15 @@
 #include "Components/Image.h"
 #include "Items/INV_InventoryItem.h"
 
+void UINV_HoverItem::Clear()
+{
+	SetInventoryItem(nullptr);
+	SetIsStackable(false);
+	SetPreviousGridIndex(INDEX_NONE);
+	SetStackCount(0);
+	SetImageBrush(FSlateNoResource());
+}
+
 void UINV_HoverItem::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);

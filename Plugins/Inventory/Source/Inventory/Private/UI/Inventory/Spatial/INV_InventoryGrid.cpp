@@ -541,8 +541,25 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 	auto GridSlot = GridSlots[ItemDropIndex];
 	if (!GridSlot->GetInventoryItem().IsValid())
 	{
-		//TODO: Put item down at this index
+		PutDownOnIndex(ItemDropIndex);
 	}
+}
+
+void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
+{
+	AddItemAtIndex(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
+	UpdateGridSlots(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
+}
+
+void UINV_InventoryGrid::ClearHoverItem()
+{
+	if (!IsValid(HoverItem)) return;
+	
+	HoverItem->Clear();
+	HoverItem->RemoveFromParent();
+	HoverItem = nullptr;
+	
+	//TODO: Show Mouse Cursor
 }
 
 void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
