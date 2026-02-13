@@ -634,6 +634,21 @@ void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
 	GetOwningPlayer()->SetMouseCursorWidget(EMouseCursor::Default, CursorWidget);
 }
 
+void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
+{
+	if (!IsValid(HoverItem)) return;
+	
+	UINV_InventoryItem* TempInventoryItem { HoverItem->GetInventoryItem() };
+	const int32 TempStackCount { HoverItem->GetStackCount() };
+	const bool bTempIsStackable { HoverItem->IsStackable() };
+	
+	// Keep same previous grid index
+	AssignHoverItem(ClickedInventoryItem, GridIndex, HoverItem->GetPreviousGridIndex());
+	RemoveItemFromGrid(ClickedInventoryItem, GridIndex);
+	AddItemAtIndex(TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
+	UpdateGridSlots(TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
+}
+
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
                                                  const TSubclassOf<UUserWidget>& WidgetClass)
 {
@@ -776,7 +791,20 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	if (!IsValid(HoverItem) && IsLeftClick(MouseEvent))
 	{
 		Pickup(ClickedInventoryItem, GridIndex);
+		return;
 	}
+	
+	// Do the hovered and clicked item share type, are they stackable?
+	if (IsSameStackable(ClickedInventoryItem))
+	{
+		// Should we swap stack counts?
+		// Should we consume hover item's stacks?
+		// Should we fill in the stacks of the clicked item? (and not consume hover item)
+		// Is there no room in clicked slot?
+		return;
+	}
+	// Swap with hover item
+	SwapWithHoverItem(ClickedInventoryItem, GridIndex);
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
@@ -805,4 +833,11 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 		return true;
 	}
 	return false;
+}
+
+bool UINV_InventoryGrid::IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const
+{
+	const bool bIsSameItem = ClickedInventoryItem == HoverItem->GetInventoryItem();
+	const bool bIsStackable = HoverItem->IsStackable();
+	return bIsSameItem && bIsStackable;
 }

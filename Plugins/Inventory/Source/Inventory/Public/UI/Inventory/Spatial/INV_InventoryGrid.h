@@ -65,6 +65,7 @@ private:
 	void PutDownOnIndex(const int32 Index);
 	void ClearHoverItem();
 	void SetCursorWidget(UUserWidget* CursorWidget);
+	void SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	
 	UUserWidget* GetVisibleCursorWidget();
 	UUserWidget* GetHiddenCursorWidget();
@@ -104,6 +105,7 @@ private:
 	bool IsRightClick(const FPointerEvent& MouseEvent) const;
 	bool IsLeftClick(const FPointerEvent& MouseEvent) const;
 	bool CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Loc);
+	bool IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const;
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
