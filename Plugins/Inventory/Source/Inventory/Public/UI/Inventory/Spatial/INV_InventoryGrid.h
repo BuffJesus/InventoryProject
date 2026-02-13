@@ -67,6 +67,7 @@ private:
 	void SetCursorWidget(UUserWidget* CursorWidget);
 	void SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	void SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);
+	void ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);
 	
 	UUserWidget* GetVisibleCursorWidget();
 	UUserWidget* GetHiddenCursorWidget();
@@ -108,6 +109,7 @@ private:
 	bool CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Loc);
 	bool IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const;
 	bool ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize) const;
+	bool ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const;
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;

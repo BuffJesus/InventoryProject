@@ -661,6 +661,22 @@ void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const in
 	HoverItem->UpdateStackCount(ClickedStackCount);
 }
 
+void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount,
+	const int32 Index)
+{
+	const int32 AmountToTransfer = HoveredStackCount;
+	const int32 NewClickedStackCount = ClickedStackCount + AmountToTransfer;
+	
+	GridSlots[Index]->SetStackCount(NewClickedStackCount);
+	SlottedItems.FindChecked(Index)->UpdateStackCount(NewClickedStackCount);
+	ClearHoverItem();
+	ShowCursor();
+	
+	const FINV_GridFragment* GridFragment { GridSlots[Index]->GetInventoryItem()->GetItemManifest().GetFragmentOfType<FINV_GridFragment>() };
+	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	HighlightSlots(Index, Dimensions);
+}
+
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
                                                  const TSubclassOf<UUserWidget>& WidgetClass)
 {
@@ -827,7 +843,13 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		{
 			SwapStackCounts(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
 		}
-		// Should we consume hover item's stacks?
+		
+		// Should we consume hover item's stacks? (Room in clicked slot >= HoveredStackCount)
+		if (ShouldConsumeHoverItemStacks(StackDetails.HoveredStackCount, StackDetails.RoomInClickedSlot))
+		{
+			ConsumeHoverItemStacks(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
+		}
+		
 		// Should we fill in the stacks of the clicked item? (and not consume hover item)
 		// Is there no room in clicked slot?
 		return;
@@ -875,4 +897,9 @@ bool UINV_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, co
 	const int32 MaxStackSize) const
 {
 	return RoomInClickedSlot == 0 && HoveredStackCount < MaxStackSize;
+}
+
+bool UINV_InventoryGrid::ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const
+{
+	return RoomInClickedSlot >= HoveredStackCount;
 }
