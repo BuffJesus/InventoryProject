@@ -1267,7 +1267,7 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 	UCanvasPanelSlot* CanvasSlot { UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp) };
 	if (!IsValid(CanvasSlot)) return;
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
-	CanvasSlot->SetPosition(MousePos);
+	CanvasSlot->SetPosition(MousePos - ItemPopUp->GetBoxSize() / 2.0f);
 	CanvasSlot->SetSize(ItemPopUp->GetBoxSize());
 }
 
