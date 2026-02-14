@@ -18,6 +18,8 @@
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/ItemPopUp/INV_ItemPopUp.h"
+#include "Framework/Application/SlateApplication.h"
+#include "GameFramework/PlayerController.h"
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -255,6 +257,7 @@ void UINV_InventoryGrid::NativeOnInitialized()
 void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	ClosePopupIfClickedOutside();
 	
 	// Track mouse position for hover placement.
 	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
@@ -309,6 +312,27 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 	TileParams.TileQuadrant = CalculateTileQuadrant(CanvasPos, MousePos);
 	
 	OnTileParamsUpdated(TileParams);
+}
+
+void UINV_InventoryGrid::ClosePopupIfClickedOutside()
+{
+	if (!IsValid(ItemPopUp)) return;
+
+	const APlayerController* OwningPlayerController = GetOwningPlayer();
+	if (!IsValid(OwningPlayerController)) return;
+
+	const bool bClickedThisFrame =
+		OwningPlayerController->WasInputKeyJustPressed(EKeys::LeftMouseButton) ||
+		OwningPlayerController->WasInputKeyJustPressed(EKeys::RightMouseButton) ||
+		OwningPlayerController->WasInputKeyJustPressed(EKeys::MiddleMouseButton);
+
+	if (!bClickedThisFrame) return;
+
+	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
+	if (ItemPopUp->GetCachedGeometry().IsUnderLocation(CursorPosition)) return;
+
+	ItemPopUp->RemoveFromParent();
+	ItemPopUp = nullptr;
 }
 
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)

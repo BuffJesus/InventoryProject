@@ -16,12 +16,6 @@ void UINV_ItemPopUp::NativeOnInitialized()
 	Slider_Split->OnValueChanged.AddDynamic(this, &ThisClass::SliderValueChanged);
 }
 
-void UINV_ItemPopUp::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
-{
-	Super::NativeOnMouseLeave(InMouseEvent);
-	RemoveFromParent();
-}
-
 int32 UINV_ItemPopUp::GetSplitAmount() const
 {
 	return FMath::Floor(Slider_Split->GetValue());

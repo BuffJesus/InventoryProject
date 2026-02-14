@@ -26,7 +26,6 @@ class INVENTORY_API UINV_ItemPopUp : public UUserWidget
 	
 public:
 	virtual void NativeOnInitialized() override;
-	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 	
 	int32 GetSplitAmount() const;
 	int32 GetGridIndex() const { return GridIndex; }
