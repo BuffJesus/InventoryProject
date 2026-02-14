@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "Types/INV_GridTypes.h"
 #include "GameplayTagContainer.h"
 #include "StructUtils/InstancedStruct.h"
@@ -33,6 +34,9 @@ struct INVENTORY_API FINV_ItemManifest
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	T* GetFragmentOfTypeMutable();
 	
+	void SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
+		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	
 private:
 	// Item fragments that describe behavior and UI.
 	UPROPERTY(EditAnywhere,Category="Inventory",meta = (ExcludeBaseStruct))
@@ -45,6 +49,9 @@ private:
 	// Gameplay tag for item type.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory", meta = (Categories = "GameItems"))
 	FGameplayTag ItemType;
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	TSubclassOf<AActor> PickupActorClass;
 };
 
 template <typename T> requires std::derived_from<T, FInv_ItemFragment>

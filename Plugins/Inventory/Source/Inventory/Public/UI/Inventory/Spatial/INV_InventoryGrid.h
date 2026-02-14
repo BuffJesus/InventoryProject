@@ -143,6 +143,7 @@ private:
 	void UnHighlightBlockingItems();
 	void RefreshGridSlotVisualsFromAvailability();
 	void ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState);
+	void DropItem();
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions, const EINV_TileQuadrant Quadrant) const;

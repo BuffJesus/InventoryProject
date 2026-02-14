@@ -3,6 +3,7 @@
 
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "Items/INV_InventoryItem.h"
+#include "Items/INV_ItemComponent.h"
 
 UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter) const
 {
@@ -12,3 +13,22 @@ UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter) const
 	
 	return Item;
 }
+
+void FINV_ItemManifest::SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation,
+	const FRotator& SpawnRotation, ESpawnActorCollisionHandlingMethod SpawnCollisionHandling)
+{
+	if (!PickupActorClass || !IsValid(WorldContextObject)) return;
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = SpawnCollisionHandling;
+	AActor* SpawnedActor { WorldContextObject->GetWorld()->SpawnActor<AActor>(PickupActorClass, SpawnLocation, SpawnRotation, SpawnParams) };
+	if (!SpawnedActor) return;
+	
+	// Set item manifest, category, item type, etc
+	UINV_ItemComponent* ItemComp { SpawnedActor->FindComponentByClass<UINV_ItemComponent>() };
+	checkf(ItemComp, TEXT("Spawned actor does not have an item component"));
+	
+	ItemComp->InitItemManifest(*this);
+}
+	
+	

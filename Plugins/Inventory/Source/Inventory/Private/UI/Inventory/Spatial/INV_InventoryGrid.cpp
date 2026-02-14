@@ -1079,7 +1079,11 @@ void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 
 void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
 {
+	UINV_InventoryItem* RightClickedItem { GridSlots[Index]->GetInventoryItem().Get() };
+	if (!IsValid(RightClickedItem)) return;
 	
+	Pickup(RightClickedItem, Index);
+	DropItem();
 }
 
 void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
@@ -1126,6 +1130,17 @@ void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const 
 	// Convert a slotted item into a hover item.
 	AssignHoverItem(ClickedInventoryItem, GridIndex, GridIndex);
 	RemoveItemFromGrid(ClickedInventoryItem, GridIndex);
+}
+
+void UINV_InventoryGrid::DropItem()
+{
+	if (!IsValid(HoverItem)) return;
+	if (!IsValid(HoverItem->GetInventoryItem())) return;
+	
+	InventoryComponent->Server_DropItem(HoverItem->GetInventoryItem(), HoverItem->GetStackCount());
+	
+	ClearHoverItem();
+	ShowCursor();
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
@@ -1252,22 +1267,6 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		return;
 	}
 
-	// For spatial placement (especially partial-overlap cases), prefer swap/displacement over stack logic.
-	if (IsValid(HoverItem))
-	{
-		const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-		const FINV_GridFragment* ClickedGridFragment { GetFragment<FINV_GridFragment>(ClickedInventoryItem, FragmentTags::GridFragment) };
-		const FIntPoint ClickedDimensions = ClickedGridFragment ? ClickedGridFragment->GetGridSize() : FIntPoint(1, 1);
-		const bool bDirectSameSlotDrop = GridSlots.IsValidIndex(ItemDropIndex) && ItemDropIndex == GridIndex;
-		const bool bIsSingleTileInteraction = HoverDimensions == FIntPoint(1, 1) && ClickedDimensions == FIntPoint(1, 1);
-		
-		if (!bDirectSameSlotDrop || !bIsSingleTileInteraction)
-		{
-			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
-			return;
-		}
-	}
-	
 	// Do the hovered and clicked item share type, are they stackable?
 	if (IsSameStackable(ClickedInventoryItem))
 	{
@@ -1310,6 +1309,23 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		
 		return;
 	}
+
+	// For spatial placement (especially partial-overlap cases), prefer swap/displacement over stack logic.
+	if (IsValid(HoverItem))
+	{
+		const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
+		const FINV_GridFragment* ClickedGridFragment { GetFragment<FINV_GridFragment>(ClickedInventoryItem, FragmentTags::GridFragment) };
+		const FIntPoint ClickedDimensions = ClickedGridFragment ? ClickedGridFragment->GetGridSize() : FIntPoint(1, 1);
+		const bool bDirectSameSlotDrop = GridSlots.IsValidIndex(ItemDropIndex) && ItemDropIndex == GridIndex;
+		const bool bIsSingleTileInteraction = HoverDimensions == FIntPoint(1, 1) && ClickedDimensions == FIntPoint(1, 1);
+		
+		if (!bDirectSameSlotDrop || !bIsSingleTileInteraction)
+		{
+			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
+			return;
+		}
+	}
+
 	// Swap with hover item
 	SwapWithHoverItem(ClickedInventoryItem, GridIndex);
 }

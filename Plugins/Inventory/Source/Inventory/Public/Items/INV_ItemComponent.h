@@ -26,7 +26,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// Called when the item is picked up.
 	void PickedUp();
-	
+	FORCEINLINE void InitItemManifest(FINV_ItemManifest CopyOfManifest) { ItemManifest = CopyOfManifest; }
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category="INV|Inventory")
 	void OnPickedUp();
