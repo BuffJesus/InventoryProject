@@ -161,7 +161,10 @@ private:
 	UFUNCTION() void OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnGridSlotUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnPopUpMenuSplit(int32 SplitAmount, int32 Index);
+	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
 	UFUNCTION() void OnPopUpMenuDrop(int32 Index);
+	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
+	void GetRightClickedItem(int32 Index, UINV_InventoryItem*& RightClickedItem, bool& Returns);
 	UFUNCTION() void OnPopUpMenuConsume(int32 Index);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")

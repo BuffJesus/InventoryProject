@@ -1059,10 +1059,17 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 	GridSlot->SetUnoccupiedTexture();
 }
 
+bool UINV_InventoryGrid::GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem)
+{
+	RightClickedItem = { GridSlots[Index]->GetInventoryItem().Get() };
+	if (!IsValid(RightClickedItem)) return true;
+	return false;
+}
+
 void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 {
-	UINV_InventoryItem* RightClickedItem { GridSlots[Index]->GetInventoryItem().Get() };
-	if (!IsValid(RightClickedItem)) return;
+	UINV_InventoryItem* RightClickedItem;
+	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 	if (!RightClickedItem->IsStackable()) return;
 	
 	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
@@ -1079,8 +1086,8 @@ void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 
 void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
 {
-	UINV_InventoryItem* RightClickedItem { GridSlots[Index]->GetInventoryItem().Get() };
-	if (!IsValid(RightClickedItem)) return;
+	UINV_InventoryItem* RightClickedItem;
+	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 	
 	Pickup(RightClickedItem, Index);
 	DropItem();
@@ -1088,7 +1095,22 @@ void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
 
 void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
 {
+	UINV_InventoryItem* RightClickedItem;
+	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
+
+	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
+	UINV_GridSlot* UpperLeftGridSlot = GridSlots[UpperLeftIndex];
+	const int32 NewStackCount = UpperLeftGridSlot->GetStackCount() - 1;
 	
+	UpperLeftGridSlot->SetStackCount(NewStackCount);
+	SlottedItems.FindChecked(UpperLeftIndex)->UpdateStackCount(NewStackCount);
+	
+	//TODO: Tell server item is being consumed
+	
+	if (NewStackCount <= 0)
+	{
+		RemoveItemFromGrid(RightClickedItem, Index);
+	}
 }
 
 void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
