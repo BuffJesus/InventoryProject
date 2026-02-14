@@ -74,6 +74,7 @@ private:
 	void ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);
 	void FillInStack(const int32 FillAmount, const int32 Remainder, const int32 Index);
 	void CreateItemPopup(const int32 GridIndex);
+	void CloseActiveItemPopup();
 	void ClosePopupIfClickedOutside();
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")

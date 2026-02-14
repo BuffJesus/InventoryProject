@@ -335,6 +335,13 @@ void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 	ItemPopUp = nullptr;
 }
 
+void UINV_InventoryGrid::CloseActiveItemPopup()
+{
+	if (!IsValid(ItemPopUp)) return;
+	ItemPopUp->RemoveFromParent();
+	ItemPopUp = nullptr;
+}
+
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 {
 	if (!IsValid(HoverItem)) return;
@@ -682,6 +689,8 @@ void UINV_InventoryGrid::ConstructGrid()
 
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	CloseActiveItemPopup();
+	
 	// If we have a hover item, try to place it.
 	if (!IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
@@ -1052,7 +1061,20 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 
 void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 {
+	UINV_InventoryItem* RightClickedItem { GridSlots[Index]->GetInventoryItem().Get() };
+	if (!IsValid(RightClickedItem)) return;
+	if (!RightClickedItem->IsStackable()) return;
 	
+	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
+	UINV_GridSlot* UpperLeftGridSlot = GridSlots[UpperLeftIndex];
+	const int32 StackCount = UpperLeftGridSlot->GetStackCount();
+	const int32 NewStackCount = StackCount - SplitAmount;
+	
+	UpperLeftGridSlot->SetStackCount(NewStackCount);
+	SlottedItems.FindChecked(UpperLeftIndex)->UpdateStackCount(NewStackCount);
+	
+	AssignHoverItem(RightClickedItem, UpperLeftIndex, UpperLeftIndex);
+	HoverItem->UpdateStackCount(SplitAmount);
 }
 
 void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
@@ -1207,6 +1229,8 @@ FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UIN
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	CloseActiveItemPopup();
+	
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
 	UINV_InventoryItem* ClickedInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 
@@ -1223,6 +1247,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	
 	if (IsRightClick(MouseEvent))
 	{
+		if (IsValid(HoverItem)) return;
 		CreateItemPopup(GridIndex);
 		return;
 	}
