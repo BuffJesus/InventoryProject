@@ -38,6 +38,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_DropItem(UINV_InventoryItem* Item, int32 StackCount);
 	
+	UFUNCTION(Server, Reliable)
+	void Server_ConsumeItem(UINV_InventoryItem* Item);
+	
 	UFUNCTION(BlueprintCallable, Category="INV|Inventory", BlueprintAuthorityOnly)
 	// Entry point for adding an item to the inventory.
 	void TryAddItem(UINV_ItemComponent* ItemComponent);

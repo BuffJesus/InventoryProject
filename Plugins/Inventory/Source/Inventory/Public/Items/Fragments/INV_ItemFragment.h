@@ -6,6 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "INV_ItemFragment.generated.h"
 
+class APlayerController;
+
 USTRUCT(BlueprintType)
 struct FInv_ItemFragment
 {
@@ -23,7 +25,7 @@ struct FInv_ItemFragment
 	
 private:
 	// Tag used to identify this fragment type.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory", meta = (Categories = "FragmentTags"))
+	UPROPERTY(EditAnywhere, Category = "INV|Item", meta = (Categories = "FragmentTags"))
 	FGameplayTag FragmentTag { FGameplayTag::EmptyTag };
 };
 
@@ -39,11 +41,11 @@ struct FINV_GridFragment : public FInv_ItemFragment
 	
 private:
 	// Tile size in the inventory grid.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Grid")
 	FIntPoint GridSize { 1, 1 };
 	
 	// Pixel padding inside the grid slot.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Grid")
 	float GridPadding { 0.f };
 };
 
@@ -56,11 +58,11 @@ struct FINV_ImageFragment : public FInv_ItemFragment
 	
 private:
 	// Icon asset.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Image")
 	TObjectPtr<UTexture2D> Icon { nullptr };
 	
 	// Optional icon size hint.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Image")
 	FVector2D IconDimensions { 44.f, 44.f };
 };
 
@@ -76,11 +78,11 @@ struct FINV_StackableFragment : public FInv_ItemFragment
 	
 private:
 	// Max stacks per slot.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Stackable")
 	int32 MaxStackSize { 1 };
 	
 	// Current stack count in the pickup.
-	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
+	UPROPERTY(EditAnywhere, Category = "INV|Stackable")
 	int32 StackCount { 1 };
 };
 
@@ -88,4 +90,25 @@ USTRUCT(BlueprintType)
 struct FINV_ConsumableFragment : public FInv_ItemFragment
 {
 	GENERATED_BODY()
+	virtual void OnConsume(APlayerController* PC) {}
+};
+
+USTRUCT(BlueprintType)
+struct FINV_HealthPotionFragment : public FINV_ConsumableFragment
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "INV|Consumable")
+	float HealAmount { 20.f };
+	
+	virtual void OnConsume(APlayerController* PC) override;
+};
+
+USTRUCT(BlueprintType)
+struct FINV_ManaPotionFragment : public FINV_ConsumableFragment
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "INV|Consumable")
+	float ManaAmount { 20.f };
+	
+	virtual void OnConsume(APlayerController* PC) override;
 };

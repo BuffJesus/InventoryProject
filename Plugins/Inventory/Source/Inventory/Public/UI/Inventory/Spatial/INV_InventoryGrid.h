@@ -125,6 +125,7 @@ private:
 	bool ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize) const;
 	bool ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const;
 	bool ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const;
+	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
 	
 	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
 		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
@@ -161,10 +162,7 @@ private:
 	UFUNCTION() void OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnGridSlotUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnPopUpMenuSplit(int32 SplitAmount, int32 Index);
-	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
 	UFUNCTION() void OnPopUpMenuDrop(int32 Index);
-	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
-	void GetRightClickedItem(int32 Index, UINV_InventoryItem*& RightClickedItem, bool& Returns);
 	UFUNCTION() void OnPopUpMenuConsume(int32 Index);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")
