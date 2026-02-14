@@ -1026,6 +1026,21 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 	GridSlot->SetUnoccupiedTexture();
 }
 
+void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
+{
+	
+}
+
+void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
+{
+	
+}
+
+void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
+{
+	
+}
+
 void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	if (IsValid(HoverItem)) return;
@@ -1269,6 +1284,28 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
 	CanvasSlot->SetPosition(MousePos - ItemPopUp->GetBoxSize() / 2.0f);
 	CanvasSlot->SetSize(ItemPopUp->GetBoxSize());
+	
+	const int32 SliderMax = GridSlots[GridIndex]->GetStackCount() - 1;
+	if (RightClickedItem->IsStackable() && SliderMax > 0)
+	{
+		ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
+		ItemPopUp->SetSliderParams(SliderMax, FMath::Max(1, GridSlots[GridIndex]->GetStackCount() / 2));
+	}
+	else
+	{
+		ItemPopUp->CollapseSplitButton();
+	}
+	
+	ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
+	
+	if (RightClickedItem->IsConsumable())
+	{
+		ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
+	}
+	else
+	{
+		ItemPopUp->CollapseConsumeButton();
+	}
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const

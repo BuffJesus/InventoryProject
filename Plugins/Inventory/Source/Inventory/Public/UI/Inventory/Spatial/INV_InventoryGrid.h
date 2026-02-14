@@ -157,6 +157,9 @@ private:
 	UFUNCTION() void OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnGridSlotUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent);
+	UFUNCTION() void OnPopUpMenuSplit(int32 SplitAmount, int32 Index);
+	UFUNCTION() void OnPopUpMenuDrop(int32 Index);
+	UFUNCTION() void OnPopUpMenuConsume(int32 Index);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };

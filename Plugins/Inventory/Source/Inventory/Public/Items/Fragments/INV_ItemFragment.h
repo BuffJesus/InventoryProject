@@ -83,3 +83,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	int32 StackCount { 1 };
 };
+
+USTRUCT(BlueprintType)
+struct FINV_ConsumableFragment : public FInv_ItemFragment
+{
+	GENERATED_BODY()
+};

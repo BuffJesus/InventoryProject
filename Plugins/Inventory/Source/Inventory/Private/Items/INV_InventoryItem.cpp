@@ -21,3 +21,10 @@ bool UINV_InventoryItem::IsStackable() const
 	const FINV_StackableFragment* StackableFragment { GetItemManifest().GetFragmentOfType<FINV_StackableFragment>() };
 	return StackableFragment != nullptr;
 }
+
+bool UINV_InventoryItem::IsConsumable() const
+{
+	// Consumable if a consumable fragment exists.
+	const FINV_ConsumableFragment* ConsumableFragment { GetItemManifest().GetFragmentOfType<FINV_ConsumableFragment>() };
+	return ConsumableFragment != nullptr;
+}
