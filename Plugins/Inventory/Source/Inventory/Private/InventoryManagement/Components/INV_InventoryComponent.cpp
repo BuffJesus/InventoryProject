@@ -4,6 +4,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -23,6 +24,37 @@ bool IsDropLocationClear(const UWorld* World, const FVector& Location, const APa
 	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 	return !World->OverlapBlockingTestByChannel(Location, FQuat::Identity, ECC_WorldStatic, CollisionShape, QueryParams)
 		&& !World->OverlapBlockingTestByChannel(Location, FQuat::Identity, ECC_WorldDynamic, CollisionShape, QueryParams);
+}
+
+FVector EnforcePawnClearance(const APawn* OwningPawn, const FVector& Location, const FVector& PreferredDirection,
+	const float ItemRadius, const float ExtraClearance)
+{
+	if (!IsValid(OwningPawn)) return Location;
+
+	const UCapsuleComponent* PawnCapsule { OwningPawn->FindComponentByClass<UCapsuleComponent>() };
+	if (!IsValid(PawnCapsule)) return Location;
+
+	const float MinHorizontalDistance = PawnCapsule->GetScaledCapsuleRadius() + ItemRadius + ExtraClearance;
+	const FVector PawnLocation = OwningPawn->GetActorLocation();
+	FVector Delta2D = Location - PawnLocation;
+	Delta2D.Z = 0.0f;
+	const float CurrentDistance = Delta2D.Size();
+	if (CurrentDistance >= MinHorizontalDistance) return Location;
+
+	FVector PushDirection = Delta2D.GetSafeNormal();
+	if (PushDirection.IsNearlyZero())
+	{
+		FVector FallbackDirection = PreferredDirection;
+		FallbackDirection.Z = 0.0f;
+		PushDirection = FallbackDirection.GetSafeNormal();
+		if (PushDirection.IsNearlyZero())
+		{
+			PushDirection = FVector::ForwardVector;
+		}
+	}
+
+	const FVector New2DLocation = PawnLocation + PushDirection * MinHorizontalDistance;
+	return FVector(New2DLocation.X, New2DLocation.Y, Location.Z);
 }
 }
 
@@ -92,7 +124,26 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 
 	FVector RotatedForward { OwningPawn->GetActorForwardVector() };
 	RotatedForward = RotatedForward.RotateAngleAxis(FMath::FRandRange(DropSpawnAngleMin, DropSpawnAngleMax), FVector::UpVector);
-	const FVector BaseSpawnLocation = OwningPawn->GetActorLocation() + RotatedForward * FMath::FRandRange(DropSpawnDistanceMin, DropSpawnDistanceMax);
+	FVector Forward2D = RotatedForward;
+	Forward2D.Z = 0.0f;
+	Forward2D = Forward2D.GetSafeNormal();
+	if (Forward2D.IsNearlyZero())
+	{
+		Forward2D = OwningPawn->GetActorForwardVector().GetSafeNormal2D();
+		if (Forward2D.IsNearlyZero())
+		{
+			Forward2D = FVector::ForwardVector;
+		}
+	}
+
+	float RequiredDropDistance = DropValidationRadius + DropPlayerClearance;
+	if (const UCapsuleComponent* PawnCapsule { OwningPawn->FindComponentByClass<UCapsuleComponent>() })
+	{
+		RequiredDropDistance += PawnCapsule->GetScaledCapsuleRadius();
+	}
+	const float RequestedDropDistance = FMath::FRandRange(DropSpawnDistanceMin, DropSpawnDistanceMax);
+	const float DropDistance = FMath::Max(RequestedDropDistance, RequiredDropDistance);
+	const FVector BaseSpawnLocation = OwningPawn->GetActorLocation() + Forward2D * DropDistance;
 	FVector SpawnLocation = BaseSpawnLocation;
 	SpawnLocation.Z -= RelativeSpawnElevation;
 	const FRotator SpawnRotation = FRotator::ZeroRotator;
@@ -111,6 +162,8 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		SpawnLocation = GroundHit.ImpactPoint + GroundHit.ImpactNormal * DropSurfaceOffset;
 	}
 
+	SpawnLocation = EnforcePawnClearance(OwningPawn, SpawnLocation, Forward2D, DropValidationRadius, DropPlayerClearance);
+
 	// Validate item volume; if blocked try to nudge out once along hit normal.
 	const FCollisionShape DropShape = FCollisionShape::MakeCapsule(DropValidationRadius, DropValidationHalfHeight);
 	FHitResult SweepHit;
@@ -124,6 +177,8 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 			SpawnLocation = AdjustedLocation;
 		}
 	}
+
+	SpawnLocation = EnforcePawnClearance(OwningPawn, SpawnLocation, Forward2D, DropValidationRadius, DropPlayerClearance);
 	
 	FINV_ItemManifest& ItemManifest { Item->GetItemManifestMutable() };
 	if (FINV_StackableFragment* StackableFragment = ItemManifest.GetFragmentOfTypeMutable<FINV_StackableFragment>())

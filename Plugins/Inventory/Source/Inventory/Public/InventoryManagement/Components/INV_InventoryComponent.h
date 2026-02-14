@@ -109,4 +109,8 @@ private:
 	// Small offset from surface normal to avoid starting interpenetrating.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory|DropValidation")
 	float DropSurfaceOffset { 2.f };
+
+	// Extra horizontal clearance to keep dropped items out of the player's capsule.
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|DropValidation")
+	float DropPlayerClearance { 10.f };
 };
