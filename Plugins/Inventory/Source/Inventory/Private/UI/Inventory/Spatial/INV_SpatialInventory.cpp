@@ -5,10 +5,12 @@
 
 #include "Inventory.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
 #include "Components/WidgetSwitcher.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "Items/INV_ItemComponent.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
+#include "UI/ItemDescription/INV_ItemDescription.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
@@ -74,4 +76,44 @@ FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemCompo
 		UE_LOG(LogInventory, Error, TEXT("Invalid item category for inventory slot availability check"));
 		return FINV_SlotAvailabilityResult();
 	}
+}
+
+void UINV_SpatialInventory::OnItemHovered(UINV_InventoryItem* Item)
+{
+	UINV_ItemDescription* DescriptionWidget = GetItemDescription();
+	DescriptionWidget->SetVisibility(ESlateVisibility::Collapsed);
+	
+	GetOwningPlayer()->GetWorldTimerManager().ClearTimer(DescriptionTimerHandle);
+	
+	FTimerDelegate DescriptionTimerDelegate;
+	DescriptionTimerDelegate.BindLambda([this]()
+	{
+		GetItemDescription()->SetVisibility(ESlateVisibility::HitTestInvisible);
+	});
+	
+	GetOwningPlayer()->GetWorldTimerManager().SetTimer(DescriptionTimerHandle, DescriptionTimerDelegate, DescriptionTimerDelay, false);
+}
+
+void UINV_SpatialInventory::OnItemUnhovered()
+{
+	GetItemDescription()->SetVisibility(ESlateVisibility::Collapsed);
+	GetOwningPlayer()->GetWorldTimerManager().ClearTimer(DescriptionTimerHandle);
+}
+
+bool UINV_SpatialInventory::HasHoverItem() const
+{
+	if (Grid_Equippable->HasHoverItem()) return true;
+	if (Grid_Consumable->HasHoverItem()) return true;
+	if (Grid_Craftable->HasHoverItem()) return true;
+	return false;
+}
+
+UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
+{
+	if (!IsValid(ItemDescription))
+	{
+		ItemDescription = CreateWidget<UINV_ItemDescription>(GetOwningPlayer(), ItemDescriptionClass);
+		CanvasPanel->AddChild(ItemDescription);
+	}
+	return ItemDescription;
 }

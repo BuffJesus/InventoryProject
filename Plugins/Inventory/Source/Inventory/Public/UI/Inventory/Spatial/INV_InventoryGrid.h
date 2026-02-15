@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Types/INV_GridTypes.h"
+#include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "INV_InventoryGrid.generated.h"
 
 class UINV_ItemPopUp;
@@ -42,6 +43,8 @@ public:
 	void DropItem();
 	
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
+	
+	FORCEINLINE bool HasHoverItem() const { return IsValid(HoverItem); }
 
 private:
 	// Owning inventory component for events.

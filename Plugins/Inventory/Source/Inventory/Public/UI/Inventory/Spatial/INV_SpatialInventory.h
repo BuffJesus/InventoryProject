@@ -6,6 +6,7 @@
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 #include "INV_SpatialInventory.generated.h"
 
+class UINV_ItemDescription;
 class UCanvasPanel;
 class UButton;
 class UWidgetSwitcher;
@@ -22,8 +23,13 @@ public:
 	virtual void NativeOnInitialized() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const override;
+	virtual void OnItemHovered(UINV_InventoryItem* Item) override;
+	virtual void OnItemUnhovered() override;
+	virtual bool HasHoverItem() const override;
 	
 private:	
+	UINV_ItemDescription* GetItemDescription();
+	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UWidgetSwitcher> Switcher;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UINV_InventoryGrid> Grid_Equippable;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UINV_InventoryGrid> Grid_Consumable;
@@ -41,6 +47,16 @@ private:
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
+	
+	UPROPERTY(EditAnywhere, Category="INV|Spatial")
+	TSubclassOf<UINV_ItemDescription> ItemDescriptionClass;
+	
+	UPROPERTY(EditAnywhere, Category="INV|Spatial")
+	float DescriptionTimerDelay { 0.5f };
+	
+	UPROPERTY() TObjectPtr<UINV_ItemDescription> ItemDescription;
+	
+	FTimerHandle DescriptionTimerHandle;
 };
 
 

@@ -45,6 +45,7 @@ public:
 	// Entry point for adding an item to the inventory.
 	void TryAddItem(UINV_ItemComponent* ItemComponent);
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
+	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
