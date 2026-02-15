@@ -4,8 +4,10 @@
 #include "UI/Inventory/Spatial/INV_SpatialInventory.h"
 
 #include "Inventory.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/WidgetSwitcher.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "Items/INV_ItemComponent.h"
@@ -106,6 +108,27 @@ bool UINV_SpatialInventory::HasHoverItem() const
 	if (Grid_Consumable->HasHoverItem()) return true;
 	if (Grid_Craftable->HasHoverItem()) return true;
 	return false;
+}
+
+void UINV_SpatialInventory::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	
+	if (!IsValid(ItemDescription)) return;
+	SetItemDescriptionSizeAndPosition(ItemDescription, CanvasPanel);
+}
+
+void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,
+	UCanvasPanel* Canvas) const
+{
+	UCanvasPanelSlot* ItemDescriptionCPS { UWidgetLayoutLibrary::SlotAsCanvasSlot(Description) };
+	if (!IsValid(ItemDescriptionCPS)) return;
+	
+	const FVector2D ItemDescriptionSize = Description->GetBoxSize();
+	ItemDescriptionCPS->SetSize(ItemDescriptionSize);
+	
+	
+	
 }
 
 UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()

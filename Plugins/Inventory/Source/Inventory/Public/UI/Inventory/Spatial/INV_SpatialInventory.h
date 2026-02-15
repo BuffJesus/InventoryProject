@@ -26,6 +26,7 @@ public:
 	virtual void OnItemHovered(UINV_InventoryItem* Item) override;
 	virtual void OnItemUnhovered() override;
 	virtual bool HasHoverItem() const override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
@@ -45,6 +46,7 @@ private:
 	
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
+	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas) const;
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
 	
