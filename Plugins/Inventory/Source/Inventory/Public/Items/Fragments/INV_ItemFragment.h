@@ -77,7 +77,7 @@ private:
 	
 	// Optional icon size hint.
 	UPROPERTY(EditAnywhere, Category = "INV|Image")
-	FVector2D IconDimensions { 44.f, 44.f };
+	FVector2D IconDimensions { 100.f, 100.f };
 };
 
 USTRUCT(BlueprintType)
