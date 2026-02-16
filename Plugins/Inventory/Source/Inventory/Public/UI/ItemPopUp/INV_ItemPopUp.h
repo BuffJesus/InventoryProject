@@ -42,7 +42,7 @@ public:
 	void SetSliderParams(const float Max, const float Value) const;
 	void SetGridIndex(int32 Index) { GridIndex = Index; }
 	
-	FVector2D GetBoxSize() const { return FVector2D(SizeBox_Root->GetWidthOverride(), SizeBox_Root->GetHeightOverride()); }
+	FVector2D GetBoxSize() const;
 	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UButton> Button_Split;

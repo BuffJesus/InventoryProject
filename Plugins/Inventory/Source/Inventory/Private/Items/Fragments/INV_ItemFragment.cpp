@@ -15,6 +15,14 @@ bool FINV_InventoryItemFragment::MatchesWidgetTag(const UINV_Composite_Base* Com
 	return Composite->GetFragmentTag().MatchesTagExact(GetFragmentTag());
 }
 
+void FINV_ImageFragment::Assimilate(UINV_Composite_Base* Composite) const
+{
+	FINV_InventoryItemFragment::Assimilate(Composite);
+	if (!MatchesWidgetTag(Composite)) return;
+	
+	
+}
+
 void FINV_HealthPotionFragment::OnConsume(APlayerController* PC)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Health Potion consumed!"));

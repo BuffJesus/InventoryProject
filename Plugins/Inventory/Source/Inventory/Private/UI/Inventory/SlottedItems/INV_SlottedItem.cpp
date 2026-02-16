@@ -26,6 +26,14 @@ void UINV_SlottedItem::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 }
 
+void UINV_SlottedItem::SetImageBrush(const FSlateBrush& Brush) const
+{
+	if (IsValid(Image_Icon))
+	{
+		Image_Icon->SetBrush(Brush);
+	}
+}
+
 void UINV_SlottedItem::UpdateStackCount(int32 StackCount)
 {
 	// Show or hide stack count text.

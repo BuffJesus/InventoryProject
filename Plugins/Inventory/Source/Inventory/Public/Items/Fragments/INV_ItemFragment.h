@@ -63,11 +63,12 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct FINV_ImageFragment : public FInv_ItemFragment
+struct FINV_ImageFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
 	// Icon texture used for UI.
 	FORCEINLINE UTexture2D* GetIcon() const { return Icon.Get(); }
+	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
 	
 private:
 	// Icon asset.

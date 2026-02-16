@@ -18,11 +18,11 @@ class INVENTORY_API UINV_Composite_Base : public UUserWidget
 public:
 	FORCEINLINE FGameplayTag GetFragmentTag() const { return FragmentTag; }
 	FORCEINLINE void SetFragmentTag(FGameplayTag Tag) { FragmentTag = Tag; }
-	virtual void Collapse() { SetVisibility(ESlateVisibility::Collapsed); }
-	FORCEINLINE void Expand() { SetVisibility(ESlateVisibility::Visible); }
+	virtual void Collapse();
+	void Expand();
 	
 	using FuncType = TFunction<void(UINV_Composite_Base*)>;
-	virtual void ApplyFunction(FuncType Function) {}
+	virtual void ApplyFunction(FuncType Function);
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Composite")

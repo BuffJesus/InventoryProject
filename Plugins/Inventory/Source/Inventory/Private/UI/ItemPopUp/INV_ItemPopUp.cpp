@@ -53,6 +53,13 @@ void UINV_ItemPopUp::SetSliderParams(const float Max, const float Value) const
 	Text_SplitAmount->SetText(FText::AsNumber(FMath::Floor(Value)));
 }
 
+FVector2D UINV_ItemPopUp::GetBoxSize() const
+{
+	return IsValid(SizeBox_Root)
+		? FVector2D(SizeBox_Root->GetWidthOverride(), SizeBox_Root->GetHeightOverride())
+		: FVector2D::ZeroVector;
+}
+
 void UINV_ItemPopUp::SplitButtonClicked()
 {
 	ExecuteAndClose([this]() { return OnSplit.ExecuteIfBound(GetSplitAmount(), GridIndex); });

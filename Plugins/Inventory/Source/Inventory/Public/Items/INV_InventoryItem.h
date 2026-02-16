@@ -23,10 +23,7 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	
 	// Store the item manifest inside this object.
-	FORCEINLINE void SetItemManifest(const FINV_ItemManifest& Manifest)
-	{
-		ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
-	}
+	void SetItemManifest(const FINV_ItemManifest& Manifest);
 	// Access the stored manifest.
 	const FINV_ItemManifest& GetItemManifest() const { return ItemManifest.Get<FINV_ItemManifest>(); }
 	FINV_ItemManifest& GetItemManifestMutable() { return ItemManifest.GetMutable<FINV_ItemManifest>(); }

@@ -38,7 +38,7 @@ public:
 	FIntPoint GetGridDimensions() const { return GridDimensions; }
 	UINV_InventoryItem* GetInventoryItem() const { return InventoryItem.Get(); }
 	void SetInventoryItem(UINV_InventoryItem* Item) { InventoryItem = Item; }
-	void SetImageBrush(const FSlateBrush& Brush) const { Image_Icon->SetBrush(Brush); }
+	void SetImageBrush(const FSlateBrush& Brush) const;
 	// Update the visible stack count.
 	void UpdateStackCount(int32 StackCount);
 	

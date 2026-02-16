@@ -15,6 +15,11 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, TotalStackCount);
 }
 
+void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
+{
+	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
+}
+
 bool UINV_InventoryItem::IsStackable() const
 {
 	// Stackable if a stack fragment exists.

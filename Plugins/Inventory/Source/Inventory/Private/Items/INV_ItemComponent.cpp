@@ -19,6 +19,11 @@ void UINV_ItemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, ItemManifest);
 }
 
+void UINV_ItemComponent::InitItemManifest(const FINV_ItemManifest& InManifest)
+{
+	ItemManifest = InManifest;
+}
+
 void UINV_ItemComponent::PickedUp()
 {
 	// Notify BP and optionally destroy the actor.
