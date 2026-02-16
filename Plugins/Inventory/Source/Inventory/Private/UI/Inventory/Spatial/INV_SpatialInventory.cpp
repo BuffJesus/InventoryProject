@@ -148,11 +148,14 @@ UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
 
 void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const FVector2D& OpenPosition)
 {
+	const auto& Manifest { Item->GetItemManifest() };
 	if (!IsValid(Item) || !IsValid(CanvasPanel)) return;
 
 	UINV_ItemDescription* DescriptionWidget = GetItemDescription();
 	if (!IsValid(DescriptionWidget)) return;
 
+	Manifest.AssimilateInventoryFragments(DescriptionWidget);
+	
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
 	DescriptionWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	bSkipDescriptionCloseThisTick = true;

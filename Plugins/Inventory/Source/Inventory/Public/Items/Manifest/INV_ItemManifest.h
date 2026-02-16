@@ -41,7 +41,7 @@ struct INVENTORY_API FINV_ItemManifest
 	void SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
 		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	
-	void AssimilateInventoryFragments(UINV_Composite_Base* Composite);
+	void AssimilateInventoryFragments(UINV_Composite_Base* Composite) const;
 	
 private:
 	// Item fragments that describe behavior and UI.

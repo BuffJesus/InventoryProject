@@ -33,7 +33,7 @@ void FINV_ItemManifest::SpawnPickupActor(const UObject* WorldContextObject, cons
 	ItemComp->InitItemManifest(*this);
 }
 
-void FINV_ItemManifest::AssimilateInventoryFragments(UINV_Composite_Base* Composite)
+void FINV_ItemManifest::AssimilateInventoryFragments(UINV_Composite_Base* Composite) const
 {
 	const auto& Fragments { GetFragmentsOfType<FINV_InventoryItemFragment>() };
 	for (const auto* Fragment : Fragments)
