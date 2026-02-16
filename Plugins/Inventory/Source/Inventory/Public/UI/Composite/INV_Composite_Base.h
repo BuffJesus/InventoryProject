@@ -25,7 +25,7 @@ public:
 	virtual void ApplyFunction(FuncType Function);
 	
 private:
-	UPROPERTY(EditAnywhere, Category = "INV|Composite")
+	UPROPERTY(EditAnywhere, Category = "INV|Composite", meta = (Categories = "FragmentTags"))
 	FGameplayTag FragmentTag;
 	
 };
