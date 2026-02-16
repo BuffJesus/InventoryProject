@@ -72,16 +72,26 @@ void FINV_LabeledNumberFragment::InitializeRuntimeState()
 	}
 }
 
+void FINV_ConsumableFragment::Assimilate(UINV_Composite_Base* Composite) const
+{
+	FINV_InventoryItemFragment::Assimilate(Composite);
+	for (const auto& Modifier : ConsumeModifiers)
+	{
+		const auto& ModRef { Modifier.Get() };
+		ModRef.Assimilate(Composite);
+	}
+}
+
 void FINV_HealthPotionFragment::OnConsume(APlayerController* PC)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Health Potion consumed!"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Health Potion consumed! Restoring health by: %f"), GetValue()));
 	
 	// Apply gameplay effect maybe? Decide per project. Broadcast maybe?
 }
 
 void FINV_ManaPotionFragment::OnConsume(APlayerController* PC)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Mana Potion consumed!"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Mana Potion consumed! Restoring mana by: %f"), GetValue()));
 	
 	// Apply gameplay effect maybe? Decide per project. Broadcast maybe?
 }

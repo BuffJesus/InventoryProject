@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "StructUtils/InstancedStruct.h"
 #include "INV_ItemFragment.generated.h"
 
 class UINV_Composite_Base;
@@ -13,7 +14,6 @@ USTRUCT(BlueprintType)
 struct FInv_ItemFragment
 {
 	GENERATED_BODY()
-	
 	FInv_ItemFragment() {}
 	FInv_ItemFragment(const FInv_ItemFragment&) = default;
 	FInv_ItemFragment& operator=(const FInv_ItemFragment&) = default;
@@ -37,7 +37,6 @@ USTRUCT(BlueprintType)
 struct FINV_InventoryItemFragment : public FInv_ItemFragment
 {
 	GENERATED_BODY()
-	
 	virtual void Assimilate(UINV_Composite_Base* Composite) const;
 	
 protected:
@@ -86,7 +85,6 @@ USTRUCT(BlueprintType)
 struct FINV_TextFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
-	
 	FText GetText() const { return FragmentText; }
 	void SetText(const FText& Text) { FragmentText = Text; }
 	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
@@ -100,9 +98,9 @@ USTRUCT(BlueprintType)
 struct FINV_LabeledNumberFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
-	
 	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
 	virtual void InitializeRuntimeState() override;
+	float GetValue() const { return Value; }
 	
 	// When runtime state is initialized, this fragment will randomize. However, once equipped and dropped,
 	// an item should retain same value (do not reapply randomization)
@@ -154,29 +152,36 @@ private:
 	int32 StackCount { 1 };
 };
 
+// Consume Fragments
 USTRUCT(BlueprintType)
-struct FINV_ConsumableFragment : public FInv_ItemFragment
+struct FINV_ConsumeModifier : public FINV_LabeledNumberFragment
 {
 	GENERATED_BODY()
 	virtual void OnConsume(APlayerController* PC) {}
 };
 
 USTRUCT(BlueprintType)
-struct FINV_HealthPotionFragment : public FINV_ConsumableFragment
+struct FINV_ConsumableFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, Category = "INV|Consumable")
-	float HealAmount { 20.f };
+	virtual void OnConsume(APlayerController* PC) {}
+	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
 	
+private:
+	UPROPERTY(EditAnywhere, Category = "INV|Consumable", meta = (ExcludeBaseStruct))
+	TArray<TInstancedStruct<FINV_ConsumeModifier>> ConsumeModifiers;
+};
+
+USTRUCT(BlueprintType)
+struct FINV_HealthPotionFragment : public FINV_ConsumeModifier
+{
+	GENERATED_BODY()
 	virtual void OnConsume(APlayerController* PC) override;
 };
 
 USTRUCT(BlueprintType)
-struct FINV_ManaPotionFragment : public FINV_ConsumableFragment
+struct FINV_ManaPotionFragment : public FINV_ConsumeModifier
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, Category = "INV|Consumable")
-	float ManaAmount { 20.f };
-	
 	virtual void OnConsume(APlayerController* PC) override;
 };
