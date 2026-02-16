@@ -59,7 +59,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemCo
 	checkf(IsValid(IC), TEXT("ItemComponent must be valid when adding an item to the inventory fast array"));
 	
 	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
-	NewEntry.Item = ItemComponent->GetItemManifest().CreateItem(OwningActor);
+	NewEntry.Item = ItemComponent->GetItemManifestMutable().CreateItem(OwningActor);
 	
 	IC->AddRepSubObj(NewEntry.Item);
 	MarkItemDirty(NewEntry);

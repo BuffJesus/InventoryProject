@@ -24,6 +24,8 @@ struct FInv_ItemFragment
 	FORCEINLINE FGameplayTag GetFragmentTag() const { return FragmentTag; }
 	FORCEINLINE void SetFragmentTag(FGameplayTag Tag) { FragmentTag = Tag; }
 	
+	virtual void InitializeRuntimeState() {}
+	
 private:
 	// Tag used to identify this fragment type.
 	UPROPERTY(EditAnywhere, Category = "INV|Item", meta = (Categories = "FragmentTags"))
@@ -92,6 +94,44 @@ struct FINV_TextFragment : public FINV_InventoryItemFragment
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Text")
 	FText FragmentText { NSLOCTEXT("Inventory", "DefaultText", "Default Text") };
+};
+
+USTRUCT(BlueprintType)
+struct FINV_LabeledNumberFragment : public FINV_InventoryItemFragment
+{
+	GENERATED_BODY()
+	
+	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
+	virtual void InitializeRuntimeState() override;
+	
+	// When runtime state is initialized, this fragment will randomize. However, once equipped and dropped,
+	// an item should retain same value (do not reapply randomization)
+	bool bRandomizeOnInitialization { true };
+	
+private:
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	FText Text_Label { NSLOCTEXT("Inventory", "DefaultText", "Default Text") };
+	
+	UPROPERTY(VisibleAnywhere, Category = "INV|Labels")
+	float Value { 0.f };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	float Min { 0.f };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	float Max { 0.f };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	bool bCollapseLabel { false };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	bool bCollapseValue { false };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	int32 MinFractionalDigits { 1 };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Labels")
+	int32 MaxFractionalDigits { 1 };
 };
 
 USTRUCT(BlueprintType)

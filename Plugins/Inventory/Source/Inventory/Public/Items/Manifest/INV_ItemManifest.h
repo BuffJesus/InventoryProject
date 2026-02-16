@@ -19,8 +19,10 @@ USTRUCT(BlueprintType)
 struct INVENTORY_API FINV_ItemManifest
 {
 	GENERATED_BODY()
+	TArray<TInstancedStruct<FInv_ItemFragment>> GetFragmentsMutable() { return Fragments; }
+	
 	// Create an inventory item object from this manifest.
-	UINV_InventoryItem* CreateItem(UObject* NewOuter) const;
+	UINV_InventoryItem* CreateItem(UObject* NewOuter);
 	// High-level category for UI placement.
 	EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	// Gameplay tag that identifies the item type.
@@ -39,7 +41,7 @@ struct INVENTORY_API FINV_ItemManifest
 	TArray<const T*> GetFragmentsOfType() const;
 	
 	void SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
-		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn) const;
 	
 	void AssimilateInventoryFragments(UINV_Composite_Base* Composite) const;
 	
@@ -58,6 +60,8 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<AActor> PickupActorClass;
+	
+	void ClearFragments();
 };
 
 template <typename T> requires std::derived_from<T, FInv_ItemFragment>

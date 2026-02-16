@@ -7,17 +7,22 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Composite/INV_Composite_Base.h"
 
-UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter) const
+UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter)
 {
 	// Create a new inventory item and copy this manifest into it.
 	UINV_InventoryItem* Item { NewObject<UINV_InventoryItem>(NewOuter, UINV_InventoryItem::StaticClass()) };
 	Item->SetItemManifest(*this);
+	for (auto& Fragment : Item->GetItemManifestMutable().GetFragmentsMutable())
+	{
+		Fragment.GetMutable().InitializeRuntimeState();
+	}
+	ClearFragments();
 	
 	return Item;
 }
 
 void FINV_ItemManifest::SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation,
-	const FRotator& SpawnRotation, ESpawnActorCollisionHandlingMethod SpawnCollisionHandling)
+	const FRotator& SpawnRotation, ESpawnActorCollisionHandlingMethod SpawnCollisionHandling) const
 {
 	if (!PickupActorClass || !IsValid(WorldContextObject)) return;
 	
@@ -43,6 +48,15 @@ void FINV_ItemManifest::AssimilateInventoryFragments(UINV_Composite_Base* Compos
 			Fragment->Assimilate(Widget);
 		});
 	}
+}
+
+void FINV_ItemManifest::ClearFragments()
+{
+	for (auto& Fragment : Fragments)
+	{
+		Fragment.Reset();
+	}
+	Fragments.Empty();
 }
 	
 	

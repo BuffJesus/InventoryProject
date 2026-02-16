@@ -6,6 +6,7 @@
 #include "ContentBrowserItemData.h"
 #include "UI/Composite/INV_Composite_Base.h"
 #include "UI/Composite/INV_Leaf_Image.h"
+#include "UI/Composite/INV_Leaf_LabeledValue.h"
 #include "UI/Composite/INV_Leaf_Text.h"
 
 void FINV_InventoryItemFragment::Assimilate(UINV_Composite_Base* Composite) const
@@ -41,6 +42,34 @@ void FINV_TextFragment::Assimilate(UINV_Composite_Base* Composite) const
 	if (!IsValid(LeafText)) return;
 	
 	LeafText->SetText(FragmentText);
+}
+
+void FINV_LabeledNumberFragment::Assimilate(UINV_Composite_Base* Composite) const
+{
+	FINV_InventoryItemFragment::Assimilate(Composite);
+	
+	if (!MatchesWidgetTag(Composite)) return;
+	
+	UINV_Leaf_LabeledValue* LabeledValue { Cast<UINV_Leaf_LabeledValue>(Composite) };
+	if (!IsValid(LabeledValue)) return;
+	
+	LabeledValue->SetText_Label(Text_Label, bCollapseLabel);
+	
+	FNumberFormattingOptions Options;
+	Options.MinimumFractionalDigits = MinFractionalDigits;
+	Options.MaximumFractionalDigits = MaxFractionalDigits;
+	
+	LabeledValue->SetText_Value(FText::AsNumber(Value, &Options), bCollapseValue);
+}
+
+void FINV_LabeledNumberFragment::InitializeRuntimeState()
+{
+	FINV_InventoryItemFragment::InitializeRuntimeState();
+	
+	if (bRandomizeOnInitialization)
+	{
+		Value = FMath::FRandRange(Min, Max);
+	}
 }
 
 void FINV_HealthPotionFragment::OnConsume(APlayerController* PC)
