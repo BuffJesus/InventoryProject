@@ -117,11 +117,14 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 	
 	const FVector2D ItemDescriptionSize = Description->GetBoxSize();
 	ItemDescriptionCPS->SetSize(ItemDescriptionSize);
-	
+
+	// Canvas slot positions are canvas-local, so convert mouse viewport position to canvas-local space first.
+	const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(Canvas);
+	const FVector2D LocalOpenPosition = OpenPosition - CanvasViewportPos;
 	FVector2D ClampedPos { UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
 		UINV_WidgetUtils::GetWidgetSize(Canvas),
 		ItemDescriptionSize,
-		OpenPosition) };
+		LocalOpenPosition) };
 	
 	ItemDescriptionCPS->SetPosition(ClampedPos);
 }
