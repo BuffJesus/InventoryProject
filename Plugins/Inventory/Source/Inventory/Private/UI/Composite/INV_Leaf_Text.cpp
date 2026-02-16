@@ -3,6 +3,7 @@
 
 #include "UI/Composite/INV_Leaf_Text.h"
 #include "Components/TextBlock.h"
+#include "UI/INV_WidgetUtils.h"
 
 void UINV_Leaf_Text::SetText(const FText& Text) const
 {
@@ -13,9 +14,6 @@ void UINV_Leaf_Text::SetText(const FText& Text) const
 void UINV_Leaf_Text::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	if (!IsValid(Text_LeafText)) return;
-	
-	FSlateFontInfo FontInfo = Text_LeafText->GetFont();
-	FontInfo.Size = FontSize;
-	Text_LeafText->SetFont(FontInfo);
+
+	UINV_WidgetUtils::SetTextBlockFontSize(Text_LeafText, FontSize);
 }

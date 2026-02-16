@@ -5,6 +5,7 @@
 
 #include "InteractiveToolManager.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
+#include "Components/TextBlock.h"
 #include "Components/Widget.h"
 
 FVector2D UINV_WidgetUtils::GetWidgetPosition(UWidget* Widget)
@@ -32,6 +33,15 @@ bool UINV_WidgetUtils::IsWithinBounds(const FVector2D& BoundaryPos, const FVecto
 	// Simple rect bounds check.
 	return MousePos.X >= BoundaryPos.X && MousePos.X <= (BoundaryPos.X + WidgetSize.X) &&
 		MousePos.Y >= BoundaryPos.Y && MousePos.Y <= (BoundaryPos.Y + WidgetSize.Y);
+}
+
+void UINV_WidgetUtils::SetTextBlockFontSize(UTextBlock* TextBlock, int32 FontSize)
+{
+	if (!IsValid(TextBlock)) return;
+
+	FSlateFontInfo FontInfo = TextBlock->GetFont();
+	FontInfo.Size = FontSize;
+	TextBlock->SetFont(FontInfo);
 }
 
 FVector2D UINV_WidgetUtils::GetClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize,

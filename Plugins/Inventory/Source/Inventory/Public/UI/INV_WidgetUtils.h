@@ -7,6 +7,7 @@
 #include "INV_WidgetUtils.generated.h"
 
 class UWidget;
+class UTextBlock;
 /**
  * 
  */
@@ -27,6 +28,9 @@ public:
 	// Check if a point is inside a rectangle.
 	UFUNCTION(BlueprintCallable, Category="INV|Widgets")
 	static bool IsWithinBounds(const FVector2D& BoundaryPos, const FVector2D& WidgetSize, const FVector2D& MousePos);
+
+	// Update a text block's font size while preserving other font settings.
+	static void SetTextBlockFontSize(UTextBlock* TextBlock, int32 FontSize);
 	
 	static FVector2D GetClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize, const FVector2D& MousePos);
 	static FVector2D GetCenteredClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize, const FVector2D& MousePos);
