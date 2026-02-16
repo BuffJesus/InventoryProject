@@ -23,8 +23,6 @@ public:
 	virtual void NativeOnInitialized() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const override;
-	virtual void OnItemHovered(UINV_InventoryItem* Item) override;
-	virtual void OnItemUnhovered() override;
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) override;
 	virtual bool HasHoverItem() const override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;

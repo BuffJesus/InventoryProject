@@ -80,16 +80,6 @@ FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemCompo
 	}
 }
 
-void UINV_SpatialInventory::OnItemHovered(UINV_InventoryItem* Item)
-{
-	// Description is now shown explicitly via Inspect, not hover.
-}
-
-void UINV_SpatialInventory::OnItemUnhovered()
-{
-	// Description is now shown explicitly via Inspect, not hover.
-}
-
 void UINV_SpatialInventory::OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition)
 {
 	OpenItemDescription(Item, OpenPosition);
@@ -114,8 +104,21 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 {
 	UCanvasPanelSlot* ItemDescriptionCPS { UWidgetLayoutLibrary::SlotAsCanvasSlot(Description) };
 	if (!IsValid(ItemDescriptionCPS)) return;
-	
-	const FVector2D ItemDescriptionSize = Description->GetBoxSize();
+
+	// Ensure first-open layout is valid before querying desired size.
+	Description->ForceLayoutPrepass();
+	Canvas->ForceLayoutPrepass();
+
+	FVector2D ItemDescriptionSize = Description->GetBoxSize();
+	if (ItemDescriptionSize.IsNearlyZero())
+	{
+		ItemDescriptionSize = Description->GetDesiredSize();
+		if (ItemDescriptionSize.IsNearlyZero())
+		{
+			// Last resort to keep first inspect visible if desired size is not ready yet.
+			ItemDescriptionSize = FVector2D(200.f, 100.f);
+		}
+	}
 	ItemDescriptionCPS->SetSize(ItemDescriptionSize);
 
 	// Canvas slot positions are canvas-local, so convert mouse viewport position to canvas-local space first.

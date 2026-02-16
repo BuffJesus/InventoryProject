@@ -39,7 +39,6 @@ public:
 	void ExecuteAndClose(const TFunctionRef<bool()>& Action);
 	void CollapseSplitButton() const;
 	void CollapseConsumeButton() const;
-	void CollapseInspectButton() const;
 	void SetSliderParams(const float Max, const float Value) const;
 	void SetGridIndex(int32 Index) { GridIndex = Index; }
 	

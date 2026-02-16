@@ -45,14 +45,6 @@ void UINV_ItemPopUp::CollapseConsumeButton() const
 	Button_Consume->SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UINV_ItemPopUp::CollapseInspectButton() const
-{
-	if (IsValid(Button_Inspect))
-	{
-		Button_Inspect->SetVisibility(ESlateVisibility::Collapsed);
-	}
-}
-
 void UINV_ItemPopUp::SetSliderParams(const float Max, const float Value) const
 {
 	Slider_Split->SetMaxValue(Max);
