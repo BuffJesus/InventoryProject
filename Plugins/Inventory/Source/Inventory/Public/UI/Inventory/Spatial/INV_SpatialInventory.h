@@ -57,6 +57,9 @@ private:
 	TSubclassOf<UINV_ItemDescription> ItemDescriptionClass;
 	
 	UPROPERTY() TObjectPtr<UINV_ItemDescription> ItemDescription;
+
+	// Prevent immediate close on the same frame the description is opened.
+	bool bSkipDescriptionCloseThisTick { false };
 };
 
 

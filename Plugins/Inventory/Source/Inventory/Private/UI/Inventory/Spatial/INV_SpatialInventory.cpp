@@ -135,6 +135,10 @@ UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
 	{
 		ItemDescription = CreateWidget<UINV_ItemDescription>(GetOwningPlayer(), ItemDescriptionClass);
 		CanvasPanel->AddChild(ItemDescription);
+		if (UCanvasPanelSlot* DescriptionSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemDescription))
+		{
+			DescriptionSlot->SetZOrder(1000);
+		}
 	}
 	return ItemDescription;
 }
@@ -148,12 +152,24 @@ void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const 
 
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
 	DescriptionWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	bSkipDescriptionCloseThisTick = true;
 }
 
 void UINV_SpatialInventory::CloseDescriptionIfCursorExited()
 {
 	if (!IsValid(ItemDescription)) return;
 	if (ItemDescription->GetVisibility() == ESlateVisibility::Collapsed) return;
+	if (bSkipDescriptionCloseThisTick)
+	{
+		bSkipDescriptionCloseThisTick = false;
+		return;
+	}
+
+	// Avoid evaluating exit logic before Slate has a valid layout for this widget.
+	if (ItemDescription->GetCachedGeometry().GetLocalSize().IsNearlyZero())
+	{
+		return;
+	}
 
 	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
 	if (ItemDescription->GetCachedGeometry().IsUnderLocation(CursorPosition)) return;

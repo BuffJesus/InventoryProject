@@ -1118,8 +1118,14 @@ void UINV_InventoryGrid::OnPopUpMenuInspect(int32 Index)
 	UINV_InventoryItem* RightClickedItem;
 	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 
-	// Center description on the actual inspect click position.
-	const FVector2D OpenPosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	FVector2D OpenPosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	if (IsValid(ItemPopUp))
+	{
+		if (UCanvasPanelSlot* PopUpSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp))
+		{
+			OpenPosition = PopUpSlot->GetPosition() + (ItemPopUp->GetBoxSize() / 2.0f);
+		}
+	}
 
 	UINV_InventoryStatics::ItemInspected(GetOwningPlayer(), RightClickedItem, OpenPosition);
 }
