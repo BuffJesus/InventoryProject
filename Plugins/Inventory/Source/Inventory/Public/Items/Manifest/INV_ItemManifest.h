@@ -19,7 +19,7 @@ USTRUCT(BlueprintType)
 struct INVENTORY_API FINV_ItemManifest
 {
 	GENERATED_BODY()
-	TArray<TInstancedStruct<FInv_ItemFragment>> GetFragmentsMutable() { return Fragments; }
+	TArray<TInstancedStruct<FInv_ItemFragment>>& GetFragmentsMutable() { return Fragments; }
 	
 	// Create an inventory item object from this manifest.
 	UINV_InventoryItem* CreateItem(UObject* NewOuter);
