@@ -18,7 +18,7 @@ class INVENTORY_API UINV_Composite_Base : public UUserWidget
 public:
 	FORCEINLINE FGameplayTag GetFragmentTag() const { return FragmentTag; }
 	FORCEINLINE void SetFragmentTag(FGameplayTag Tag) { FragmentTag = Tag; }
-	FORCEINLINE virtual void Collapse() { SetVisibility(ESlateVisibility::Collapsed); }
+	virtual void Collapse() { SetVisibility(ESlateVisibility::Collapsed); }
 	FORCEINLINE void Expand() { SetVisibility(ESlateVisibility::Visible); }
 	
 	using FuncType = TFunction<void(UINV_Composite_Base*)>;

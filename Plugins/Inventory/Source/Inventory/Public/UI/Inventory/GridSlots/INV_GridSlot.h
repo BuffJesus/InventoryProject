@@ -44,15 +44,7 @@ public:
 	FORCEINLINE bool GetAvailability() const { return bAvailable; }
 	FORCEINLINE void SetAvailability(bool bIsAvailable) { bAvailable = bIsAvailable; }
 	FORCEINLINE UINV_ItemPopUp* GetItemPopUp() const { return ItemPopUp.Get(); }
-	FORCEINLINE void SetItemPopUp(UINV_ItemPopUp* PopUp)
-	{
-		ItemPopUp = PopUp;
-		if (IsValid(ItemPopUp.Get()))
-		{
-			ItemPopUp->SetGridIndex(GetTileIndex());
-			ItemPopUp->OnNativeDestruct.AddUObject(this, &ThisClass::OnItemPopUpDestruct);
-		}
-	}
+	void SetItemPopUp(UINV_ItemPopUp* PopUp);
 	
 	// Updates slot visuals.
 	void SetUnoccupiedTexture();

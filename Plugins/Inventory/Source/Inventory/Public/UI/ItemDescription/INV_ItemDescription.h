@@ -16,7 +16,10 @@ class INVENTORY_API UINV_ItemDescription : public UINV_Composite
 	GENERATED_BODY()
 	
 public:
-	FORCEINLINE FVector2D GetBoxSize() const { return SizeBox->GetDesiredSize(); }
+	FORCEINLINE FVector2D GetBoxSize() const
+	{
+		return IsValid(SizeBox) ? SizeBox->GetDesiredSize() : FVector2D::ZeroVector;
+	}
 	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USizeBox> SizeBox;

@@ -27,6 +27,16 @@ FReply UINV_GridSlot::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const
 	return FReply::Handled();
 }
 
+void UINV_GridSlot::SetItemPopUp(UINV_ItemPopUp* PopUp)
+{
+	ItemPopUp = PopUp;
+	if (IsValid(ItemPopUp.Get()))
+	{
+		ItemPopUp->SetGridIndex(GetTileIndex());
+		ItemPopUp->OnNativeDestruct.AddUObject(this, &ThisClass::OnItemPopUpDestruct);
+	}
+}
+
 void UINV_GridSlot::SetUnoccupiedTexture()
 {
 	// Visual state for empty slot.
