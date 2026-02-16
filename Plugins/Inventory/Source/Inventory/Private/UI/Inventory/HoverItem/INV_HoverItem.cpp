@@ -6,6 +6,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "Items/INV_InventoryItem.h"
+#include "UI/INV_WidgetUtils.h"
 
 void UINV_HoverItem::Clear()
 {
@@ -21,9 +22,13 @@ void UINV_HoverItem::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
     
-	// Keep the hover widget centered on the mouse.
+	// Keep the hover widget centered on the mouse while staying on screen.
 	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
-	SetPositionInViewport(MousePosition - (CachedSize / 2.f), false);
+	const FVector2D ClampedPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
+		UWidgetLayoutLibrary::GetViewportSize(this),
+		CachedSize,
+		MousePosition);
+	SetPositionInViewport(ClampedPosition, false);
 }
 
 void UINV_HoverItem::NativeOnInitialized()

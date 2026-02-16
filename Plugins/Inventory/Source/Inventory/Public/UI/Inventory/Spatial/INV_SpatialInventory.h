@@ -25,11 +25,14 @@ public:
 	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const override;
 	virtual void OnItemHovered(UINV_InventoryItem* Item) override;
 	virtual void OnItemUnhovered() override;
+	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) override;
 	virtual bool HasHoverItem() const override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
+	void OpenItemDescription(UINV_InventoryItem* Item, const FVector2D& OpenPosition);
+	void CloseDescriptionIfCursorExited();
 	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UWidgetSwitcher> Switcher;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UINV_InventoryGrid> Grid_Equippable;
@@ -46,19 +49,16 @@ private:
 	
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
-	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas) const;
+	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
 	
 	UPROPERTY(EditAnywhere, Category="INV|Spatial")
 	TSubclassOf<UINV_ItemDescription> ItemDescriptionClass;
 	
-	UPROPERTY(EditAnywhere, Category="INV|Spatial")
-	float DescriptionTimerDelay { 0.5f };
-	
 	UPROPERTY() TObjectPtr<UINV_ItemDescription> ItemDescription;
-	
-	FTimerHandle DescriptionTimerHandle;
+
+	bool bHasCursorEnteredDescription { false };
 };
 
 

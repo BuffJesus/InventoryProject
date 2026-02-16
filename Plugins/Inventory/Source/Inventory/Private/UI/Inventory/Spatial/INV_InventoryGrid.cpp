@@ -1113,6 +1113,23 @@ void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
 	}
 }
 
+void UINV_InventoryGrid::OnPopUpMenuInspect(int32 Index)
+{
+	UINV_InventoryItem* RightClickedItem;
+	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
+
+	FVector2D OpenPosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	if (IsValid(ItemPopUp))
+	{
+		if (UCanvasPanelSlot* PopUpSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp))
+		{
+			OpenPosition = PopUpSlot->GetPosition() + (ItemPopUp->GetBoxSize() / 2.0f);
+		}
+	}
+
+	UINV_InventoryStatics::ItemInspected(GetOwningPlayer(), RightClickedItem, OpenPosition);
+}
+
 void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	if (IsValid(HoverItem)) return;
@@ -1266,6 +1283,8 @@ FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UIN
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
+	
 	CloseActiveItemPopup();
 	
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
@@ -1368,9 +1387,16 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 	OwningCanvasPanel->AddChild(ItemPopUp);
 	UCanvasPanelSlot* CanvasSlot { UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp) };
 	if (!IsValid(CanvasSlot)) return;
+
+	const FVector2D PopUpSize = ItemPopUp->GetBoxSize();
+	CanvasSlot->SetSize(PopUpSize);
+
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
-	CanvasSlot->SetPosition(MousePos - ItemPopUp->GetBoxSize() / 2.0f);
-	CanvasSlot->SetSize(ItemPopUp->GetBoxSize());
+	const FVector2D ClampedPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
+		UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel.Get()),
+		PopUpSize,
+		MousePos);
+	CanvasSlot->SetPosition(ClampedPosition);
 	
 	const int32 SliderMax = GridSlots[GridIndex]->GetStackCount() - 1;
 	if (RightClickedItem->IsStackable() && SliderMax > 0)
@@ -1384,6 +1410,7 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 	}
 	
 	ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
+	ItemPopUp->OnInspect.BindDynamic(this, &ThisClass::OnPopUpMenuInspect);
 	
 	if (RightClickedItem->IsConsumable())
 	{

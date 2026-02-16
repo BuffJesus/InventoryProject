@@ -10,9 +10,9 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/WidgetSwitcher.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
-#include "Items/INV_ItemComponent.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/ItemDescription/INV_ItemDescription.h"
+#include "Framework/Application/SlateApplication.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
@@ -82,24 +82,17 @@ FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemCompo
 
 void UINV_SpatialInventory::OnItemHovered(UINV_InventoryItem* Item)
 {
-	UINV_ItemDescription* DescriptionWidget = GetItemDescription();
-	DescriptionWidget->SetVisibility(ESlateVisibility::Collapsed);
-	
-	GetOwningPlayer()->GetWorldTimerManager().ClearTimer(DescriptionTimerHandle);
-	
-	FTimerDelegate DescriptionTimerDelegate;
-	DescriptionTimerDelegate.BindLambda([this]()
-	{
-		GetItemDescription()->SetVisibility(ESlateVisibility::HitTestInvisible);
-	});
-	
-	GetOwningPlayer()->GetWorldTimerManager().SetTimer(DescriptionTimerHandle, DescriptionTimerDelegate, DescriptionTimerDelay, false);
+	// Description is now shown explicitly via Inspect, not hover.
 }
 
 void UINV_SpatialInventory::OnItemUnhovered()
 {
-	GetItemDescription()->SetVisibility(ESlateVisibility::Collapsed);
-	GetOwningPlayer()->GetWorldTimerManager().ClearTimer(DescriptionTimerHandle);
+	// Description is now shown explicitly via Inspect, not hover.
+}
+
+void UINV_SpatialInventory::OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition)
+{
+	OpenItemDescription(Item, OpenPosition);
 }
 
 bool UINV_SpatialInventory::HasHoverItem() const
@@ -113,13 +106,11 @@ bool UINV_SpatialInventory::HasHoverItem() const
 void UINV_SpatialInventory::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	
-	if (!IsValid(ItemDescription)) return;
-	SetItemDescriptionSizeAndPosition(ItemDescription, CanvasPanel);
+	CloseDescriptionIfCursorExited();
 }
 
 void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,
-	UCanvasPanel* Canvas) const
+	UCanvasPanel* Canvas, const FVector2D& OpenPosition) const
 {
 	UCanvasPanelSlot* ItemDescriptionCPS { UWidgetLayoutLibrary::SlotAsCanvasSlot(Description) };
 	if (!IsValid(ItemDescriptionCPS)) return;
@@ -127,10 +118,10 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 	const FVector2D ItemDescriptionSize = Description->GetBoxSize();
 	ItemDescriptionCPS->SetSize(ItemDescriptionSize);
 	
-	FVector2D ClampedPos { UINV_WidgetUtils::GetClampedWidgetPosition(
+	FVector2D ClampedPos { UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
 		UINV_WidgetUtils::GetWidgetSize(Canvas),
 		ItemDescriptionSize,
-		UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer())) };
+		OpenPosition) };
 	
 	ItemDescriptionCPS->SetPosition(ClampedPos);
 }
@@ -143,4 +134,36 @@ UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
 		CanvasPanel->AddChild(ItemDescription);
 	}
 	return ItemDescription;
+}
+
+void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const FVector2D& OpenPosition)
+{
+	if (!IsValid(Item) || !IsValid(CanvasPanel)) return;
+
+	UINV_ItemDescription* DescriptionWidget = GetItemDescription();
+	if (!IsValid(DescriptionWidget)) return;
+
+	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
+	DescriptionWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	bHasCursorEnteredDescription = false;
+}
+
+void UINV_SpatialInventory::CloseDescriptionIfCursorExited()
+{
+	if (!IsValid(ItemDescription)) return;
+	if (ItemDescription->GetVisibility() == ESlateVisibility::Collapsed) return;
+
+	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
+	const bool bCursorInsideDescription = ItemDescription->GetCachedGeometry().IsUnderLocation(CursorPosition);
+	if (bCursorInsideDescription)
+	{
+		bHasCursorEnteredDescription = true;
+		return;
+	}
+
+	// Only auto-close after cursor has entered description at least once.
+	if (!bHasCursorEnteredDescription) return;
+
+	ItemDescription->SetVisibility(ESlateVisibility::Collapsed);
+	bHasCursorEnteredDescription = false;
 }

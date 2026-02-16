@@ -52,6 +52,14 @@ FVector2D UINV_WidgetUtils::GetClampedWidgetPosition(const FVector2D& Boundary, 
 	return ClampedPos;
 }
 
+FVector2D UINV_WidgetUtils::GetCenteredClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize,
+	const FVector2D& MousePos)
+{
+	// Center widget on cursor, then clamp to keep it within bounds.
+	const FVector2D DesiredPos = MousePos - (WidgetSize / 2.0f);
+	return GetClampedWidgetPosition(Boundary, WidgetSize, DesiredPos);
+}
+
 int32 UINV_WidgetUtils::GetIndexFromPosition(const FIntPoint& Position, const int32 Columns)
 {
 	// Flatten 2D coords into a linear index.

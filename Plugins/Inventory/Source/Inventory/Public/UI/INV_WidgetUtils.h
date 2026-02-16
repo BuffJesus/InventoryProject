@@ -29,6 +29,7 @@ public:
 	static bool IsWithinBounds(const FVector2D& BoundaryPos, const FVector2D& WidgetSize, const FVector2D& MousePos);
 	
 	static FVector2D GetClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize, const FVector2D& MousePos);
+	static FVector2D GetCenteredClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize, const FVector2D& MousePos);
 	
 	// Convert grid position to linear index.
 	static int32 GetIndexFromPosition(const FIntPoint& Position, const int32 Columns);

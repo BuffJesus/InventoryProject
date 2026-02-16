@@ -8,6 +8,7 @@
 #include "INV_InventoryBase.generated.h"
 
 class UINV_ItemComponent;
+class UINV_InventoryItem;
 struct FINV_SlotAvailabilityResult;
 /**
  * 
@@ -26,5 +27,6 @@ public:
 	
 	virtual void OnItemHovered(UINV_InventoryItem* Item) {}
 	virtual void OnItemUnhovered() {}
+	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) {}
 	virtual bool HasHoverItem() const { return false; }
 };

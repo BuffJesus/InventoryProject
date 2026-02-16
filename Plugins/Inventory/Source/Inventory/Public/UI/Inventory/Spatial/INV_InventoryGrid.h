@@ -167,6 +167,7 @@ private:
 	UFUNCTION() void OnPopUpMenuSplit(int32 SplitAmount, int32 Index);
 	UFUNCTION() void OnPopUpMenuDrop(int32 Index);
 	UFUNCTION() void OnPopUpMenuConsume(int32 Index);
+	UFUNCTION() void OnPopUpMenuInspect(int32 Index);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category="INV|Inventory")
 	EINV_ItemCategory ItemCategory { EINV_ItemCategory::None };

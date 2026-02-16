@@ -48,3 +48,12 @@ void UINV_InventoryStatics::ItemUnhovered(APlayerController* PC)
 	
 	InventoryBase->OnItemUnhovered();
 }
+
+void UINV_InventoryStatics::ItemInspected(APlayerController* PC, UINV_InventoryItem* Item, const FVector2D& OpenPosition)
+{
+	UINV_InventoryBase* InventoryBase;
+	if (GetValidInventoryComponent(PC, InventoryBase)) return;
+	if (!IsValid(Item)) return;
+
+	InventoryBase->OnItemInspected(Item, OpenPosition);
+}

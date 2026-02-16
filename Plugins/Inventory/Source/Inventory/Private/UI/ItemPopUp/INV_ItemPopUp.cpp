@@ -13,6 +13,10 @@ void UINV_ItemPopUp::NativeOnInitialized()
 	Button_Split->OnClicked.AddDynamic(this, &ThisClass::SplitButtonClicked);
 	Button_Drop->OnClicked.AddDynamic(this, &ThisClass::DropButtonClicked);
 	Button_Consume->OnClicked.AddDynamic(this, &ThisClass::ConsumeButtonClicked);
+	if (IsValid(Button_Inspect))
+	{
+		Button_Inspect->OnClicked.AddDynamic(this, &ThisClass::InspectButtonClicked);
+	}
 	Slider_Split->OnValueChanged.AddDynamic(this, &ThisClass::SliderValueChanged);
 }
 
@@ -41,6 +45,14 @@ void UINV_ItemPopUp::CollapseConsumeButton() const
 	Button_Consume->SetVisibility(ESlateVisibility::Collapsed);
 }
 
+void UINV_ItemPopUp::CollapseInspectButton() const
+{
+	if (IsValid(Button_Inspect))
+	{
+		Button_Inspect->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
 void UINV_ItemPopUp::SetSliderParams(const float Max, const float Value) const
 {
 	Slider_Split->SetMaxValue(Max);
@@ -62,6 +74,11 @@ void UINV_ItemPopUp::DropButtonClicked()
 void UINV_ItemPopUp::ConsumeButtonClicked()
 {
 	ExecuteAndClose([this]() { return OnConsume.ExecuteIfBound(GridIndex); });
+}
+
+void UINV_ItemPopUp::InspectButtonClicked()
+{
+	ExecuteAndClose([this]() { return OnInspect.ExecuteIfBound(GridIndex); });
 }
 
 void UINV_ItemPopUp::SliderValueChanged(float Value)

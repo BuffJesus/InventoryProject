@@ -39,6 +39,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static void ItemUnhovered(APlayerController* PC);
+
+	UFUNCTION(BlueprintCallable, Category="INV|Statics")
+	static void ItemInspected(APlayerController* PC, UINV_InventoryItem* Item, const FVector2D& OpenPosition);
 };
 
 template <typename T, typename FuncT>
