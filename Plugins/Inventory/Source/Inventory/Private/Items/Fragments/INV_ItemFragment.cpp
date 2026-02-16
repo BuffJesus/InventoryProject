@@ -66,10 +66,12 @@ void FINV_LabeledNumberFragment::InitializeRuntimeState()
 {
 	FINV_InventoryItemFragment::InitializeRuntimeState();
 	
-	if (bRandomizeOnInitialization)
+	if (!bRuntimeStateInitialized && bRandomizeOnInitialization)
 	{
 		Value = FMath::FRandRange(Min, Max);
 	}
+
+	bRuntimeStateInitialized = true;
 }
 
 void FINV_ConsumableFragment::OnConsume(APlayerController* PC)

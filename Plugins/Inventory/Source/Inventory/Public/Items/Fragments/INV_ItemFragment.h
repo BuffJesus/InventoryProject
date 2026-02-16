@@ -130,6 +130,10 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Labels")
 	int32 MaxFractionalDigits { 1 };
+
+	// Prevent re-randomization when an already-initialized item is dropped and picked up again.
+	UPROPERTY(VisibleAnywhere, Category = "INV|Labels")
+	bool bRuntimeStateInitialized { false };
 };
 
 USTRUCT(BlueprintType)
