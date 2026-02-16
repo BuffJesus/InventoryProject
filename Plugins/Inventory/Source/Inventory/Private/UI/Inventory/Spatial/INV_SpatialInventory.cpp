@@ -145,7 +145,6 @@ void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const 
 
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
 	DescriptionWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-	bHasCursorEnteredDescription = false;
 }
 
 void UINV_SpatialInventory::CloseDescriptionIfCursorExited()
@@ -154,16 +153,6 @@ void UINV_SpatialInventory::CloseDescriptionIfCursorExited()
 	if (ItemDescription->GetVisibility() == ESlateVisibility::Collapsed) return;
 
 	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
-	const bool bCursorInsideDescription = ItemDescription->GetCachedGeometry().IsUnderLocation(CursorPosition);
-	if (bCursorInsideDescription)
-	{
-		bHasCursorEnteredDescription = true;
-		return;
-	}
-
-	// Only auto-close after cursor has entered description at least once.
-	if (!bHasCursorEnteredDescription) return;
-
+	if (ItemDescription->GetCachedGeometry().IsUnderLocation(CursorPosition)) return;
 	ItemDescription->SetVisibility(ESlateVisibility::Collapsed);
-	bHasCursorEnteredDescription = false;
 }

@@ -57,8 +57,6 @@ private:
 	TSubclassOf<UINV_ItemDescription> ItemDescriptionClass;
 	
 	UPROPERTY() TObjectPtr<UINV_ItemDescription> ItemDescription;
-
-	bool bHasCursorEnteredDescription { false };
 };
 
 
