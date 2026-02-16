@@ -158,7 +158,7 @@ void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const 
 	Manifest.AssimilateInventoryFragments(DescriptionWidget);
 	
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
-	DescriptionWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	DescriptionWidget->SetVisibility(ESlateVisibility::Visible);
 	bSkipDescriptionCloseThisTick = true;
 }
 
