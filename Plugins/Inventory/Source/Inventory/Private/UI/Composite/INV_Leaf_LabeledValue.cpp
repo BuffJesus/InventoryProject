@@ -2,7 +2,6 @@
 
 
 #include "UI/Composite/INV_Leaf_LabeledValue.h"
-
 #include "Components/TextBlock.h"
 #include "UI/INV_WidgetUtils.h"
 
