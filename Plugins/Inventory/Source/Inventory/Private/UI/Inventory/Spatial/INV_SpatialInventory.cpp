@@ -127,8 +127,12 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 	const FVector2D ItemDescriptionSize = Description->GetBoxSize();
 	ItemDescriptionCPS->SetSize(ItemDescriptionSize);
 	
+	FVector2D ClampedPos { UINV_WidgetUtils::GetClampedWidgetPosition(
+		UINV_WidgetUtils::GetWidgetSize(Canvas),
+		ItemDescriptionSize,
+		UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer())) };
 	
-	
+	ItemDescriptionCPS->SetPosition(ClampedPos);
 }
 
 UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()

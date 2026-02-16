@@ -3,6 +3,7 @@
 
 #include "UI/INV_WidgetUtils.h"
 
+#include "InteractiveToolManager.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Components/Widget.h"
 
@@ -31,6 +32,24 @@ bool UINV_WidgetUtils::IsWithinBounds(const FVector2D& BoundaryPos, const FVecto
 	// Simple rect bounds check.
 	return MousePos.X >= BoundaryPos.X && MousePos.X <= (BoundaryPos.X + WidgetSize.X) &&
 		MousePos.Y >= BoundaryPos.Y && MousePos.Y <= (BoundaryPos.Y + WidgetSize.Y);
+}
+
+FVector2D UINV_WidgetUtils::GetClampedWidgetPosition(const FVector2D& Boundary, const FVector2D& WidgetSize,
+	const FVector2D& MousePos)
+{
+	FVector2D ClampedPos;
+	
+	const auto ClampAxis = [](float Mouse, float Widget, float Limit)
+	{
+		// Prevent negative max when widget is larger than boundary
+		const float MaxPos = FMath::Max(0.f, Limit - Widget);
+		return FMath::Clamp(Mouse, 0.f, MaxPos);
+	};
+
+	ClampedPos.X = ClampAxis(MousePos.X, WidgetSize.X, Boundary.X);
+	ClampedPos.Y = ClampAxis(MousePos.Y, WidgetSize.Y, Boundary.Y);
+	
+	return ClampedPos;
 }
 
 int32 UINV_WidgetUtils::GetIndexFromPosition(const FIntPoint& Position, const int32 Columns)
