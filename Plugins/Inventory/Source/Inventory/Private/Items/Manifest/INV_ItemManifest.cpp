@@ -16,6 +16,7 @@ UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter)
 	{
 		Fragment.GetMutable().InitializeRuntimeState();
 	}
+	// Course flow: this manifest instance is consumed after item creation.
 	ClearFragments();
 	
 	return Item;

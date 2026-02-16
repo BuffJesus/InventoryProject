@@ -10,9 +10,6 @@
 
 struct FGameplayTag;
 struct FINV_ItemManifest;
-/**
- * 
- */
 UCLASS()
 class INVENTORY_API UINV_InventoryItem : public UObject
 {
@@ -26,8 +23,11 @@ public:
 	void SetItemManifest(const FINV_ItemManifest& Manifest);
 	// Access the stored manifest.
 	const FINV_ItemManifest& GetItemManifest() const { return ItemManifest.Get<FINV_ItemManifest>(); }
+	// Mutable manifest access for stack updates, consume effects, and drop flow.
 	FINV_ItemManifest& GetItemManifestMutable() { return ItemManifest.GetMutable<FINV_ItemManifest>(); }
+	// True if this item has a stackable fragment.
 	bool IsStackable() const;
+	// True if this item has a consumable fragment.
 	bool IsConsumable() const;
 	// Total stack count across all slots.
 	FORCEINLINE int32 GetTotalStackCount() const { return TotalStackCount; }

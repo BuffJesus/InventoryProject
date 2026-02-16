@@ -29,21 +29,26 @@ public:
 	void AddRepSubObj(UObject* SubObj);
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	// Server RPC: add a new runtime item entry from a pickup component.
 	UFUNCTION(Server, Reliable)
 	void Server_AddNewItem(UINV_ItemComponent* ItemComponent, int32 StackCount);
 	
+	// Server RPC: merge stacks into an existing item and handle pickup remainder.
 	UFUNCTION(Server, Reliable)
 	void Server_AddStacksToItem(UINV_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder);
 	
+	// Server RPC: remove/adjust inventory item stacks and spawn dropped pickup actor.
 	UFUNCTION(Server, Reliable)
 	void Server_DropItem(UINV_InventoryItem* Item, int32 StackCount);
 	
+	// Server RPC: consume one stack and execute consume behavior.
 	UFUNCTION(Server, Reliable)
 	void Server_ConsumeItem(UINV_InventoryItem* Item);
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Inventory", BlueprintAuthorityOnly)
 	// Entry point for adding an item to the inventory.
 	void TryAddItem(UINV_ItemComponent* ItemComponent);
+	// Server-side helper that computes safe drop location and spawns pickup actor.
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
 	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	

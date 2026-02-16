@@ -33,6 +33,7 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 	FINV_InventoryFastArray() : Owner(nullptr) {}
 	FINV_InventoryFastArray(UActorComponent* InOwner) : Owner(InOwner) {}
 	
+	// Returns all valid inventory item objects currently held in entries.
 	TArray<UINV_InventoryItem*> GetAllItems() const;
 	
 	// FFastArraySerializer contract
@@ -45,9 +46,13 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 		return FastArrayDeltaSerialize<FINV_InventoryEntry, FINV_InventoryFastArray>(Entries, DeltaParams, *this);
 	}
 	
+	// Creates a runtime inventory item from a pickup component manifest and adds it.
 	UINV_InventoryItem* AddEntry(UINV_ItemComponent* ItemComponent);
+	// Adds an already-created runtime inventory item.
 	UINV_InventoryItem* AddEntry(UINV_InventoryItem* Item);
+	// Removes the matching item entry from the replicated list.
 	void RemoveEntry(UINV_InventoryItem* Item);
+	// Finds first valid item entry whose item type matches ItemType exactly.
 	UINV_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType);
 
 private:

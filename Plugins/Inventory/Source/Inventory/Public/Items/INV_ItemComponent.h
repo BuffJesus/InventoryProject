@@ -26,6 +26,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// Called when the item is picked up.
 	void PickedUp();
+	// Copy-initialize pickup manifest data (usually from dropped/runtime items).
 	void InitItemManifest(const FINV_ItemManifest& InManifest);
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category="INV|Inventory")

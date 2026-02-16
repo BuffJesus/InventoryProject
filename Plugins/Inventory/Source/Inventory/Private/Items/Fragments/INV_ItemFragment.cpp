@@ -66,6 +66,7 @@ void FINV_LabeledNumberFragment::InitializeRuntimeState()
 {
 	FINV_InventoryItemFragment::InitializeRuntimeState();
 	
+	// Only roll once so dropped/re-picked items keep their existing value.
 	if (!bRuntimeStateInitialized && bRandomizeOnInitialization)
 	{
 		Value = FMath::FRandRange(Min, Max);
@@ -76,6 +77,7 @@ void FINV_LabeledNumberFragment::InitializeRuntimeState()
 
 void FINV_ConsumableFragment::OnConsume(APlayerController* PC)
 {
+	// Forward consume behavior to each configured modifier.
 	for (auto& Modifier : ConsumeModifiers)
 	{
 		auto& ModRef { Modifier.GetMutable() };

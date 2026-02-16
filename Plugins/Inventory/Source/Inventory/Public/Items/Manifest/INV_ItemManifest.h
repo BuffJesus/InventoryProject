@@ -19,30 +19,38 @@ USTRUCT(BlueprintType)
 struct INVENTORY_API FINV_ItemManifest
 {
 	GENERATED_BODY()
+	// Mutable access to raw fragment storage (used when constructing runtime items).
 	TArray<TInstancedStruct<FInv_ItemFragment>>& GetFragmentsMutable() { return Fragments; }
 	
-	// Create an inventory item object from this manifest.
+	// Create an inventory item object from this manifest and initialize fragment runtime state.
+	// This consumes fragment payload from this manifest instance via ClearFragments().
 	UINV_InventoryItem* CreateItem(UObject* NewOuter);
 	// High-level category for UI placement.
 	EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	// Gameplay tag that identifies the item type.
 	FGameplayTag GetItemType() const { return ItemType; }
 	
+	// Find the first fragment of T that matches the provided fragment tag.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	const T* GetFragmentOfTypeWithTag(const FGameplayTag& FragmentTag) const;
 	
+	// Find the first fragment of type T.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	const T* GetFragmentOfType() const;
 	
+	// Find the first mutable fragment of type T.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	T* GetFragmentOfTypeMutable();
 	
+	// Collect all fragments of type T.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	TArray<const T*> GetFragmentsOfType() const;
 	
+	// Spawn pickup actor and copy this manifest into its item component.
 	void SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
 		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn) const;
 	
+	// Apply all UI-facing fragments to a description/widget composite.
 	void AssimilateInventoryFragments(UINV_Composite_Base* Composite) const;
 	
 private:
@@ -58,9 +66,11 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory", meta = (Categories = "GameItems"))
 	FGameplayTag ItemType;
 	
+	// Pickup actor class used when dropping/spawning this item in the world.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<AActor> PickupActorClass;
 	
+	// Clears fragment payload after this manifest has been consumed to create an inventory item.
 	void ClearFragments();
 };
 
