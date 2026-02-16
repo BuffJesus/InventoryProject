@@ -72,6 +72,15 @@ void FINV_LabeledNumberFragment::InitializeRuntimeState()
 	}
 }
 
+void FINV_ConsumableFragment::OnConsume(APlayerController* PC)
+{
+	for (auto& Modifier : ConsumeModifiers)
+	{
+		auto& ModRef { Modifier.GetMutable() };
+		ModRef.OnConsume(PC);
+	}
+}
+
 void FINV_ConsumableFragment::Assimilate(UINV_Composite_Base* Composite) const
 {
 	FINV_InventoryItemFragment::Assimilate(Composite);
@@ -79,6 +88,17 @@ void FINV_ConsumableFragment::Assimilate(UINV_Composite_Base* Composite) const
 	{
 		const auto& ModRef { Modifier.Get() };
 		ModRef.Assimilate(Composite);
+	}
+}
+
+void FINV_ConsumableFragment::InitializeRuntimeState()
+{
+	FINV_InventoryItemFragment::InitializeRuntimeState();
+	
+	for (auto& Modifier : ConsumeModifiers)
+	{
+		auto& ModRef { Modifier.GetMutable() };
+		ModRef.InitializeRuntimeState();
 	}
 }
 

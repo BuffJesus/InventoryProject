@@ -164,8 +164,9 @@ USTRUCT(BlueprintType)
 struct FINV_ConsumableFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
-	virtual void OnConsume(APlayerController* PC) {}
+	virtual void OnConsume(APlayerController* PC);
 	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
+	virtual void InitializeRuntimeState() override;
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Consumable", meta = (ExcludeBaseStruct))
