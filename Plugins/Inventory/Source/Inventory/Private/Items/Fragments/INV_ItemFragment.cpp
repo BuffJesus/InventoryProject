@@ -2,6 +2,18 @@
 
 
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "UI/Composite/INV_Composite_Base.h"
+
+void FINV_InventoryItemFragment::Assimilate(UINV_Composite_Base* Composite) const
+{
+	if (!MatchesWidgetTag(Composite)) return;
+	Composite->Expand();
+}
+
+bool FINV_InventoryItemFragment::MatchesWidgetTag(const UINV_Composite_Base* Composite) const
+{
+	return Composite->GetFragmentTag().MatchesTagExact(GetFragmentTag());
+}
 
 void FINV_HealthPotionFragment::OnConsume(APlayerController* PC)
 {

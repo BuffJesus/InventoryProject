@@ -4,6 +4,8 @@
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
+#include "Items/Fragments/INV_ItemFragment.h"
+#include "UI/Composite/INV_Composite_Base.h"
 
 UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter) const
 {
@@ -29,6 +31,18 @@ void FINV_ItemManifest::SpawnPickupActor(const UObject* WorldContextObject, cons
 	checkf(ItemComp, TEXT("Spawned actor does not have an item component"));
 	
 	ItemComp->InitItemManifest(*this);
+}
+
+void FINV_ItemManifest::AssimilateInventoryFragments(UINV_Composite_Base* Composite)
+{
+	const auto& Fragments { GetFragmentsOfType<FINV_InventoryItemFragment>() };
+	for (const auto* Fragment : Fragments)
+	{
+		Composite->ApplyFunction([Fragment](UINV_Composite_Base* Widget)
+		{
+			Fragment->Assimilate(Widget);
+		});
+	}
 }
 	
 	

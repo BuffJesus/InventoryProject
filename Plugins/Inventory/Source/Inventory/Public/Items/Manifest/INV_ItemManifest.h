@@ -9,6 +9,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "INV_ItemManifest.generated.h"
 
+class UINV_Composite_Base;
 struct FInv_ItemFragment;
 class UINV_InventoryItem;
 
@@ -34,8 +35,13 @@ struct INVENTORY_API FINV_ItemManifest
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	T* GetFragmentOfTypeMutable();
 	
+	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
+	TArray<const T*> GetFragmentsOfType() const;
+	
 	void SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
 		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	
+	void AssimilateInventoryFragments(UINV_Composite_Base* Composite);
 	
 private:
 	// Item fragments that describe behavior and UI.
@@ -93,5 +99,21 @@ T* FINV_ItemManifest::GetFragmentOfTypeMutable()
 	}
 	return nullptr;
 }
+
+template <typename T> requires std::derived_from<T, FInv_ItemFragment>
+TArray<const T*> FINV_ItemManifest::GetFragmentsOfType() const
+{
+	TArray<const T*> Results;
+	for (const TInstancedStruct<FInv_ItemFragment>& Fragment : Fragments)
+	{
+		if (const T* FragmentPtr { Fragment.GetPtr<T>() })
+		{
+			Results.Add(FragmentPtr);
+		}
+	}
+	return Results;
+}
+
+
 
 
