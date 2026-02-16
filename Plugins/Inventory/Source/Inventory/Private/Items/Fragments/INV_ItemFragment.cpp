@@ -2,8 +2,11 @@
 
 
 #include "Items/Fragments/INV_ItemFragment.h"
+
+#include "ContentBrowserItemData.h"
 #include "UI/Composite/INV_Composite_Base.h"
 #include "UI/Composite/INV_Leaf_Image.h"
+#include "UI/Composite/INV_Leaf_Text.h"
 
 void FINV_InventoryItemFragment::Assimilate(UINV_Composite_Base* Composite) const
 {
@@ -27,6 +30,17 @@ void FINV_ImageFragment::Assimilate(UINV_Composite_Base* Composite) const
 	Image->SetImage(Icon);
 	Image->SetBoxSize(IconDimensions);
 	Image->SetImageSize(IconDimensions);
+}
+
+void FINV_TextFragment::Assimilate(UINV_Composite_Base* Composite) const
+{
+	FINV_InventoryItemFragment::Assimilate(Composite);
+	if (!MatchesWidgetTag(Composite)) return;
+	
+	UINV_Leaf_Text* LeafText { Cast<UINV_Leaf_Text>(Composite) };
+	if (!IsValid(LeafText)) return;
+	
+	LeafText->SetText(FragmentText);
 }
 
 void FINV_HealthPotionFragment::OnConsume(APlayerController* PC)
