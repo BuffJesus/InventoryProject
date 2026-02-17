@@ -19,6 +19,8 @@
 #include "UI/Inventory/EventHandling/INV_GridEventHandler.h"
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 #include "UI/Inventory/State/INV_GridStateManager.h"
+#include "UI/Inventory/Popup/INV_GridPopupManager.h"
+#include "UI/Inventory/Stack/INV_GridStackOperations.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -130,30 +132,12 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 
 void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 {
-	if (!IsValid(ItemPopUp)) return;
-
-	const APlayerController* OwningPlayerController = GetOwningPlayer();
-	if (!IsValid(OwningPlayerController)) return;
-
-	const bool bClickedThisFrame =
-		OwningPlayerController->WasInputKeyJustPressed(EKeys::LeftMouseButton) ||
-		OwningPlayerController->WasInputKeyJustPressed(EKeys::RightMouseButton) ||
-		OwningPlayerController->WasInputKeyJustPressed(EKeys::MiddleMouseButton);
-
-	if (!bClickedThisFrame) return;
-
-	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
-	if (ItemPopUp->GetCachedGeometry().IsUnderLocation(CursorPosition)) return;
-
-	ItemPopUp->RemoveFromParent();
-	ItemPopUp = nullptr;
+	UINV_GridPopupManager::ClosePopupIfClickedOutside(ItemPopUp, GetOwningPlayer());
 }
 
 void UINV_InventoryGrid::CloseActiveItemPopup()
 {
-	if (!IsValid(ItemPopUp)) return;
-	ItemPopUp->RemoveFromParent();
-	ItemPopUp = nullptr;
+	UINV_GridPopupManager::CloseActiveItemPopup(ItemPopUp);
 }
 
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
@@ -610,26 +594,26 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 
 void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
 {
-	UINV_GridSlot* GridSlot { GridSlots[Index] };
-	GridSlot->SetStackCount(HoveredStackCount);
-	
-	UINV_SlottedItem* ClickedSlottedItem { SlottedItems.FindChecked(Index) };
-	ClickedSlottedItem->UpdateStackCount(HoveredStackCount);
-	
-	HoverItem->UpdateStackCount(ClickedStackCount);
+	UINV_GridStackOperations::SwapStackCounts(
+		GridSlots[Index],
+		SlottedItems.FindChecked(Index),
+		HoverItem,
+		ClickedStackCount,
+		HoveredStackCount);
 }
 
 void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount,
 	const int32 Index)
 {
-	const int32 AmountToTransfer = HoveredStackCount;
-	const int32 NewClickedStackCount = ClickedStackCount + AmountToTransfer;
-	
-	GridSlots[Index]->SetStackCount(NewClickedStackCount);
-	SlottedItems.FindChecked(Index)->UpdateStackCount(NewClickedStackCount);
+	UINV_GridStackOperations::ConsumeHoverItemStacks(
+		GridSlots[Index],
+		SlottedItems.FindChecked(Index),
+		ClickedStackCount,
+		HoveredStackCount);
+
 	ClearHoverItem();
 	ShowCursor();
-	
+
 	const FINV_GridFragment* GridFragment { GridSlots[Index]->GetInventoryItem()->GetItemManifest().GetFragmentOfType<FINV_GridFragment>() };
 	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 	HighlightSlots(Index, Dimensions);
@@ -637,15 +621,12 @@ void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, c
 
 void UINV_InventoryGrid::FillInStack(const int32 FillAmount, const int32 Remainder, const int32 Index)
 {
-	UINV_GridSlot* GridSlot { GridSlots[Index] };
-	const int32 NewStackCount = GridSlot->GetStackCount() + FillAmount;
-	
-	GridSlot->SetStackCount(NewStackCount);
-	
-	UINV_SlottedItem* ClickedSlottedItem { SlottedItems.FindChecked(Index) };
-	ClickedSlottedItem->UpdateStackCount(NewStackCount);
-	
-	HoverItem->UpdateStackCount(Remainder);
+	UINV_GridStackOperations::FillInStack(
+		GridSlots[Index],
+		SlottedItems.FindChecked(Index),
+		HoverItem,
+		FillAmount,
+		Remainder);
 }
 
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
@@ -906,13 +887,10 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 
 FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem)
 {
-	const int32 ClickedStackCount { GridSlots[GridIndex]->GetStackCount() };
-	const FINV_StackableFragment* StackableFragment { ClickedInventoryItem->GetItemManifest().GetFragmentOfType<FINV_StackableFragment>() };
-	const int32 MaxStackSize { StackableFragment->GetMaxStackSize() };
-	const int32 RoomInClickedSlot { MaxStackSize - ClickedStackCount };
-	const int32 HoveredStackCount { HoverItem->GetStackCount() };
-
-	return FINV_StackDetails { ClickedStackCount, RoomInClickedSlot, HoveredStackCount, MaxStackSize };
+	return UINV_GridStackOperations::CalculateStackDetails(
+		GridSlots[GridIndex],
+		HoverItem,
+		ClickedInventoryItem);
 }
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
@@ -1007,53 +985,21 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 {
-	if (!GridSlots.IsValidIndex(GridIndex)) return;
-	UINV_InventoryItem* RightClickedItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
-	if (!IsValid(RightClickedItem)) return;
-	if (IsValid(GridSlots[GridIndex]->GetItemPopUp())) return;
-	if (!ItemPopUpClass) return;
-	if (!OwningCanvasPanel.IsValid()) return;
-	
-	ItemPopUp = CreateWidget<UINV_ItemPopUp>(this, ItemPopUpClass);
-	GridSlots[GridIndex]->SetItemPopUp(ItemPopUp);
+	ItemPopUp = UINV_GridPopupManager::CreateItemPopup(
+		GridSlots,
+		GridIndex,
+		ItemPopUpClass,
+		OwningCanvasPanel.Get(),
+		this,
+		GetOwningPlayer());
+
 	if (!IsValid(ItemPopUp)) return;
-	
-	OwningCanvasPanel->AddChild(ItemPopUp);
-	UCanvasPanelSlot* CanvasSlot { UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp) };
-	if (!IsValid(CanvasSlot)) return;
 
-	const FVector2D PopUpSize = ItemPopUp->GetBoxSize();
-	CanvasSlot->SetSize(PopUpSize);
-
-	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
-	const FVector2D ClampedPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
-		UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel.Get()),
-		PopUpSize,
-		MousePos);
-	CanvasSlot->SetPosition(ClampedPosition);
-	
-	const int32 SliderMax = GridSlots[GridIndex]->GetStackCount() - 1;
-	if (RightClickedItem->IsStackable() && SliderMax > 0)
-	{
-		ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
-		ItemPopUp->SetSliderParams(SliderMax, FMath::Max(1, GridSlots[GridIndex]->GetStackCount() / 2));
-	}
-	else
-	{
-		ItemPopUp->CollapseSplitButton();
-	}
-	
+	// Bind callbacks using dynamic delegates
+	ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
 	ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
 	ItemPopUp->OnInspect.BindDynamic(this, &ThisClass::OnPopUpMenuInspect);
-	
-	if (RightClickedItem->IsConsumable())
-	{
-		ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
-	}
-	else
-	{
-		ItemPopUp->CollapseConsumeButton();
-	}
+	ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
@@ -1087,14 +1033,7 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 
 bool UINV_InventoryGrid::IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const
 {
-	if (!IsValid(HoverItem) || !IsValid(ClickedInventoryItem))
-	{
-		return false;
-	}
-
-	const bool bIsSameItem = ClickedInventoryItem == HoverItem->GetInventoryItem();
-	const bool bIsStackable = HoverItem->IsStackable();
-	return bIsSameItem && bIsStackable;
+	return UINV_GridStackOperations::IsSameStackable(HoverItem, ClickedInventoryItem);
 }
 
 bool UINV_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount,
