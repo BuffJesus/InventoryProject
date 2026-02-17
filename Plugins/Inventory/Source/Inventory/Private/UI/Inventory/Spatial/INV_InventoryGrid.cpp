@@ -24,6 +24,7 @@
 #include "UI/Inventory/Hover/INV_HoverItemManager.h"
 #include "UI/Inventory/Coordinate/INV_GridCoordinateCalculator.h"
 #include "UI/Inventory/Click/INV_GridClickActionResolver.h"
+#include "UI/Inventory/Items/INV_GridItemOperations.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -311,27 +312,7 @@ void UINV_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FINV_Gr
 void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount)
 {
 	checkf(GridSlots.IsValidIndex(Index), TEXT("Index out of bounds!"));
-	
-	if (bStackableItem)
-	{
-		// Store stack count on the upper-left slot.
-		GridSlots[Index]->SetStackCount(StackAmount);
-	}
-	
-	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(NewItem, FragmentTags::GridFragment) };
-	if (!GridFragment) return;
-	
-	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
-	
-	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
-		[&](UINV_GridSlot* GridSlot)
-	{
-		// Mark all slots as occupied by this item.
-		GridSlot->SetInventoryItem(NewItem);	
-		GridSlot->SetUpperLeftIndex(Index);	
-		GridSlot->SetOccupiedTexture();
-		GridSlot->SetAvailability(false);	
-	});
+	UINV_GridItemOperations::UpdateGridSlots(GridSlots, NewItem, Index, bStackableItem, StackAmount, GridSize.X);
 }
 
 void UINV_InventoryGrid::ConstructGrid()
@@ -749,47 +730,20 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, cons
 
 void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex)
 {
-	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(InventoryItem, FragmentTags::GridFragment) };
-	if (!GridFragment) return;
-	
-	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, GridFragment->GetGridSize(), GridSize.X, [&](UINV_GridSlot* GridSlot)
-	{
-		// Clear slot state.
-		GridSlot->SetInventoryItem(nullptr);	
-		GridSlot->SetUpperLeftIndex(INDEX_NONE);	
-		GridSlot->SetUnoccupiedTexture();	
-		GridSlot->SetAvailability(true);
-		GridSlot->SetStackCount(0);	
-	});
-	
-	if (SlottedItems.Contains(GridIndex))
-	{
-		TObjectPtr<UINV_SlottedItem> FoundSlottedItem;
-		SlottedItems.RemoveAndCopyValue(GridIndex, FoundSlottedItem);
-		FoundSlottedItem->RemoveFromParent();
-	}
+	UINV_GridItemOperations::RemoveItemFromGrid(GridSlots, SlottedItems, InventoryItem, GridIndex, GridSize.X);
 }
 
 void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 {
 	if (!MatchesCategory(Result.Item.Get())) return;
-	
-	// Apply stack changes to existing slots.
+
+	// Apply stack changes using utility
+	UINV_GridItemOperations::ApplyStackUpdates(GridSlots, SlottedItems, Result);
+
+	// Add new items at indices that didn't have items
 	for (const auto& Availability : Result.SlotAvailabilities)
 	{
-		if (Availability.bItemAtIndex)
-		{
-			if (!GridSlots.IsValidIndex(Availability.Index)) continue;
-			TObjectPtr<UINV_SlottedItem>* SlottedItemPtr = SlottedItems.Find(Availability.Index);
-			if (!SlottedItemPtr) continue;
-			UINV_SlottedItem* SlottedItem = SlottedItemPtr->Get();
-			if (!IsValid(SlottedItem)) continue;
-			
-			const auto& GridSlot { GridSlots[Availability.Index] };
-			SlottedItem->UpdateStackCount(GridSlot->GetStackCount() + Availability.AmountToFill);
-			GridSlot->SetStackCount(GridSlot->GetStackCount() + Availability.AmountToFill);
-		}
-		else
+		if (!Availability.bItemAtIndex)
 		{
 			AddItemAtIndex(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
 			UpdateGridSlots(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
