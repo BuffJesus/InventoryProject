@@ -121,6 +121,7 @@ public:
 		bool bStackable,
 		int32 MaxStackSize,
 		int32 AmountToFill,
+		const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 		const UINV_GridSlot* GridSlot);
 
 	/**

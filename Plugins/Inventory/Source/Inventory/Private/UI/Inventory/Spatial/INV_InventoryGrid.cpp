@@ -318,26 +318,8 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 {
 	for (const auto& Availability : Result.SlotAvailabilities)
 	{
-		if (Availability.bItemAtIndex)
-		{
-			// Adding to existing stack - update the existing slotted item
-			if (!GridSlots.IsValidIndex(Availability.Index)) continue;
-			TObjectPtr<UINV_SlottedItem>* SlottedItemPtr = SlottedItems.Find(Availability.Index);
-			if (!SlottedItemPtr) continue;
-			UINV_SlottedItem* SlottedItem = SlottedItemPtr->Get();
-			if (!IsValid(SlottedItem)) continue;
-
-			const auto& GridSlot { GridSlots[Availability.Index] };
-			const int32 NewStackCount = GridSlot->GetStackCount() + Availability.AmountToFill;
-			SlottedItem->UpdateStackCount(NewStackCount);
-			GridSlot->SetStackCount(NewStackCount);
-		}
-		else
-		{
-			// Creating new slotted item at empty location
-			AddItemAtIndex(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
-			UpdateGridSlots(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
-		}
+		AddItemAtIndex(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
+		UpdateGridSlots(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
 	}
 }
 

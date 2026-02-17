@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Inventory.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
@@ -330,7 +331,7 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 {
 	if (!IsValid(ItemComponent)) return;
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
-	
+
 	// Update existing stack count and handle remainder.
 	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
 	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(
@@ -338,9 +339,13 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 		ItemComponent->IsItemRarityEnabled(),
 		ItemComponent->GetItemRarityTag()) };
 	if (!IsValid(Item)) return;
-	
-	Item->SetTotalStackCount(Item->GetTotalStackCount() + StackCount);
-	
+
+	const int32 OldStackCount = Item->GetTotalStackCount();
+	Item->SetTotalStackCount(OldStackCount + StackCount);
+
+	// Mark the fast array as dirty so replication knows it changed
+	InventoryFastArray.MarkArrayDirty();
+
 	if (Remainder == 0) ItemComponent->PickedUp();
 	else if (FINV_StackableFragment* StackableFragment = ItemComponent->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_StackableFragment>())
 	{

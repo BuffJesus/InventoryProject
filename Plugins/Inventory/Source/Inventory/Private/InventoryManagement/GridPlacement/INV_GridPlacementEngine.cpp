@@ -40,17 +40,25 @@ FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 			if (!IsValid(ExistingItem)) continue;
 			if (!IsStackCompatible(ExistingItem, Manifest.GetItemType(), bUseItemRarity, ItemRarityTag)) continue;
 
-			const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
+			// Get the upper-left index to avoid checking the same stack multiple times
+			const int32 UpperLeftIndex = GridSlot->GetUpperLeftIndex();
+			if (CheckedIndices.Contains(UpperLeftIndex))
+			{
+				// Already checked this stack
+				continue;
+			}
+
+			const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlots, GridSlot);
 			if (AmountToFillInSlot <= 0) continue;
 
-			CheckedIndices.Add(GridIndex);
+			CheckedIndices.Add(UpperLeftIndex);
 
 			Result.TotalRoomToFill += AmountToFillInSlot;
 			Result.SlotAvailabilities.Emplace(
 				FINV_SlotAvailability{
-					HasValidItem(GridSlot) ? GridSlot->GetUpperLeftIndex() : GridSlot->GetTileIndex(),
+					UpperLeftIndex,
 					Result.bStackable ? AmountToFillInSlot : 0,
-					HasValidItem(GridSlot)
+					true
 				}
 			);
 
@@ -83,7 +91,7 @@ FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 		}
 
 	    // how much to fill?
-		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
+		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlots, GridSlot);
 		if (AmountToFillInSlot == 0) continue;
 
 		CheckedIndices.Append(TentativelyClaimed);
@@ -216,10 +224,14 @@ int32 FINV_GridPlacementEngine::DetermineFillAmountForSlot(
 	const bool bStackable,
 	const int32 MaxStackSize,
 	const int32 AmountToFill,
+	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const UINV_GridSlot* GridSlot)
 {
+	// Get the actual stack count (handles multi-tile items by checking upper-left slot)
+	const int32 CurrentStackCount = GetStackAmount(GridSlots, GridSlot);
+
 	// calculate room in the slot
-	const int32 RoomInSlot = MaxStackSize - GridSlot->GetStackCount();
+	const int32 RoomInSlot = MaxStackSize - CurrentStackCount;
 
 	// if stackable, need min between amount to fill and room in slot
 	return bStackable ? FMath::Min(AmountToFill, RoomInSlot) : 1;
