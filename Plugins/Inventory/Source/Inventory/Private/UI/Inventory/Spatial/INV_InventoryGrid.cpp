@@ -21,6 +21,9 @@
 #include "UI/Inventory/State/INV_GridStateManager.h"
 #include "UI/Inventory/Popup/INV_GridPopupManager.h"
 #include "UI/Inventory/Stack/INV_GridStackOperations.h"
+#include "UI/Inventory/Hover/INV_HoverItemManager.h"
+#include "UI/Inventory/Coordinate/INV_GridCoordinateCalculator.h"
+#include "UI/Inventory/Click/INV_GridClickActionResolver.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -90,29 +93,12 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 
 FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
-	return FIntPoint{
-		static_cast<int32>(FMath::FloorToInt((MousePos.X - CanvasPos.X) / TileSize)),
-		static_cast<int32>(FMath::FloorToInt((MousePos.Y - CanvasPos.Y) / TileSize))
-	};
+	return UINV_GridCoordinateCalculator::CalculateHoverCoordinates(CanvasPos, MousePos, TileSize);
 }
 
 EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
-	// Calculate relative pos within current tile
-	const float TileLocalX = FMath::Fmod(MousePos.X - CanvasPos.X, TileSize);
-	const float TileLocalY = FMath::Fmod(MousePos.Y - CanvasPos.Y, TileSize);
-	
-	// Determine quadrant mouse is in
-	const bool bIsTop = TileLocalY < TileSize / 2.f; // Top if Y is in the upper half
-	const bool bIsLeft = TileLocalX < TileSize / 2.f; // Left if X is in the left half
-	
-	EINV_TileQuadrant HoveredTileQuadrant { EINV_TileQuadrant::None };
-	if (bIsTop && bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::TopLeft;
-	else if (bIsTop && !bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::TopRight;
-	else if (!bIsTop && bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::BottomLeft;
-	else if (!bIsTop && !bIsLeft) HoveredTileQuadrant = EINV_TileQuadrant::BottomRight;
-	
-	return HoveredTileQuadrant;
+	return UINV_GridCoordinateCalculator::CalculateTileQuadrant(CanvasPos, MousePos, TileSize);
 }
 
 void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos)
@@ -389,87 +375,39 @@ void UINV_InventoryGrid::ConstructGrid()
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	CloseActiveItemPopup();
-	
-	// If we have a hover item, try to place it.
+
+	// If we have a hover item, try to place it
 	if (!IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
-	
-	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
-	{
-		OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
-		return;
-	}
 
-	// If the hovered footprint blocks exactly one item, allow swap even when the clicked tile is empty.
-	if (CurrentQueryResult.BlockingUpperLeftIndices.Num() == 1)
-	{
-		const int32 BlockingUpperLeftIndex = CurrentQueryResult.BlockingUpperLeftIndices[0];
-		if (GridSlots.IsValidIndex(BlockingUpperLeftIndex) &&
-			GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().IsValid())
-		{
-			OnSlottedItemClicked(BlockingUpperLeftIndex, MouseEvent);
-			return;
-		}
-	}
+	// Resolve what action to perform for empty slot click
+	const FINV_GridClickResult ActionResult = UINV_GridClickActionResolver::ResolveEmptySlotClick(
+		HoverItem,
+		CurrentQueryResult,
+		GridSlots,
+		GridIndex,
+		ItemDropIndex);
 
-	// Multi-blocker case: if clicked tile is empty, choose a best-fit anchor from overlapped blockers.
-	if (!GridSlots[GridIndex]->GetInventoryItem().IsValid() && CurrentQueryResult.BlockingUpperLeftIndices.Num() > 1)
+	// Execute the resolved action
+	switch (ActionResult.Action)
 	{
-		int32 BestAnchorIndex = INDEX_NONE;
-		int32 BestScore = TNumericLimits<int32>::Lowest();
-		
-		const UINV_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
-		const FGameplayTag HoverItemType = IsValid(HoverInventoryItem)
-			? HoverInventoryItem->GetItemManifest().GetItemType()
-			: FGameplayTag();
-		
-		for (const int32 BlockingUpperLeftIndex : CurrentQueryResult.BlockingUpperLeftIndices)
+	case EINV_ClickAction::SwapItems:
+		// Route to slotted item handler for the target item
+		if (GridSlots.IsValidIndex(ActionResult.TargetIndex))
 		{
-			if (!GridSlots.IsValidIndex(BlockingUpperLeftIndex)) continue;
-			
-			const UINV_InventoryItem* BlockingItem = GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().Get();
-			if (!IsValid(BlockingItem)) continue;
-			
-			const FINV_GridFragment* BlockingGridFragment { GetFragment<FINV_GridFragment>(BlockingItem, FragmentTags::GridFragment) };
-			const FIntPoint BlockingDimensions = BlockingGridFragment ? BlockingGridFragment->GetGridSize() : FIntPoint(1, 1);
-			const int32 BlockingArea = BlockingDimensions.X * BlockingDimensions.Y;
-			
-			// Prefer larger anchors; bias toward same-type so "same item" swaps behave intuitively.
-			const bool bSameTypeAsHover = HoverItemType.IsValid() &&
-				BlockingItem->GetItemManifest().GetItemType().MatchesTagExact(HoverItemType);
-			const int32 Score = BlockingArea + (bSameTypeAsHover ? 1000 : 0);
-			
-			if (Score > BestScore)
-			{
-				BestScore = Score;
-				BestAnchorIndex = BlockingUpperLeftIndex;
-			}
+			OnSlottedItemClicked(ActionResult.TargetIndex, MouseEvent);
 		}
-		
-		if (GridSlots.IsValidIndex(BestAnchorIndex) &&
-			GridSlots[BestAnchorIndex]->GetInventoryItem().IsValid())
-		{
-			OnSlottedItemClicked(BestAnchorIndex, MouseEvent);
-			return;
-		}
-	}
+		break;
 
-	// Multi-item overlap case: if clicked tile belongs to an item, route through slotted-item swap logic.
-	if (GridSlots[GridIndex]->GetInventoryItem().IsValid())
-	{
-		const int32 UpperLeftIndex = GridSlots[GridIndex]->GetUpperLeftIndex();
-		if (GridSlots.IsValidIndex(UpperLeftIndex))
-		{
-			OnSlottedItemClicked(UpperLeftIndex, MouseEvent);
-		}
-		return;
-	}
+	case EINV_ClickAction::PlaceItem:
+		PutDownOnIndex(ActionResult.TargetIndex);
+		break;
 
-	// Only place directly when the whole hovered footprint is actually free.
-	if (CurrentQueryResult.bHasSpace)
-	{
-		PutDownOnIndex(ItemDropIndex);
+	case EINV_ClickAction::None:
+	default:
+		// No action
+		break;
 	}
 }
 
@@ -483,13 +421,7 @@ void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 
 void UINV_InventoryGrid::ClearHoverItem()
 {
-	if (!IsValid(HoverItem)) return;
-	
-	// Remove hover widget from the viewport.
-	HoverItem->Clear();
-	HoverItem->RemoveFromParent();
-	HoverItem = nullptr;
-	
+	UINV_HoverItemManager::ClearHoverItem(HoverItem);
 	ShowCursor();
 }
 
@@ -510,8 +442,7 @@ void UINV_InventoryGrid::SetOwningCanvas(UCanvasPanel* OwningCanvas)
 
 void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
 {
-	if (!IsValid(GetOwningPlayer())) return;
-	GetOwningPlayer()->SetMouseCursorWidget(EMouseCursor::Default, CursorWidget);
+	UINV_HoverItemManager::SetCursorWidget(GetOwningPlayer(), CursorWidget);
 }
 
 /**
@@ -632,12 +563,7 @@ void UINV_InventoryGrid::FillInStack(const int32 FillAmount, const int32 Remaind
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
                                                  const TSubclassOf<UUserWidget>& WidgetClass)
 {
-	if (!IsValid(GetOwningPlayer()) || WidgetClass == nullptr) return nullptr;
-	if (!IsValid(CachedWidget))
-	{
-		CachedWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), WidgetClass);
-	}
-	return CachedWidget;
+	return UINV_HoverItemManager::GetOrCreateCursorWidget(CachedWidget, WidgetClass, GetOwningPlayer());
 }
 
 UUserWidget* UINV_InventoryGrid::GetVisibleCursorWidget()
@@ -799,40 +725,26 @@ void UINV_InventoryGrid::DropItem()
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 {
-	// Create and configure the hover widget.
-	if (!IsValid(HoverItem))
-	{
-		HoverItem = CreateWidget<UINV_HoverItem>(GetOwningPlayer(), HoverItemClass);
-	}
-	
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(InventoryItem, FragmentTags::GridFragment) };
 	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(InventoryItem, FragmentTags::IconFragment) };
 	if (!GridFragment || !ImageFragment) return;
 
-	const FVector2D DrawSize { GetDrawSize(GridFragment) };
-	
-	FSlateBrush IconBrush;
-	IconBrush.SetResourceObject(ImageFragment->GetIcon());
-	IconBrush.DrawAs = ESlateBrushDrawType::Image;
-	IconBrush.ImageSize = DrawSize * UWidgetLayoutLibrary::GetViewportScale(this);
-	
-	HoverItem->SetImageBrush(IconBrush);
-	HoverItem->SetGridDimensions(GridFragment->GetGridSize());
-	HoverItem->SetInventoryItem(InventoryItem);
-	HoverItem->SetIsStackable(InventoryItem->IsStackable());
-	
-	HoverItem->SetDesiredSizeInViewport(IconBrush.ImageSize);
-	HoverItem->SetCachedSize(IconBrush.ImageSize);
-	HoverItem->AddToViewport();
+	HoverItem = UINV_HoverItemManager::AssignHoverItem(
+		HoverItem,
+		HoverItemClass,
+		InventoryItem,
+		GridFragment,
+		ImageFragment,
+		TileSize,
+		GetOwningPlayer(),
+		this);
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex,
 	const int32 PreviousGridIndex)
 {
 	AssignHoverItem(InventoryItem);
-	
-	HoverItem->SetPreviousGridIndex(PreviousGridIndex);
-	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? GridSlots[GridIndex]->GetStackCount() : 0);
+	UINV_HoverItemManager::ConfigureHoverItemProperties(HoverItem, GridSlots[GridIndex], InventoryItem, PreviousGridIndex);
 }
 
 void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex)
@@ -896,91 +808,60 @@ FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UIN
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
-	
 	CloseActiveItemPopup();
-	
+
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
-	UINV_InventoryItem* ClickedInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
+	UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
 
 	if (!IsValid(ClickedInventoryItem))
 	{
 		return;
 	}
-	
-	if (!IsValid(HoverItem) && IsLeftClick(MouseEvent))
+
+	// Get stack details for potential stack operations
+	const FINV_StackDetails StackDetails = CalculateStackDetails(GridIndex, ClickedInventoryItem);
+
+	// Resolve what action to perform
+	const FINV_GridClickResult ActionResult = UINV_GridClickActionResolver::ResolveSlottedItemClick(
+		HoverItem,
+		ClickedInventoryItem,
+		MouseEvent,
+		GridIndex,
+		StackDetails,
+		ItemDropIndex);
+
+	// Execute the resolved action
+	switch (ActionResult.Action)
 	{
+	case EINV_ClickAction::Pickup:
 		Pickup(ClickedInventoryItem, GridIndex);
-		return;
-	}
-	
-	if (IsRightClick(MouseEvent))
-	{
-		if (IsValid(HoverItem)) return;
+		break;
+
+	case EINV_ClickAction::CreatePopup:
 		CreateItemPopup(GridIndex);
-		return;
+		break;
+
+	case EINV_ClickAction::SwapStackCounts:
+		SwapStackCounts(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
+		break;
+
+	case EINV_ClickAction::ConsumeHoverStacks:
+		ConsumeHoverItemStacks(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
+		break;
+
+	case EINV_ClickAction::FillStack:
+		FillInStack(ActionResult.AuxiliaryValue, StackDetails.HoveredStackCount - ActionResult.AuxiliaryValue, GridIndex);
+		break;
+
+	case EINV_ClickAction::SwapItems:
+		SwapWithHoverItem(ClickedInventoryItem, GridIndex);
+		break;
+
+	case EINV_ClickAction::None:
+	default:
+		// No action
+		break;
 	}
-
-	// Do the hovered and clicked item share type, are they stackable?
-	if (IsSameStackable(ClickedInventoryItem))
-	{
-		const FINV_StackDetails StackDetails = CalculateStackDetails(GridIndex, ClickedInventoryItem);
-
-		// Should we swap stack counts? (Room in clicked slot == 0 && HoveredStackCount < MaxStackSize)
-		if (ShouldSwapStackCounts(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount, StackDetails.MaxStackSize))
-		{
-			SwapStackCounts(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
-			return;
-		}
-		
-		// Should we consume hover item's stacks? (Room in clicked slot >= HoveredStackCount)
-		if (ShouldConsumeHoverItemStacks(StackDetails.HoveredStackCount, StackDetails.RoomInClickedSlot))
-		{
-			ConsumeHoverItemStacks(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
-			return;
-		}
-		
-		// Should we fill in the stacks of the clicked item? (and not consume hover item)
-		if (ShouldFillInStack(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount))
-		{
-			FillInStack(StackDetails.RoomInClickedSlot, StackDetails.HoveredStackCount - StackDetails.RoomInClickedSlot, GridIndex);
-			return;
-		}
-		
-		// Clicked slot already full, do nothing (maybe play sound?)
-		if (StackDetails.RoomInClickedSlot == 0)
-		{
-			// If this is the exact same slot the hover came from, keep existing no-op behavior.
-			if (HoverItem->GetPreviousGridIndex() == GridIndex)
-			{
-				return;
-			}
-			
-			// No stack operation possible; fall back to regular swap/displacement behavior.
-			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
-			return;
-		}
-		
-		return;
-	}
-
-	// For spatial placement (especially partial-overlap cases), prefer swap/displacement over stack logic.
-	if (IsValid(HoverItem))
-	{
-		const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-		const FINV_GridFragment* ClickedGridFragment { GetFragment<FINV_GridFragment>(ClickedInventoryItem, FragmentTags::GridFragment) };
-		const FIntPoint ClickedDimensions = ClickedGridFragment ? ClickedGridFragment->GetGridSize() : FIntPoint(1, 1);
-		const bool bDirectSameSlotDrop = GridSlots.IsValidIndex(ItemDropIndex) && ItemDropIndex == GridIndex;
-		const bool bIsSingleTileInteraction = HoverDimensions == FIntPoint(1, 1) && ClickedDimensions == FIntPoint(1, 1);
-		
-		if (!bDirectSameSlotDrop || !bIsSingleTileInteraction)
-		{
-			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
-			return;
-		}
-	}
-
-	// Swap with hover item
-	SwapWithHoverItem(ClickedInventoryItem, GridIndex);
 }
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
@@ -1021,7 +902,7 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	const FVector2D& Loc)
 {
 	bLastMouseWithinCanvas = bMouseWithinCanvas;
-	bMouseWithinCanvas = UINV_WidgetUtils::IsWithinBounds(BoundaryPos, BoundarySize, Loc);
+	bMouseWithinCanvas = !UINV_GridCoordinateCalculator::IsOutsideBounds(BoundaryPos, BoundarySize, Loc);
 	if (!bMouseWithinCanvas && bLastMouseWithinCanvas)
 	{
 		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
