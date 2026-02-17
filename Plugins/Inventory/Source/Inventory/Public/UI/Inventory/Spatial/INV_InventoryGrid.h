@@ -7,6 +7,7 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Types/INV_GridTypes.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
+#include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 
 class UINV_ItemPopUp;
 enum class EINV_GridSlotState : uint8;
@@ -59,10 +60,7 @@ private:
 	// Apply UI updates for item placement.
 	void AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem);
 	FVector2D GetDrawSize(const FINV_GridFragment* GridFragment) const;
-	
-	void SetSlottedItemImageBrush(const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment,
-								  const UINV_SlottedItem* SlottedItem) const;
-	
+
 	UINV_SlottedItem* CreateSlottedItem(UINV_InventoryItem* Item, 
 										const bool bStackable, 
 										int32 StackAmount, 
@@ -114,6 +112,9 @@ private:
 	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
 	
 	
+	// Helper to create factory config with current grid settings
+	FINV_GridWidgetFactoryConfig CreateFactoryConfig() const;
+
 	void ConstructGrid();
 	void Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);

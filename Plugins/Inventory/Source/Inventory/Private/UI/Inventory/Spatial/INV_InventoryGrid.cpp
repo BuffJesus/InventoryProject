@@ -25,6 +25,7 @@
 #include "UI/Inventory/Coordinate/INV_GridCoordinateCalculator.h"
 #include "UI/Inventory/Click/INV_GridClickActionResolver.h"
 #include "UI/Inventory/Items/INV_GridItemOperations.h"
+#include "UI/Inventory/Actions/INV_GridPopupActions.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -250,19 +251,19 @@ FVector2D UINV_InventoryGrid::GetDrawSize(const FINV_GridFragment* GridFragment)
 	return UINV_GridWidgetFactory::CalculateDrawSize(GridFragment, TileSize);
 }
 
-void UINV_InventoryGrid::SetSlottedItemImageBrush(const FINV_GridFragment* GridFragment,
-	const FINV_ImageFragment* ImageFragment, const UINV_SlottedItem* SlottedItem) const
-{
-	// Deprecated - functionality moved to factory
-}
-
-UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item, const bool bStackable, const int32 StackAmount,
-	const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment, const int32 Index)
+FINV_GridWidgetFactoryConfig UINV_InventoryGrid::CreateFactoryConfig() const
 {
 	FINV_GridWidgetFactoryConfig Config;
 	Config.TileSize = TileSize;
 	Config.GridWidth = GridSize.X;
 	Config.CanvasPanel = CanvasPanel;
+	return Config;
+}
+
+UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item, const bool bStackable, const int32 StackAmount,
+	const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment, const int32 Index)
+{
+	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
 
 	UINV_SlottedItem* SlottedItem = UINV_GridWidgetFactory::CreateSlottedItem(
 		Item, bStackable, StackAmount, GridFragment, ImageFragment, Index, Config, this, SlottedItemClass);
@@ -288,11 +289,7 @@ void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 In
 	UINV_SlottedItem* SlottedItem = CreateSlottedItem(Item, bStackable, StackAmount, GridFragment, ImageFragment, Index);
 	if (!IsValid(SlottedItem)) return;
 
-	FINV_GridWidgetFactoryConfig Config;
-	Config.TileSize = TileSize;
-	Config.GridWidth = GridSize.X;
-	Config.CanvasPanel = CanvasPanel;
-
+	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
 	UINV_GridWidgetFactory::AddSlottedItemToCanvas(SlottedItem, Index, GridFragment, Config);
 
 	SlottedItems.Add(Index, SlottedItem);
@@ -301,11 +298,7 @@ void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 In
 void UINV_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment,
 	UINV_SlottedItem* SlottedItem)
 {
-	FINV_GridWidgetFactoryConfig Config;
-	Config.TileSize = TileSize;
-	Config.GridWidth = GridSize.X;
-	Config.CanvasPanel = CanvasPanel;
-
+	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
 	UINV_GridWidgetFactory::AddSlottedItemToCanvas(SlottedItem, Index, GridFragment, Config);
 }
 
@@ -325,10 +318,7 @@ void UINV_InventoryGrid::ConstructGrid()
 	}
 
 	// Setup factory configuration
-	FINV_GridWidgetFactoryConfig Config;
-	Config.TileSize = TileSize;
-	Config.GridWidth = GridSize.X;
-	Config.CanvasPanel = CanvasPanel;
+	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
 
 	// Create grid slots and place them on the canvas using factory
 	GridSlots.Reserve(GridSize.X * GridSize.Y);
@@ -593,17 +583,24 @@ void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 	UINV_InventoryItem* RightClickedItem;
 	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 	if (!RightClickedItem->IsStackable()) return;
-	
-	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
-	UINV_GridSlot* UpperLeftGridSlot = GridSlots[UpperLeftIndex];
-	const int32 StackCount = UpperLeftGridSlot->GetStackCount();
-	const int32 NewStackCount = StackCount - SplitAmount;
-	
-	UpperLeftGridSlot->SetStackCount(NewStackCount);
-	SlottedItems.FindChecked(UpperLeftIndex)->UpdateStackCount(NewStackCount);
-	
-	AssignHoverItem(RightClickedItem, UpperLeftIndex, UpperLeftIndex);
-	HoverItem->UpdateStackCount(SplitAmount);
+
+	UINV_GridPopupActions::ExecuteSplit(
+		GridSlots,
+		SlottedItems,
+		RightClickedItem,
+		Index,
+		SplitAmount,
+		[this](UINV_InventoryItem* Item, int32 GridIndex, int32 PrevIndex)
+		{
+			AssignHoverItem(Item, GridIndex, PrevIndex);
+		},
+		[this](UINV_HoverItem*, int32 StackCount)
+		{
+			if (IsValid(HoverItem))
+			{
+				HoverItem->UpdateStackCount(StackCount);
+			}
+		});
 }
 
 void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
@@ -620,15 +617,14 @@ void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
 	UINV_InventoryItem* RightClickedItem;
 	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 
-	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
-	UINV_GridSlot* UpperLeftGridSlot = GridSlots[UpperLeftIndex];
-	const int32 NewStackCount = UpperLeftGridSlot->GetStackCount() - 1;
-	
-	UpperLeftGridSlot->SetStackCount(NewStackCount);
-	SlottedItems.FindChecked(UpperLeftIndex)->UpdateStackCount(NewStackCount);
-	
+	const int32 NewStackCount = UINV_GridPopupActions::ExecuteConsume(
+		GridSlots,
+		SlottedItems,
+		RightClickedItem,
+		Index);
+
 	InventoryComponent->Server_ConsumeItem(RightClickedItem);
-	
+
 	if (NewStackCount <= 0)
 	{
 		RemoveItemFromGrid(RightClickedItem, Index);
