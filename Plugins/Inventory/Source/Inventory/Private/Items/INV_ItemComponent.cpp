@@ -24,6 +24,12 @@ void UINV_ItemComponent::InitItemManifest(const FINV_ItemManifest& InManifest)
 	ItemManifest = InManifest;
 }
 
+void UINV_ItemComponent::SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag)
+{
+	bUseItemRarity = bEnabled;
+	ItemRarityTag = bUseItemRarity ? InItemRarityTag : FGameplayTag::EmptyTag;
+}
+
 void UINV_ItemComponent::PickedUp()
 {
 	// Notify BP and optionally destroy the actor.

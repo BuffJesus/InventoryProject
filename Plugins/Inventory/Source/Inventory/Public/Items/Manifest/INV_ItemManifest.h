@@ -12,6 +12,7 @@
 class UINV_Composite_Base;
 struct FInv_ItemFragment;
 class UINV_InventoryItem;
+class UINV_ItemComponent;
 
 // The item manifest contains all necessary data to create a new inventory item
 
@@ -47,7 +48,7 @@ struct INVENTORY_API FINV_ItemManifest
 	TArray<const T*> GetFragmentsOfType() const;
 	
 	// Spawn pickup actor and copy this manifest into its item component.
-	void SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
+	UINV_ItemComponent* SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
 		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn) const;
 	
 	// Apply all UI-facing fragments to a description/widget composite.

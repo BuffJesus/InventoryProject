@@ -42,6 +42,7 @@ void FINV_TextFragment::Assimilate(UINV_Composite_Base* Composite) const
 	if (!IsValid(LeafText)) return;
 	
 	LeafText->SetText(FragmentText);
+	LeafText->ApplyRarityColorFromItemRarity(Composite->GetItemRarityTag(), GetFragmentTag());
 }
 
 void FINV_LabeledNumberFragment::Assimilate(UINV_Composite_Base* Composite) const

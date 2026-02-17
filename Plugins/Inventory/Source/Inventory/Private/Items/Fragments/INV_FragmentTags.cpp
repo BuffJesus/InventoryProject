@@ -24,4 +24,13 @@ namespace FragmentTags
 		UE_DEFINE_GAMEPLAY_TAG(StatMod_2, "FragmentTags.StatMod.2")
 		UE_DEFINE_GAMEPLAY_TAG(StatMod_3, "FragmentTags.StatMod.3")
 	}
+	
+	namespace Rarity
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Rarity_Common, "FragmentTags.Rarity.Common")
+		UE_DEFINE_GAMEPLAY_TAG(Rarity_Uncommon, "FragmentTags.Rarity.Uncommon")
+		UE_DEFINE_GAMEPLAY_TAG(Rarity_Rare, "FragmentTags.Rarity.Rare")
+		UE_DEFINE_GAMEPLAY_TAG(Rarity_Epic, "FragmentTags.Rarity.Epic")
+		UE_DEFINE_GAMEPLAY_TAG(Rarity_Legendary, "FragmentTags.Rarity.Legendary")
+	}
 }

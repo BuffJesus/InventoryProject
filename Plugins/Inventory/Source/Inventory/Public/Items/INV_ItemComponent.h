@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "Manifest/INV_ItemManifest.h"
 #include "INV_ItemComponent.generated.h"
 
@@ -21,6 +22,12 @@ public:
 	FORCEINLINE const FINV_ItemManifest& GetItemManifest() const { return ItemManifest; }
 	// Mutable access for updating fragments (e.g. stack counts).
 	FORCEINLINE FINV_ItemManifest& GetItemManifestMutable() { return ItemManifest; }
+	// Whether rarity should be used for this item.
+	FORCEINLINE bool IsItemRarityEnabled() const { return bUseItemRarity; }
+	// Item rarity tag used for UI styling.
+	FORCEINLINE const FGameplayTag& GetItemRarityTag() const { return ItemRarityTag; }
+	// Runtime setter used when dropping items back into the world.
+	void SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag);
 	// Whether the actor should be destroyed on pickup.
 	FORCEINLINE bool GetDestroyOnPickup() const { return bIsDestroyedOnPickup; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -40,6 +47,14 @@ private:
 	// Message shown by the HUD when aimed at.
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
 	FString PickupMessage { TEXT("Null Message") };
+
+	// Enables per-item rarity styling support.
+	UPROPERTY(EditAnywhere, Category="INV|Inventory|Rarity")
+	bool bUseItemRarity { false };
+
+	// Rarity tag used when bUseItemRarity is enabled.
+	UPROPERTY(EditAnywhere, Category="INV|Inventory|Rarity", meta = (Categories = "FragmentTags.Rarity", EditCondition = "bUseItemRarity", EditConditionHides))
+	FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
 	
 	// If true, destroy the actor after pickup.
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")

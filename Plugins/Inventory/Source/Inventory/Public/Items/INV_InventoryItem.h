@@ -32,6 +32,12 @@ public:
 	// Total stack count across all slots.
 	FORCEINLINE int32 GetTotalStackCount() const { return TotalStackCount; }
 	FORCEINLINE void SetTotalStackCount(int32 Count) { TotalStackCount = Count; }
+	// Whether this item exposes rarity styling data.
+	FORCEINLINE bool IsItemRarityEnabled() const { return bUseItemRarity; }
+	// Item rarity tag used by UI.
+	FORCEINLINE const FGameplayTag& GetItemRarityTag() const { return ItemRarityTag; }
+	// Sets item rarity style data.
+	void SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag);
 	
 private:
 	// Instanced manifest (fragments + tags).
@@ -40,6 +46,12 @@ private:
 	
 	// Total stacks stored for this item.
 	UPROPERTY(Replicated) int32 TotalStackCount { 0 };
+
+	// Enables per-item rarity styling support.
+	UPROPERTY(Replicated) bool bUseItemRarity { false };
+
+	// Rarity tag used for UI styling.
+	UPROPERTY(Replicated) FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
 };
 
 template <typename FragmentType>

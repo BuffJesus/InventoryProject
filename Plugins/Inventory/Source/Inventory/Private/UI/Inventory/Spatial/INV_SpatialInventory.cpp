@@ -155,6 +155,11 @@ void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const 
 	if (!IsValid(DescriptionWidget)) return;
 
 	DescriptionWidget->Collapse();
+	const FGameplayTag ItemRarityTag = Item->IsItemRarityEnabled() ? Item->GetItemRarityTag() : FGameplayTag::EmptyTag;
+	DescriptionWidget->ApplyFunction([ItemRarityTag](auto* Widget)
+	{
+		Widget->SetItemRarityTag(ItemRarityTag);
+	});
 	Manifest.AssimilateInventoryFragments(DescriptionWidget);
 	
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);

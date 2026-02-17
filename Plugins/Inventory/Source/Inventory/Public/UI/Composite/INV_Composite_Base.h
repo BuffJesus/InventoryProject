@@ -18,6 +18,8 @@ class INVENTORY_API UINV_Composite_Base : public UUserWidget
 public:
 	FORCEINLINE FGameplayTag GetFragmentTag() const { return FragmentTag; }
 	FORCEINLINE void SetFragmentTag(FGameplayTag Tag) { FragmentTag = Tag; }
+	FORCEINLINE const FGameplayTag& GetItemRarityTag() const { return ItemRarityTag; }
+	FORCEINLINE void SetItemRarityTag(const FGameplayTag& Tag) { ItemRarityTag = Tag; }
 	virtual void Collapse();
 	void Expand();
 	
@@ -27,5 +29,8 @@ public:
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Composite", meta = (Categories = "FragmentTags"))
 	FGameplayTag FragmentTag;
+
+	UPROPERTY(Transient)
+	FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
 	
 };

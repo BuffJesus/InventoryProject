@@ -23,10 +23,17 @@
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
-	return HasRoomForItem(ItemComponent->GetItemManifest());
+	if (!IsValid(ItemComponent)) return FINV_SlotAvailabilityResult {};
+	return HasRoomForItem(ItemComponent->GetItemManifest(), ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
 }
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest)
+{
+	return HasRoomForItem(Manifest, false, FGameplayTag::EmptyTag);
+}
+
+FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest, const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag)
 {
 	// Walk the grid and compute how much space we can fill.
 	FINV_SlotAvailabilityResult Result;
@@ -51,7 +58,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 			
 			const UINV_InventoryItem* ExistingItem = SlottedItem->GetInventoryItem();
 			if (!IsValid(ExistingItem)) continue;
-			if (!ExistingItem->GetItemManifest().GetItemType().MatchesTagExact(Manifest.GetItemType())) continue;
+			if (!IsStackCompatible(ExistingItem, Manifest.GetItemType(), bUseItemRarity, ItemRarityTag)) continue;
 			
 			const int32 GridIndex = SlottedItemPair.Key;
 			if (!GridSlots.IsValidIndex(GridIndex)) continue;
@@ -93,7 +100,8 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 		
 	    // can item fit (i.e., out of bounds)?
 		TSet<int32> TentativelyClaimed;
-		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed, Manifest.GetItemType(), MaxStackSize))
+		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed, Manifest.GetItemType(),
+			bUseItemRarity, ItemRarityTag, MaxStackSize))
 		{
 			continue;
 		}
@@ -129,6 +137,8 @@ bool UINV_InventoryGrid::HasRoomAtIndex(const UINV_GridSlot* GridSlot,
 	const TSet<int32>& CheckedIndices, 
 	TSet<int32>& OutTentativelyClaimed,
 	const FGameplayTag& ItemType,
+	const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag,
 	const int32 MaxStackSize)
 {
 	// is there room at index (i.e., other items in the way)?
@@ -136,7 +146,8 @@ bool UINV_InventoryGrid::HasRoomAtIndex(const UINV_GridSlot* GridSlot,
 	UINV_InventoryStatics::ForEach2D(GridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X, 
 		[&](const UINV_GridSlot* SubGridSlot)
 		{
-			if (CheckSlotConstraints(GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed, ItemType, MaxStackSize))
+			if (CheckSlotConstraints(GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed, ItemType, bUseItemRarity,
+				ItemRarityTag, MaxStackSize))
 			{
 				OutTentativelyClaimed.Add(SubGridSlot->GetTileIndex());
 			}
@@ -160,6 +171,8 @@ bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
 	const TSet<int32>& CheckedIndices, 
 	TSet<int32> OutTentativelyClaimed, 
 	const FGameplayTag& ItemType, 
+	const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag,
 	const int32 MaxStackSize) const
 {
 	// index claimed?
@@ -176,7 +189,7 @@ bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
 	if (!SubItem->IsStackable()) return false;
 	
 	// is item same type as the item trying to add?
-	if (!DoesItemTypeMatch(SubItem, ItemType)) return false;
+	if (!IsStackCompatible(SubItem, ItemType, bUseItemRarity, ItemRarityTag)) return false;
 	
 	// if yes, is slot a max stack size already?
 	if (GridSlot->GetStackCount() >= MaxStackSize) return false;
@@ -199,9 +212,14 @@ bool UINV_InventoryGrid::IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UI
 	return SubGridSlot->GetUpperLeftIndex() == GridSlot->GetTileIndex();
 }
 
-bool UINV_InventoryGrid::DoesItemTypeMatch(const UINV_InventoryItem* SubItem, const FGameplayTag& ItemType) const
+bool UINV_InventoryGrid::IsStackCompatible(const UINV_InventoryItem* ExistingItem, const FGameplayTag& ItemType,
+	const bool bUseItemRarity, const FGameplayTag& ItemRarityTag) const
 {
-	return SubItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType);
+	if (!IsValid(ExistingItem)) return false;
+	if (!ExistingItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
+	if (ExistingItem->IsItemRarityEnabled() != bUseItemRarity) return false;
+	if (!bUseItemRarity) return true;
+	return ExistingItem->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
 }
 
 bool UINV_InventoryGrid::IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const
@@ -236,7 +254,8 @@ int32 UINV_InventoryGrid::GetStackAmount(const UINV_GridSlot* GridSlot) const
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_InventoryItem* Item)
 {
-	return HasRoomForItem(Item->GetItemManifest());
+	if (!IsValid(Item)) return FINV_SlotAvailabilityResult {};
+	return HasRoomForItem(Item->GetItemManifest(), Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
 }
 
 void UINV_InventoryGrid::NativeOnInitialized()

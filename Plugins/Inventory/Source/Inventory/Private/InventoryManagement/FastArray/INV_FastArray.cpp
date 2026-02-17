@@ -60,6 +60,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemCo
 	
 	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
 	NewEntry.Item = ItemComponent->GetItemManifestMutable().CreateItem(OwningActor);
+	NewEntry.Item->SetItemRarityOptions(ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
 	
 	IC->AddRepSubObj(NewEntry.Item);
 	MarkItemDirty(NewEntry);
@@ -95,11 +96,16 @@ void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 	}
 }
 
-UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType)
+UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag)
 {
-	auto* FoundItem { Entries.FindByPredicate([ItemType = ItemType](const FINV_InventoryEntry& Entry)
+	auto* FoundItem { Entries.FindByPredicate([ItemType = ItemType, bUseItemRarity, ItemRarityTag](const FINV_InventoryEntry& Entry)
 	{
-		return IsValid(Entry.Item) && Entry.Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType);
+		if (!IsValid(Entry.Item)) return false;
+		if (!Entry.Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
+		if (Entry.Item->IsItemRarityEnabled() != bUseItemRarity) return false;
+		if (!bUseItemRarity) return true;
+		return Entry.Item->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
 	}) };
 	return FoundItem ? FoundItem->Item : nullptr;
 }

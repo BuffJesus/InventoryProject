@@ -13,11 +13,19 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	// Replicate manifest data and stack count.
 	DOREPLIFETIME(ThisClass, ItemManifest);
 	DOREPLIFETIME(ThisClass, TotalStackCount);
+	DOREPLIFETIME(ThisClass, bUseItemRarity);
+	DOREPLIFETIME(ThisClass, ItemRarityTag);
 }
 
 void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 {
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
+}
+
+void UINV_InventoryItem::SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag)
+{
+	bUseItemRarity = bEnabled;
+	ItemRarityTag = bUseItemRarity ? InItemRarityTag : FGameplayTag::EmptyTag;
 }
 
 bool UINV_InventoryItem::IsStackable() const

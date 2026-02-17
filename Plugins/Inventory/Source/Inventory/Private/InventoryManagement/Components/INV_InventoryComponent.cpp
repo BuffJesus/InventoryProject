@@ -186,7 +186,10 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		StackableFragment->SetStackCount(StackCount);
 	}
 	
-	ItemManifest.SpawnPickupActor(this, SpawnLocation, SpawnRotation, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+	if (UINV_ItemComponent* SpawnedItemComponent = ItemManifest.SpawnPickupActor(this, SpawnLocation, SpawnRotation, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding))
+	{
+		SpawnedItemComponent->SetItemRarityOptions(Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
+	}
 }
 
 void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)
@@ -216,7 +219,10 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 	// Ask the UI for available space and stacking info.
 	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
 	
-	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType()) };
+	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(
+		ItemComponent->GetItemManifest().GetItemType(),
+		ItemComponent->IsItemRarityEnabled(),
+		ItemComponent->GetItemRarityTag()) };
 	Result.Item = FoundItem;
 	
 	if (Result.TotalRoomToFill == 0)
@@ -293,7 +299,10 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 	
 	// Update existing stack count and handle remainder.
 	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
-	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(ItemType) };
+	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(
+		ItemType,
+		ItemComponent->IsItemRarityEnabled(),
+		ItemComponent->GetItemRarityTag()) };
 	if (!IsValid(Item)) return;
 	
 	Item->SetTotalStackCount(Item->GetTotalStackCount() + StackCount);

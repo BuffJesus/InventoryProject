@@ -52,8 +52,9 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 	UINV_InventoryItem* AddEntry(UINV_InventoryItem* Item);
 	// Removes the matching item entry from the replicated list.
 	void RemoveEntry(UINV_InventoryItem* Item);
-	// Finds first valid item entry whose item type matches ItemType exactly.
-	UINV_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType);
+	// Finds first valid item entry whose item type/rarity matches.
+	UINV_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType, bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag);
 
 private:
 	friend UINV_InventoryComponent;

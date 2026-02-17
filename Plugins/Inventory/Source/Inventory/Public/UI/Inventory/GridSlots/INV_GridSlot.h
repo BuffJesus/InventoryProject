@@ -83,8 +83,36 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category="INV|Grid")
 	FSlateBrush Brush_GrayedOut;
+
+	// When enabled, occupied slot tint is derived from item rarity.
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity")
+	bool bUseRarityTintForOccupiedTexture { false };
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	FLinearColor CommonRarityOccupiedTint { FLinearColor(0.6f, 0.6f, 0.6f, 1.f) };
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	FLinearColor UncommonRarityOccupiedTint { FLinearColor(0.2f, 0.9f, 0.2f, 1.f) };
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	FLinearColor RareRarityOccupiedTint { FLinearColor(0.2f, 0.5f, 1.f, 1.f) };
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	FLinearColor EpicRarityOccupiedTint { FLinearColor(0.7f, 0.3f, 1.f, 1.f) };
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	FLinearColor LegendaryRarityOccupiedTint { FLinearColor(1.f, 0.55f, 0.1f, 1.f) };
+
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	FLinearColor DefaultOccupiedTintWhenNoRarity { FLinearColor::White };
+
+	// Multiplies occupied rarity tint intensity to make rarity more/less noticeable.
+	UPROPERTY(EditAnywhere, Category="INV|Grid|Rarity", meta = (ClampMin = "0.0", ClampMax = "3.0", UIMin = "0.0", UIMax = "3.0", EditCondition = "bUseRarityTintForOccupiedTexture", EditConditionHides))
+	float OccupiedRarityTintStrength { 1.5f };
 	
 	EINV_GridSlotState GridSlotState { EINV_GridSlotState::Unoccupied };
 	
+	FLinearColor ResolveOccupiedTintFromItemRarity() const;
+
 	UFUNCTION() void OnItemPopUpDestruct(UUserWidget* Menu);
 };

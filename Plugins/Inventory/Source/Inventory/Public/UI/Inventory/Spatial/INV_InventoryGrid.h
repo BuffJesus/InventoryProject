@@ -53,6 +53,8 @@ private:
 	
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
 	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
+	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest, bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag);
 	// Apply UI updates for item placement.
 	void AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem);
 	FVector2D GetDrawSize(const FINV_GridFragment* GridFragment) const;
@@ -104,6 +106,8 @@ private:
 		const TSet<int32>& CheckedIndices,
 		TSet<int32>& OutTentativelyClaimed,
 		const FGameplayTag& ItemType,
+		bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag,
 		const int32 MaxStackSize);
 	
 	FIntPoint GetItemDimensions(const FINV_ItemManifest& Manifest) const;
@@ -113,12 +117,15 @@ private:
 		const TSet<int32>& CheckedIndices, 
 		TSet<int32> OutTentativelyClaimed, 
 		const FGameplayTag& ItemType,
+		bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag,
 		const int32 MaxStackSize) const;
 	
 	bool IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index) const;
 	bool HasValidItem(const UINV_GridSlot* GridSlot) const;
 	bool IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const;
-	bool DoesItemTypeMatch(const UINV_InventoryItem* SubItem, const FGameplayTag& ItemType) const;
+	bool IsStackCompatible(const UINV_InventoryItem* ExistingItem, const FGameplayTag& ItemType, bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag) const;
 	bool IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const;
 	bool MatchesCategory(const UINV_InventoryItem* Item) const;
 	bool IsRightClick(const FPointerEvent& MouseEvent) const;

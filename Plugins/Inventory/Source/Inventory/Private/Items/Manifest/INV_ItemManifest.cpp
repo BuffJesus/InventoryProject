@@ -22,21 +22,22 @@ UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter)
 	return Item;
 }
 
-void FINV_ItemManifest::SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation,
+UINV_ItemComponent* FINV_ItemManifest::SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation,
 	const FRotator& SpawnRotation, ESpawnActorCollisionHandlingMethod SpawnCollisionHandling) const
 {
-	if (!PickupActorClass || !IsValid(WorldContextObject)) return;
+	if (!PickupActorClass || !IsValid(WorldContextObject)) return nullptr;
 	
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = SpawnCollisionHandling;
 	AActor* SpawnedActor { WorldContextObject->GetWorld()->SpawnActor<AActor>(PickupActorClass, SpawnLocation, SpawnRotation, SpawnParams) };
-	if (!SpawnedActor) return;
+	if (!SpawnedActor) return nullptr;
 	
 	// Set item manifest, category, item type, etc
 	UINV_ItemComponent* ItemComp { SpawnedActor->FindComponentByClass<UINV_ItemComponent>() };
 	checkf(ItemComp, TEXT("Spawned actor does not have an item component"));
 	
 	ItemComp->InitItemManifest(*this);
+	return ItemComp;
 }
 
 void FINV_ItemManifest::AssimilateInventoryFragments(UINV_Composite_Base* Composite) const
