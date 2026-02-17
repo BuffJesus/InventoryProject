@@ -16,7 +16,9 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Types/INV_ItemTransferHandler.h"
 #include "UI/INV_WidgetUtils.h"
+#include "UI/Inventory/EventHandling/INV_GridEventHandler.h"
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
+#include "UI/Inventory/State/INV_GridStateManager.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -193,46 +195,21 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 
 void UINV_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dimensions)
 {
-	if (!bMouseWithinCanvas) return;
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
-		[&](UINV_GridSlot* GridSlot)
-	{
-		GridSlot->SetOccupiedTexture();		
-	});
+	UINV_GridStateManager::HighlightSlots(GridSlots, GridSize.X, Index, Dimensions, bMouseWithinCanvas);
 	LastHighlightedDimensions = Dimensions;
 	LastHighlightedIndex = Index;
 }
 
 void UINV_InventoryGrid::UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions)
 {
-	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, 
-		[&](UINV_GridSlot* GridSlot)
-	{
-		if (GridSlot->GetAvailability())
-		{
-			GridSlot->SetUnoccupiedTexture();
-		}
-		else
-		{
-			GridSlot->SetOccupiedTexture();
-		}	
-	});
+	UINV_GridStateManager::UnHighlightSlots(GridSlots, GridSize.X, Index, Dimensions);
 }
 
 void UINV_InventoryGrid::ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState)
 {
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridSize.X, [State = GridSlotState](UINV_GridSlot* GridSlot)
-	{
-		switch (State)
-		{
-			case EINV_GridSlotState::Occupied: GridSlot->SetOccupiedTexture(); break;
-			case EINV_GridSlotState::Unoccupied: GridSlot->SetUnoccupiedTexture(); break;
-			case EINV_GridSlotState::GrayedOut: GridSlot->SetGrayedOutTexture(); break;
-			case EINV_GridSlotState::Selected: GridSlot->SetSelectedTexture(); break;
-		}
-	});
+	UINV_GridStateManager::ChangeSlotState(GridSlots, GridSize.X, Index, Dimensions, GridSlotState);
 	LastHighlightedIndex = Index;
 	LastHighlightedDimensions = Dimensions;
 }
@@ -242,66 +219,39 @@ void UINV_InventoryGrid::HighlightBlockingItems(const TArray<int32>& BlockingUpp
 	UnHighlightBlockingItems();
 	LastHighlightedIndex = INDEX_NONE;
 	LastHighlightedDimensions = FIntPoint::ZeroValue;
-	
-	for (const int32 UpperLeftIndex : BlockingUpperLeftIndices)
+
+	// Lambda to get grid fragment for an item at a given index
+	auto GetFragmentAtIndex = [this](int32 Index) -> const FINV_GridFragment*
 	{
-		if (!GridSlots.IsValidIndex(UpperLeftIndex)) continue;
-		const UINV_InventoryItem* BlockingItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
-		if (!IsValid(BlockingItem)) continue;
-		
-		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(BlockingItem, FragmentTags::GridFragment) };
-		if (!GridFragment) continue;
-		
-		LastGrayedOutUpperLeftIndices.Add(UpperLeftIndex);
-		UINV_InventoryStatics::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridSize.X,
-			[](UINV_GridSlot* GridSlot)
-		{
-			GridSlot->SetGrayedOutTexture();
-		});
-	}
+		if (!GridSlots.IsValidIndex(Index)) return nullptr;
+		const UINV_InventoryItem* Item = GridSlots[Index]->GetInventoryItem().Get();
+		if (!IsValid(Item)) return nullptr;
+		return GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
+	};
+
+	LastGrayedOutUpperLeftIndices = UINV_GridStateManager::HighlightBlockingItems(
+		GridSlots, GridSize.X, BlockingUpperLeftIndices, GetFragmentAtIndex);
 }
 
 void UINV_InventoryGrid::UnHighlightBlockingItems()
 {
-	for (const int32 UpperLeftIndex : LastGrayedOutUpperLeftIndices)
+	// Lambda to get grid fragment for an item at a given index
+	auto GetFragmentAtIndex = [this](int32 Index) -> const FINV_GridFragment*
 	{
-		if (!GridSlots.IsValidIndex(UpperLeftIndex)) continue;
-		const UINV_InventoryItem* BlockingItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
-		if (!IsValid(BlockingItem)) continue;
-		
-		const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(BlockingItem, FragmentTags::GridFragment) };
-		if (!GridFragment) continue;
-		
-		UINV_InventoryStatics::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridSize.X,
-			[](UINV_GridSlot* GridSlot)
-		{
-			if (GridSlot->GetAvailability())
-			{
-				GridSlot->SetUnoccupiedTexture();
-			}
-			else
-			{
-				GridSlot->SetOccupiedTexture();
-			}
-		});
-	}
+		if (!GridSlots.IsValidIndex(Index)) return nullptr;
+		const UINV_InventoryItem* Item = GridSlots[Index]->GetInventoryItem().Get();
+		if (!IsValid(Item)) return nullptr;
+		return GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
+	};
+
+	UINV_GridStateManager::UnHighlightBlockingItems(
+		GridSlots, GridSize.X, LastGrayedOutUpperLeftIndices, GetFragmentAtIndex);
 	LastGrayedOutUpperLeftIndices.Reset();
 }
 
 void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
 {
-	for (UINV_GridSlot* GridSlot : GridSlots)
-	{
-		if (!IsValid(GridSlot)) continue;
-		if (GridSlot->GetAvailability())
-		{
-			GridSlot->SetUnoccupiedTexture();
-		}
-		else
-		{
-			GridSlot->SetOccupiedTexture();
-		}
-	}
+	UINV_GridStateManager::RefreshAllSlotVisuals(GridSlots);
 }
 
 // NOTE: CalculateStartingCoordinate moved to FINV_GridPlacementEngine
@@ -1113,12 +1063,12 @@ bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 
 bool UINV_InventoryGrid::IsRightClick(const FPointerEvent& MouseEvent) const
 {
-	return MouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
+	return UINV_GridEventHandler::IsRightClick(MouseEvent);
 }
 
 bool UINV_InventoryGrid::IsLeftClick(const FPointerEvent& MouseEvent) const
 {
-	return MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
+	return UINV_GridEventHandler::IsLeftClick(MouseEvent);
 }
 
 bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize,
@@ -1150,15 +1100,21 @@ bool UINV_InventoryGrid::IsSameStackable(const UINV_InventoryItem* ClickedInvent
 bool UINV_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount,
 	const int32 MaxStackSize) const
 {
-	return RoomInClickedSlot == 0 && HoveredStackCount < MaxStackSize;
+	// Delegate to event handler
+	return UINV_GridEventHandler::DetermineStackAction(0, HoveredStackCount, MaxStackSize, RoomInClickedSlot) ==
+		FINV_ClickActionResult::EAction::SwapStacks;
 }
 
 bool UINV_InventoryGrid::ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const
 {
-	return RoomInClickedSlot >= HoveredStackCount;
+	// Delegate to event handler
+	return UINV_GridEventHandler::DetermineStackAction(0, HoveredStackCount, 0, RoomInClickedSlot) ==
+		FINV_ClickActionResult::EAction::MergeStacks;
 }
 
 bool UINV_InventoryGrid::ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const
 {
-	return RoomInClickedSlot < HoveredStackCount;
+	// Delegate to event handler
+	return UINV_GridEventHandler::DetermineStackAction(0, HoveredStackCount, 0, RoomInClickedSlot) ==
+		FINV_ClickActionResult::EAction::FillStack;
 }
