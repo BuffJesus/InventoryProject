@@ -7,7 +7,6 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Types/INV_GridTypes.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
-#include "INV_InventoryGrid.generated.h"
 
 class UINV_ItemPopUp;
 enum class EINV_GridSlotState : uint8;
@@ -15,6 +14,8 @@ class UINV_HoverItem;
 class UINV_SlottedItem;
 struct FINV_ItemManifest;
 class UINV_ItemComponent;
+
+#include "INV_InventoryGrid.generated.h"
 class UINV_InventoryComponent;
 class UCanvasPanel;
 class UINV_GridSlot;
@@ -50,11 +51,11 @@ private:
 	// Owning inventory component for events.
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
 	TWeakObjectPtr<UCanvasPanel> OwningCanvasPanel { nullptr };
-	
+
+	// Private overloads for internal use
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
-	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest);
-	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest& Manifest, bool bUseItemRarity,
-		const FGameplayTag& ItemRarityTag);
+	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest* Manifest);
+	FINV_SlotAvailabilityResult HasRoomForItem(const FINV_ItemManifest* Manifest, bool bUseItemRarity, const FGameplayTag& ItemRarityTag);
 	// Apply UI updates for item placement.
 	void AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem);
 	FVector2D GetDrawSize(const FINV_GridFragment* GridFragment) const;
@@ -100,33 +101,8 @@ private:
 	
 	UPROPERTY() TObjectPtr<UUserWidget> VisibleCursorWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> HiddenCursorWidget;
-	
-	bool HasRoomAtIndex(const UINV_GridSlot* GridSlot, 
-		const FIntPoint& Dimensions,
-		const TSet<int32>& CheckedIndices,
-		TSet<int32>& OutTentativelyClaimed,
-		const FGameplayTag& ItemType,
-		bool bUseItemRarity,
-		const FGameplayTag& ItemRarityTag,
-		const int32 MaxStackSize);
-	
-	FIntPoint GetItemDimensions(const FINV_ItemManifest& Manifest) const;
-	
-	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot,
-		const UINV_GridSlot* SubGridSlot,
-		const TSet<int32>& CheckedIndices,
-		TSet<int32>& OutTentativelyClaimed,
-		const FGameplayTag& ItemType,
-		bool bUseItemRarity,
-		const FGameplayTag& ItemRarityTag,
-		const int32 MaxStackSize) const;
-	
-	bool IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index) const;
-	bool HasValidItem(const UINV_GridSlot* GridSlot) const;
-	bool IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const;
-	bool IsStackCompatible(const UINV_InventoryItem* ExistingItem, const FGameplayTag& ItemType, bool bUseItemRarity,
-		const FGameplayTag& ItemRarityTag) const;
-	bool IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const;
+
+	// Note: Core placement logic methods moved to FINV_GridPlacementEngine for reusability and testability
 	bool MatchesCategory(const UINV_InventoryItem* Item) const;
 	bool IsRightClick(const FPointerEvent& MouseEvent) const;
 	bool IsLeftClick(const FPointerEvent& MouseEvent) const;
@@ -137,10 +113,6 @@ private:
 	bool ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const;
 	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
 	
-	int32 DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, 
-		const int32 AmountToFill, const UINV_GridSlot* GridSlot) const;
-	
-	int32 GetStackAmount(const UINV_GridSlot* GridSlot) const;
 	
 	void ConstructGrid();
 	void Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
@@ -157,9 +129,7 @@ private:
 	void ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState);
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
-	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions, const EINV_TileQuadrant Quadrant) const;
 	EINV_TileQuadrant CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
-	FINV_SpaceQueryResult CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions);
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	FINV_StackDetails CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem);

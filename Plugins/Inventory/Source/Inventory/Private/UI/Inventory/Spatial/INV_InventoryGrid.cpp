@@ -2,17 +2,18 @@
 
 
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
+#include "Items/Manifest/INV_ItemManifest.h"
 #include "Inventory.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "InventoryManagement/GridPlacement/INV_GridPlacementEngine.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_FragmentTags.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "Items/Manifest/INV_ItemManifest.h"
 #include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
@@ -24,238 +25,28 @@
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
 	if (!IsValid(ItemComponent)) return FINV_SlotAvailabilityResult {};
-	return HasRoomForItem(ItemComponent->GetItemManifest(), ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
+	return HasRoomForItem(&ItemComponent->GetItemManifest(), ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
 }
 
-FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest)
+FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest* Manifest)
 {
 	return HasRoomForItem(Manifest, false, FGameplayTag::EmptyTag);
 }
 
-FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest& Manifest, const bool bUseItemRarity,
+FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemManifest* Manifest, const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag)
 {
-	// Walk the grid and compute how much space we can fill.
-	FINV_SlotAvailabilityResult Result;
-	
-	// Determine if item is stackable
-	const FINV_StackableFragment* StackableFragment { Manifest.GetFragmentOfType<FINV_StackableFragment>() };
-	Result.bStackable = StackableFragment != nullptr;
-	
-	// Determine how many stacks to add
-	const int32 MaxStackSize { StackableFragment ? StackableFragment->GetMaxStackSize() : 1 };
-	int32 AmountToFill { StackableFragment ? StackableFragment->GetStackCount() : 1 };
-	
-	TSet<int32> CheckedIndices;
-	
-	// For stackable items, top off existing matching stacks before searching for empty slots.
-	if (Result.bStackable)
-	{
-		for (const auto& SlottedItemPair : SlottedItems)
-		{
-			const TObjectPtr<UINV_SlottedItem> SlottedItem = SlottedItemPair.Value;
-			if (!IsValid(SlottedItem)) continue;
-			
-			const UINV_InventoryItem* ExistingItem = SlottedItem->GetInventoryItem();
-			if (!IsValid(ExistingItem)) continue;
-			if (!IsStackCompatible(ExistingItem, Manifest.GetItemType(), bUseItemRarity, ItemRarityTag)) continue;
-			
-			const int32 GridIndex = SlottedItemPair.Key;
-			if (!GridSlots.IsValidIndex(GridIndex)) continue;
-			const UINV_GridSlot* GridSlot = GridSlots[GridIndex];
-			if (!IsValid(GridSlot)) continue;
-			
-			const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
-			if (AmountToFillInSlot <= 0) continue;
-			
-			CheckedIndices.Add(GridIndex);
-			
-			Result.TotalRoomToFill += AmountToFillInSlot;
-			Result.SlotAvailabilities.Emplace(
-				FINV_SlotAvailability{
-					HasValidItem(GridSlot) ? GridSlot->GetUpperLeftIndex() : GridSlot->GetTileIndex(),
-					Result.bStackable ? AmountToFillInSlot : 0,
-					HasValidItem(GridSlot)
-				}
-			);
-			
-			AmountToFill -= AmountToFillInSlot;
-			Result.Remainder = AmountToFill;
-			
-			if (AmountToFill == 0) return Result;
-		}
-	}
-	
-	// For each GridSlot:
-	for (const auto& GridSlot : GridSlots)
-	{
-	    // if no more to fill, break from loop
-	    if (AmountToFill == 0) break;
-		
-	    // is index claimed?
-		if (IsIndexClaimed(CheckedIndices, GridSlot->GetTileIndex())) continue;
-		
-		// is the item inside grid bounds?
-		if (!IsInGridBounds(GridSlot->GetTileIndex(), GetItemDimensions(Manifest))) continue;
-		
-	    // can item fit (i.e., out of bounds)?
-		TSet<int32> TentativelyClaimed;
-		if (!HasRoomAtIndex(GridSlot, GetItemDimensions(Manifest), CheckedIndices, TentativelyClaimed, Manifest.GetItemType(),
-			bUseItemRarity, ItemRarityTag, MaxStackSize))
-		{
-			continue;
-		}
-		
-	    // how much to fill?
-		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlot);
-		if (AmountToFillInSlot == 0) continue;
-		
-		CheckedIndices.Append(TentativelyClaimed);
-		
-	    // update amount left to fill
-		Result.TotalRoomToFill += AmountToFillInSlot;
-		Result.SlotAvailabilities.Emplace(
-			FINV_SlotAvailability{
-				HasValidItem(GridSlot) ? GridSlot->GetUpperLeftIndex() : GridSlot->GetTileIndex(), 
-				Result.bStackable ? AmountToFillInSlot : 0,
-				HasValidItem(GridSlot)
-			}	
-		);
-		
-		AmountToFill -= AmountToFillInSlot;
-		
-		// How much remaining?
-		Result.Remainder = AmountToFill;
-		
-		if (AmountToFill == 0) return Result;
-	}
-	return Result;
+	if (!Manifest) return FINV_SlotAvailabilityResult {};
+	// Delegate to placement engine for pure logic computation
+	return FINV_GridPlacementEngine::HasRoomForItem(GridSlots, GridSize, *Manifest, bUseItemRarity, ItemRarityTag);
 }
 
-bool UINV_InventoryGrid::HasRoomAtIndex(const UINV_GridSlot* GridSlot, 
-	const FIntPoint& Dimensions, 
-	const TSet<int32>& CheckedIndices, 
-	TSet<int32>& OutTentativelyClaimed,
-	const FGameplayTag& ItemType,
-	const bool bUseItemRarity,
-	const FGameplayTag& ItemRarityTag,
-	const int32 MaxStackSize)
-{
-	// is there room at index (i.e., other items in the way)?
-	bool bHasRoomAtIndex = true;
-	UINV_InventoryStatics::ForEach2D(GridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X, 
-		[&](const UINV_GridSlot* SubGridSlot)
-		{
-			if (CheckSlotConstraints(GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed, ItemType, bUseItemRarity,
-				ItemRarityTag, MaxStackSize))
-			{
-				OutTentativelyClaimed.Add(SubGridSlot->GetTileIndex());
-			}
-			else
-			{
-				bHasRoomAtIndex = false;
-			}
-		});
-	
-	return bHasRoomAtIndex;
-}
-
-FIntPoint UINV_InventoryGrid::GetItemDimensions(const FINV_ItemManifest& Manifest) const
-{
-	const FINV_GridFragment* GridFragment { Manifest.GetFragmentOfType<FINV_GridFragment>() };
-	return GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
-}
-
-bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
-	const UINV_GridSlot* SubGridSlot,
-	const TSet<int32>& CheckedIndices,
-	TSet<int32>& OutTentativelyClaimed,
-	const FGameplayTag& ItemType,
-	const bool bUseItemRarity,
-	const FGameplayTag& ItemRarityTag,
-	const int32 MaxStackSize) const
-{
-	// index claimed?
-	if (IsIndexClaimed(CheckedIndices, SubGridSlot->GetTileIndex())) return false;
-	
-	// has valid item?
-	if (!HasValidItem(SubGridSlot)) return true;
-	
-	// is this grid slot upper left slot?
-	if (!IsUpperLeftSlot(GridSlot, SubGridSlot)) return false;
-	
-	// if yes, is stackable?
-	const UINV_InventoryItem* SubItem { SubGridSlot->GetInventoryItem().Get() };
-	if (!SubItem->IsStackable()) return false;
-	
-	// is item same type as the item trying to add?
-	if (!IsStackCompatible(SubItem, ItemType, bUseItemRarity, ItemRarityTag)) return false;
-	
-	// if yes, is slot a max stack size already?
-	if (GridSlot->GetStackCount() >= MaxStackSize) return false;
-	
-	return true;
-}
-
-bool UINV_InventoryGrid::IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index) const
-{
-	return CheckedIndices.Contains(Index);
-}
-
-bool UINV_InventoryGrid::HasValidItem(const UINV_GridSlot* GridSlot) const
-{
-	return GridSlot->GetInventoryItem().IsValid();
-}
-
-bool UINV_InventoryGrid::IsUpperLeftSlot(const UINV_GridSlot* GridSlot, const UINV_GridSlot* SubGridSlot) const
-{
-	return SubGridSlot->GetUpperLeftIndex() == GridSlot->GetTileIndex();
-}
-
-bool UINV_InventoryGrid::IsStackCompatible(const UINV_InventoryItem* ExistingItem, const FGameplayTag& ItemType,
-	const bool bUseItemRarity, const FGameplayTag& ItemRarityTag) const
-{
-	if (!IsValid(ExistingItem)) return false;
-	if (!ExistingItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
-	if (ExistingItem->IsItemRarityEnabled() != bUseItemRarity) return false;
-	if (!bUseItemRarity) return true;
-	return ExistingItem->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
-}
-
-bool UINV_InventoryGrid::IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const
-{
-	if (StartIndex < 0 || StartIndex >= GridSlots.Num()) return false;
-	const int32 EndColumn = (StartIndex % GridSize.X) + ItemDimensions.X;
-	const int32 EndRow = (StartIndex / GridSize.X) + ItemDimensions.Y;
-	return EndColumn <= GridSize.X && EndRow <= GridSize.Y;
-}
-
-int32 UINV_InventoryGrid::DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize,
-	const int32 AmountToFill, const UINV_GridSlot* GridSlot) const
-{
-	// calculate room in the slot
-	const int32 RoomInSlot = MaxStackSize - GetStackAmount(GridSlot);
-	
-	// if stackable, need min between amount to fill and room in slot
-	return bStackable ? FMath::Min(AmountToFill, RoomInSlot) : 1;
-}
-
-int32 UINV_InventoryGrid::GetStackAmount(const UINV_GridSlot* GridSlot) const
-{
-	int32 CurrentSlotStackCount { GridSlot->GetStackCount() };
-	// if we are at a slot that doesn't hold stack count, must get actual stack count
-	if (const int32 UpperLeftIndex = GridSlot->GetUpperLeftIndex(); UpperLeftIndex != INDEX_NONE)
-	{
-		UINV_GridSlot* UpperLeftGridSlot { GridSlots[UpperLeftIndex] };
-		CurrentSlotStackCount = UpperLeftGridSlot->GetStackCount();
-	}
-	return CurrentSlotStackCount;
-}
+// NOTE: Core placement methods have been moved to FINV_GridPlacementEngine for reusability
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item)) return FINV_SlotAvailabilityResult {};
-	return HasRoomForItem(Item->GetItemManifest(), Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
+	return HasRoomForItem(&Item->GetItemManifest(), Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
 }
 
 void UINV_InventoryGrid::NativeOnInitialized()
@@ -364,16 +155,17 @@ void UINV_InventoryGrid::CloseActiveItemPopup()
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 {
 	if (!IsValid(HoverItem)) return;
-	
+
 	// Get hover item dimensions
 	const FIntPoint Dimensions { HoverItem->GetGridDimensions() };
-	
-	// Calculate starting coord for highlighting
-	const FIntPoint StartingCoord { CalculateStartingCoordinate(Params.TileCoordinates, Dimensions, Params.TileQuadrant) };
+
+	// Calculate starting coord for highlighting - delegate to placement engine
+	const FIntPoint StartingCoord { FINV_GridPlacementEngine::CalculateStartingCoordinate(Params.TileCoordinates, Dimensions, Params.TileQuadrant) };
 	ItemDropIndex = UINV_WidgetUtils::GetIndexFromPosition(StartingCoord, GridSize.X);
-	
-	CurrentQueryResult = CheckHoverPosition(StartingCoord, Dimensions);
-	
+
+	// Check hover position - delegate to placement engine
+	CurrentQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(GridSlots, GridSize, StartingCoord, Dimensions);
+
 	if (CurrentQueryResult.bHasSpace)
 	{
 		// Free space: highlight potential drop area.
@@ -385,7 +177,7 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	HighlightBlockingItems(CurrentQueryResult.BlockingUpperLeftIndices);
 
 	// Show the exact hovered-item placement footprint with a distinct visual.
-	if (IsInGridBounds(ItemDropIndex, Dimensions))
+	if (FINV_GridPlacementEngine::IsInGridBounds(ItemDropIndex, Dimensions, GridSize))
 	{
 		UINV_InventoryStatics::ForEach2D(GridSlots, ItemDropIndex, Dimensions, GridSize.X,
 			[](UINV_GridSlot* GridSlot)
@@ -441,40 +233,6 @@ void UINV_InventoryGrid::ChangeHoverType(const int32 Index, const FIntPoint& Dim
 	});
 	LastHighlightedIndex = Index;
 	LastHighlightedDimensions = Dimensions;
-}
-
-FINV_SpaceQueryResult UINV_InventoryGrid::CheckHoverPosition(const FIntPoint& Pos, const FIntPoint& Dimensions) 
-{
-	FINV_SpaceQueryResult Result;
-	
-	// in grid bounds?
-	if (!IsInGridBounds(UINV_WidgetUtils::GetIndexFromPosition(Pos, GridSize.X), Dimensions)) return Result;
-	
-	Result.bHasSpace = true;
-	
-	// if more than one of the indices is occupied with the same item, need to check if all have same upper left index
-	TSet<int32> OccupiedUpperLeftIndices;
-	UINV_InventoryStatics::ForEach2D(GridSlots, UINV_WidgetUtils::GetIndexFromPosition(Pos, GridSize.X), 
-		Dimensions, GridSize.X, [&](const UINV_GridSlot* GridSlot)
-	{
-		if (GridSlot->GetInventoryItem().IsValid())
-		{
-			OccupiedUpperLeftIndices.Add(GridSlot->GetUpperLeftIndex());
-			Result.bHasSpace = false;
-		}
-	});
-	
-	// if yes, only one item in the way? (can we swap?)
-	if (OccupiedUpperLeftIndices.Num() == 1) // single item at position, valid for swapping/combining
-	{
-		const int32 Index = *OccupiedUpperLeftIndices.CreateIterator();
-		Result.ValidItem = GridSlots[Index]->GetInventoryItem();
-		Result.UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
-	}
-
-	Result.BlockingUpperLeftIndices = OccupiedUpperLeftIndices.Array();
-	
-	return Result;
 }
 
 void UINV_InventoryGrid::HighlightBlockingItems(const TArray<int32>& BlockingUpperLeftIndices)
@@ -544,46 +302,7 @@ void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
 	}
 }
 
-/**
- * Calculates the upper-left starting coordinate for placing an item based on cursor quadrant.
- *
- * This allows hover items to "snap" to center on the cursor, providing intuitive placement.
- * For even-sized items (2x2, 4x2), adjustments ensure the item centers on the cursor position.
- *
- * Example: A 3x3 item with cursor in TopLeft quadrant:
- *   Cursor at (5,5) -> Starting coord at (4,4) so item centers on cursor
- */
-FIntPoint UINV_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions,
-	const EINV_TileQuadrant Quadrant) const
-{
-	const int32 HasEvenWidth = Dimensions.X % 2 == 0 ? 1 : 0;
-	const int32 HasEvenHeight = Dimensions.Y % 2 == 0 ? 1 : 0;
-	
-	FIntPoint StartingCoord;
-	switch (Quadrant)
-	{
-	case EINV_TileQuadrant::TopLeft:
-			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f);
-			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f);
-		break;
-		case EINV_TileQuadrant::TopRight:
-			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f) + HasEvenWidth;
-			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f);
-		break;
-		case EINV_TileQuadrant::BottomLeft:
-			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f);
-			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f) + HasEvenHeight;
-		break;
-		case EINV_TileQuadrant::BottomRight:
-			StartingCoord.X = Coord.X - FMath::FloorToInt(Dimensions.X * 0.5f) + HasEvenWidth;
-			StartingCoord.Y = Coord.Y - FMath::FloorToInt(Dimensions.Y * 0.5f) + HasEvenHeight;
-		break;
-	default:
-		UE_LOG(LogInventory, Error, TEXT("Invalid tile quadrant: %d"), static_cast<int32>(Quadrant));
-		return FIntPoint(-1, -1);
-	}
-	return StartingCoord;
-}
+// NOTE: CalculateStartingCoordinate moved to FINV_GridPlacementEngine
 
 void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
@@ -877,7 +596,7 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 
 	// Prefer the computed hover drop index, but fall back to clicked index if needed.
 	const int32 TargetDropIndex = GridSlots.IsValidIndex(ItemDropIndex) ? ItemDropIndex : GridIndex;
-	if (!IsInGridBounds(TargetDropIndex, HoverGridFragment->GetGridSize())) return;
+	if (!FINV_GridPlacementEngine::IsInGridBounds(TargetDropIndex, HoverGridFragment->GetGridSize(), GridSize)) return;
 
 	// Gather all unique overlapped items under the hovered footprint.
 	TSet<int32> OverlappedUpperLeftIndices;
@@ -965,7 +684,7 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 
 	auto CanFitAt = [&](const int32 StartIndex, const FIntPoint& Dimensions) -> bool
 	{
-		if (!IsInGridBounds(StartIndex, Dimensions)) return false;
+		if (!FINV_GridPlacementEngine::IsInGridBounds(StartIndex, Dimensions, GridSize)) return false;
 
 		bool bCanFit = true;
 		UINV_InventoryStatics::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,

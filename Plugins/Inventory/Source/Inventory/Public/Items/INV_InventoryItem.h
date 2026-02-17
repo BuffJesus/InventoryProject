@@ -10,6 +10,9 @@
 
 struct FGameplayTag;
 struct FINV_ItemManifest;
+struct FINV_GridFragment;
+struct FINV_ImageFragment;
+
 UCLASS()
 class INVENTORY_API UINV_InventoryItem : public UObject
 {
