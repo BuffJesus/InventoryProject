@@ -16,7 +16,7 @@ UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter)
 	{
 		Fragment.GetMutable().InitializeRuntimeState();
 	}
-	// Course flow: this manifest instance is consumed after item creation.
+	// Control flow: this manifest instance is consumed after item creation.
 	ClearFragments();
 
 	return Item;
@@ -54,10 +54,7 @@ void FINV_ItemManifest::AssimilateInventoryFragments(UINV_Composite_Base* Compos
 
 void FINV_ItemManifest::ClearFragments()
 {
-	for (auto& Fragment : Fragments)
-	{
-		Fragment.Reset();
-	}
+	// Empty() will destroy all elements, no need to Reset() first
 	Fragments.Empty();
 }
 	

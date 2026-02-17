@@ -38,6 +38,12 @@ public:
 	FORCEINLINE const FGameplayTag& GetItemRarityTag() const { return ItemRarityTag; }
 	// Sets item rarity style data.
 	void SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag);
+
+	// Cached fragment accessors for performance (commonly accessed fragments)
+	const FINV_GridFragment* GetCachedGridFragment() const;
+	const FINV_ImageFragment* GetCachedImageFragment() const;
+	// Call this after setting the manifest to build the cache
+	void BuildFragmentCache();
 	
 private:
 	// Instanced manifest (fragments + tags).
@@ -52,6 +58,10 @@ private:
 
 	// Rarity tag used for UI styling.
 	UPROPERTY(Replicated) FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
+
+	// Fragment cache for frequently accessed fragments (not replicated, rebuilt on clients)
+	mutable const FINV_GridFragment* CachedGridFragment { nullptr };
+	mutable const FINV_ImageFragment* CachedImageFragment { nullptr };
 };
 
 template <typename FragmentType>

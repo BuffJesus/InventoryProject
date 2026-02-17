@@ -100,8 +100,8 @@ void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem* Item, int32 StackCount)
 {
-	if (!IsValid(Item)) return;
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!IsValid(Item)) return;
 
 	const bool bIsStackable = Item->IsStackable();
 	const int32 AvailableStackCount = bIsStackable ? FMath::Max(Item->GetTotalStackCount(), 1) : 1;
@@ -122,10 +122,13 @@ void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem*
 
 void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount)
 {
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!IsValid(Item)) return;
 	if (!OwningController.IsValid()) return;
+
 	const APawn* OwningPawn { OwningController->GetPawn() };
 	if (!IsValid(OwningPawn)) return;
-	
+
 	UWorld* World { GetWorld() };
 	if (!IsValid(World)) return;
 
@@ -193,14 +196,38 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		StackableFragment->SetStackCount(StackCount);
 	}
 	
-	if (UINV_ItemComponent* SpawnedItemComponent = ItemManifest.SpawnPickupActor(this, SpawnLocation, SpawnRotation, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding))
+	UINV_ItemComponent* SpawnedItemComponent = ItemManifest.SpawnPickupActor(this, SpawnLocation, SpawnRotation, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+	if (SpawnedItemComponent)
 	{
 		SpawnedItemComponent->SetItemRarityOptions(Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
+	}
+	else
+	{
+		// Failed to spawn pickup - restore item to inventory to prevent item loss
+		UE_LOG(LogInventory, Warning, TEXT("Failed to spawn dropped item pickup at location %s. Restoring item to inventory."), *SpawnLocation.ToString());
+
+		// Re-add the item to inventory if it was removed
+		if (UINV_InventoryItem* ExistingItem = InventoryFastArray.FindFirstItemByType(
+			Item->GetItemManifest().GetItemType(),
+			Item->IsItemRarityEnabled(),
+			Item->GetItemRarityTag()))
+		{
+			// Item still exists, restore stack count
+			ExistingItem->SetTotalStackCount(ExistingItem->GetTotalStackCount() + StackCount);
+		}
+		else
+		{
+			// Item was removed, re-add it
+			InventoryFastArray.AddEntry(Item);
+		}
 	}
 }
 
 void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)
 {
+	if (!IsValid(Item)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+
 	const int32 NewStackCount = Item->GetTotalStackCount() - 1;
 	if (NewStackCount <= 0)
 	{
@@ -208,9 +235,9 @@ void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryIt
 	}
 	else
 	{
-		Item->SetTotalStackCount(NewStackCount);	
+		Item->SetTotalStackCount(NewStackCount);
 	}
-	
+
 	if (FINV_ConsumableFragment* ConsumableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_ConsumableFragment>())
 	{
 		ConsumableFragment->OnConsume(OwningController.Get());

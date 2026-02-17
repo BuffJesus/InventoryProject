@@ -4,6 +4,7 @@
 #include "Items/INV_InventoryItem.h"
 
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "Items/Fragments/INV_FragmentTags.h"
 #include "Net/UnrealNetwork.h"
 
 void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -20,6 +21,7 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 {
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
+	BuildFragmentCache();
 }
 
 void UINV_InventoryItem::SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag)
@@ -40,4 +42,32 @@ bool UINV_InventoryItem::IsConsumable() const
 	// Consumable if a consumable fragment exists.
 	const FINV_ConsumableFragment* ConsumableFragment { GetItemManifest().GetFragmentOfType<FINV_ConsumableFragment>() };
 	return ConsumableFragment != nullptr;
+}
+
+void UINV_InventoryItem::BuildFragmentCache()
+{
+	// Cache frequently accessed fragments to avoid repeated linear searches
+	const FINV_ItemManifest& Manifest = GetItemManifest();
+	CachedGridFragment = Manifest.GetFragmentOfTypeWithTag<FINV_GridFragment>(FragmentTags::GridFragment);
+	CachedImageFragment = Manifest.GetFragmentOfTypeWithTag<FINV_ImageFragment>(FragmentTags::IconFragment);
+}
+
+const FINV_GridFragment* UINV_InventoryItem::GetCachedGridFragment() const
+{
+	if (!CachedGridFragment)
+	{
+		// Lazy cache build if not already cached
+		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
+	}
+	return CachedGridFragment;
+}
+
+const FINV_ImageFragment* UINV_InventoryItem::GetCachedImageFragment() const
+{
+	if (!CachedImageFragment)
+	{
+		// Lazy cache build if not already cached
+		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
+	}
+	return CachedImageFragment;
 }

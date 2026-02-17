@@ -96,10 +96,10 @@ void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 	}
 }
 
-UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,
-	const FGameplayTag& ItemRarityTag)
+const UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag) const
 {
-	auto* FoundItem { Entries.FindByPredicate([ItemType = ItemType, bUseItemRarity, ItemRarityTag](const FINV_InventoryEntry& Entry)
+	const auto* FoundItem { Entries.FindByPredicate([ItemType = ItemType, bUseItemRarity, ItemRarityTag](const FINV_InventoryEntry& Entry)
 	{
 		if (!IsValid(Entry.Item)) return false;
 		if (!Entry.Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
@@ -108,4 +108,13 @@ UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplay
 		return Entry.Item->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
 	}) };
 	return FoundItem ? FoundItem->Item : nullptr;
+}
+
+UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag)
+{
+	// Delegate to const version and cast away const for mutable access
+	return const_cast<UINV_InventoryItem*>(
+		const_cast<const FINV_InventoryFastArray*>(this)->FindFirstItemByType(ItemType, bUseItemRarity, ItemRarityTag)
+	);
 }

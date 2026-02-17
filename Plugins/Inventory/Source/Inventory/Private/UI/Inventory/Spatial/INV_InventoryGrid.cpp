@@ -166,11 +166,11 @@ FIntPoint UINV_InventoryGrid::GetItemDimensions(const FINV_ItemManifest& Manifes
 	return GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 }
 
-bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot, 
-	const UINV_GridSlot* SubGridSlot, 
-	const TSet<int32>& CheckedIndices, 
-	TSet<int32> OutTentativelyClaimed, 
-	const FGameplayTag& ItemType, 
+bool UINV_InventoryGrid::CheckSlotConstraints(const UINV_GridSlot* GridSlot,
+	const UINV_GridSlot* SubGridSlot,
+	const TSet<int32>& CheckedIndices,
+	TSet<int32>& OutTentativelyClaimed,
+	const FGameplayTag& ItemType,
 	const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag,
 	const int32 MaxStackSize) const
@@ -544,6 +544,15 @@ void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
 	}
 }
 
+/**
+ * Calculates the upper-left starting coordinate for placing an item based on cursor quadrant.
+ *
+ * This allows hover items to "snap" to center on the cursor, providing intuitive placement.
+ * For even-sized items (2x2, 4x2), adjustments ensure the item centers on the cursor position.
+ *
+ * Example: A 3x3 item with cursor in TopLeft quadrant:
+ *   Cursor at (5,5) -> Starting coord at (4,4) so item centers on cursor
+ */
 FIntPoint UINV_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coord, const FIntPoint& Dimensions,
 	const EINV_TileQuadrant Quadrant) const
 {
@@ -681,6 +690,13 @@ void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int3
 
 void UINV_InventoryGrid::ConstructGrid()
 {
+	// Validate grid dimensions
+	if (GridSize.X <= 0 || GridSize.Y <= 0)
+	{
+		UE_LOG(LogInventory, Error, TEXT("Invalid grid dimensions: %dx%d. Grid size must be positive."), GridSize.X, GridSize.Y);
+		return;
+	}
+
 	// Create grid slots and place them on the canvas.
 	GridSlots.Reserve(GridSize.X * GridSize.Y);
 	
@@ -834,6 +850,20 @@ void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
 	GetOwningPlayer()->SetMouseCursorWidget(EMouseCursor::Default, CursorWidget);
 }
 
+/**
+ * Complex multi-item swap algorithm that handles spatial inventory item placement.
+ *
+ * Algorithm Overview:
+ * 1. Determines target drop location for the hovered item
+ * 2. Identifies all items that would be overlapped by placing the hover item
+ * 3. Validates that the clicked item is one of the overlapped items (security check)
+ * 4. Separates the clicked item (becomes new hover) from other displaced items
+ * 5. Simulates grid occupancy to validate all relocations are possible
+ * 6. Uses first-fit algorithm to find new positions for displaced items
+ * 7. Only commits changes if ALL items can be safely relocated
+ *
+ * This prevents item loss and ensures grid integrity during complex swaps.
+ */
 void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
 	if (!IsValid(HoverItem)) return;
@@ -950,10 +980,19 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 	};
 
 	// Plan destinations for all displaced blockers using first-fit.
+	// Add iteration limit to prevent excessive searching in large inventories.
+	const int32 MaxSearchIterations = GridSlots.Num();
 	for (FDisplacedItemPlan& Plan : DisplacedItems)
 	{
+		int32 IterationCount = 0;
 		for (int32 CandidateIndex = 0; CandidateIndex < GridSlots.Num(); ++CandidateIndex)
 		{
+			if (++IterationCount > MaxSearchIterations)
+			{
+				// Safety limit reached, abort relocation
+				return;
+			}
+
 			if (!CanFitAt(CandidateIndex, Plan.Dimensions)) continue;
 
 			Plan.TargetIndex = CandidateIndex;
@@ -1080,15 +1119,21 @@ void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEven
 
 bool UINV_InventoryGrid::GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem)
 {
-	RightClickedItem = { GridSlots[Index]->GetInventoryItem().Get() };
-	if (!IsValid(RightClickedItem)) return true;
-	return false;
+	if (!GridSlots.IsValidIndex(Index))
+	{
+		RightClickedItem = nullptr;
+		return false;
+	}
+
+	RightClickedItem = GridSlots[Index]->GetInventoryItem().Get();
+	// Return true if item was found and is valid
+	return IsValid(RightClickedItem);
 }
 
 void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 {
 	UINV_InventoryItem* RightClickedItem;
-	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
+	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 	if (!RightClickedItem->IsStackable()) return;
 	
 	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
@@ -1106,8 +1151,8 @@ void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
 {
 	UINV_InventoryItem* RightClickedItem;
-	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
-	
+	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
+
 	Pickup(RightClickedItem, Index);
 	DropItem();
 }
@@ -1115,7 +1160,7 @@ void UINV_InventoryGrid::OnPopUpMenuDrop(int32 Index)
 void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
 {
 	UINV_InventoryItem* RightClickedItem;
-	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
+	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 
 	const int32 UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
 	UINV_GridSlot* UpperLeftGridSlot = GridSlots[UpperLeftIndex];
@@ -1135,7 +1180,7 @@ void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
 void UINV_InventoryGrid::OnPopUpMenuInspect(int32 Index)
 {
 	UINV_InventoryItem* RightClickedItem;
-	if (GetRightClickedInventoryItem(Index, RightClickedItem)) return;
+	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 
 	FVector2D OpenPosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
 	if (IsValid(ItemPopUp))

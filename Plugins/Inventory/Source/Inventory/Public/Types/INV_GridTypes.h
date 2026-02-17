@@ -18,8 +18,8 @@ struct FINV_SlotAvailability
 {
 	GENERATED_BODY()
 	FINV_SlotAvailability() {}
-	FINV_SlotAvailability(int32 ItemIndex, int32 Toom, bool bHasItem) 
-		: Index(ItemIndex), AmountToFill(Toom), bItemAtIndex(bHasItem) {}
+	FINV_SlotAvailability(int32 ItemIndex, int32 Room, bool bHasItem)
+		: Index(ItemIndex), AmountToFill(Room), bItemAtIndex(bHasItem) {}
 	
 	int32 Index { INDEX_NONE };
 	int32 AmountToFill { 0 };

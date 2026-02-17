@@ -112,10 +112,10 @@ private:
 	
 	FIntPoint GetItemDimensions(const FINV_ItemManifest& Manifest) const;
 	
-	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot, 
-		const UINV_GridSlot* SubGridSlot, 
-		const TSet<int32>& CheckedIndices, 
-		TSet<int32> OutTentativelyClaimed, 
+	bool CheckSlotConstraints(const UINV_GridSlot* GridSlot,
+		const UINV_GridSlot* SubGridSlot,
+		const TSet<int32>& CheckedIndices,
+		TSet<int32>& OutTentativelyClaimed,
 		const FGameplayTag& ItemType,
 		bool bUseItemRarity,
 		const FGameplayTag& ItemRarityTag,

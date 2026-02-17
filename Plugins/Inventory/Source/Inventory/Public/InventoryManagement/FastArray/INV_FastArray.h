@@ -35,6 +35,9 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 	
 	// Returns all valid inventory item objects currently held in entries.
 	TArray<UINV_InventoryItem*> GetAllItems() const;
+	// Const version of FindFirstItemByType for read-only access
+	const UINV_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType, bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag) const;
 	
 	// FFastArraySerializer contract
 	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
