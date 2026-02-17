@@ -17,6 +17,8 @@ void UINV_ItemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	
 	// Replicate static manifest data for this pickup.
 	DOREPLIFETIME(ThisClass, ItemManifest);
+	DOREPLIFETIME(ThisClass, bUseItemRarity);
+	DOREPLIFETIME(ThisClass, ItemRarityTag);
 }
 
 void UINV_ItemComponent::InitItemManifest(const FINV_ItemManifest& InManifest)

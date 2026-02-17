@@ -18,7 +18,7 @@ UINV_InventoryItem* FINV_ItemManifest::CreateItem(UObject* NewOuter)
 	}
 	// Course flow: this manifest instance is consumed after item creation.
 	ClearFragments();
-	
+
 	return Item;
 }
 

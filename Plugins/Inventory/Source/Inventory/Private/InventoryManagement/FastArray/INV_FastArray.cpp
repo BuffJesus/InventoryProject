@@ -57,14 +57,14 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemCo
 	checkf(OwningActor->HasAuthority(), TEXT("Only the owning actor can add items to the inventory fast array"));
 	UINV_InventoryComponent* IC { Cast<UINV_InventoryComponent>(Owner) };
 	checkf(IsValid(IC), TEXT("ItemComponent must be valid when adding an item to the inventory fast array"));
-	
+
 	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
 	NewEntry.Item = ItemComponent->GetItemManifestMutable().CreateItem(OwningActor);
 	NewEntry.Item->SetItemRarityOptions(ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
-	
+
 	IC->AddRepSubObj(NewEntry.Item);
 	MarkItemDirty(NewEntry);
-	
+
 	return NewEntry.Item;
 }
 

@@ -100,8 +100,15 @@ void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem* Item, int32 StackCount)
 {
-	const int32 NewStackCount = Item->GetTotalStackCount() - StackCount;
-	if (NewStackCount >= 0)
+	if (!IsValid(Item)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+
+	const bool bIsStackable = Item->IsStackable();
+	const int32 AvailableStackCount = bIsStackable ? FMath::Max(Item->GetTotalStackCount(), 1) : 1;
+	const int32 DroppedStackCount = FMath::Clamp(StackCount, 1, AvailableStackCount);
+	const int32 NewStackCount = AvailableStackCount - DroppedStackCount;
+
+	if (!bIsStackable || NewStackCount <= 0)
 	{
 		InventoryFastArray.RemoveEntry(Item);
 	}
@@ -110,7 +117,7 @@ void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem*
 		Item->SetTotalStackCount(NewStackCount);
 	}
 	
-	SpawnDroppedItem(Item, StackCount);
+	SpawnDroppedItem(Item, DroppedStackCount);
 }
 
 void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount)

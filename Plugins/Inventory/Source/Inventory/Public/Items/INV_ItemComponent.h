@@ -49,11 +49,11 @@ private:
 	FString PickupMessage { TEXT("Null Message") };
 
 	// Enables per-item rarity styling support.
-	UPROPERTY(EditAnywhere, Category="INV|Inventory|Rarity")
+	UPROPERTY(Replicated, EditAnywhere, Category="INV|Inventory|Rarity")
 	bool bUseItemRarity { false };
 
 	// Rarity tag used when bUseItemRarity is enabled.
-	UPROPERTY(EditAnywhere, Category="INV|Inventory|Rarity", meta = (Categories = "FragmentTags.Rarity", EditCondition = "bUseItemRarity", EditConditionHides))
+	UPROPERTY(Replicated, EditAnywhere, Category="INV|Inventory|Rarity", meta = (Categories = "FragmentTags.Rarity", EditCondition = "bUseItemRarity", EditConditionHides))
 	FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
 	
 	// If true, destroy the actor after pickup.
