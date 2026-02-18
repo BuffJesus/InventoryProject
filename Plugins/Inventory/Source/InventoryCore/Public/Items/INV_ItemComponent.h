@@ -10,7 +10,7 @@
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
-class INVENTORY_API UINV_ItemComponent : public UActorComponent
+class INVENTORYCORE_API UINV_ItemComponent : public UActorComponent
 {
 	GENERATED_BODY()
 

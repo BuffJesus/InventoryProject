@@ -7,7 +7,7 @@ class UINV_InventoryItem;
 class UINV_ItemComponent;
 struct FINV_ItemManifest;
 
-class INVENTORY_API FINV_ItemManifestRuntimeOps
+class INVENTORYCORE_API FINV_ItemManifestRuntimeOps
 {
 public:
 	static UINV_InventoryItem* CreateItemFromManifest(FINV_ItemManifest& SourceManifest, UObject* NewOuter);

@@ -29,7 +29,7 @@ struct FINV_FastArrayCallbacks
 
 // A single replicated inventory entry.
 USTRUCT(BlueprintType)
-struct INVENTORY_API FINV_InventoryEntry : public FFastArraySerializerItem
+struct INVENTORYCORE_API FINV_InventoryEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	FINV_InventoryEntry(){}
@@ -42,7 +42,7 @@ private:
 
 // Replicated list of inventory items.
 USTRUCT(BlueprintType)
-struct INVENTORY_API FINV_InventoryFastArray : public FFastArraySerializer
+struct INVENTORYCORE_API FINV_InventoryFastArray : public FFastArraySerializer
 {
 	GENERATED_BODY()
 	FINV_InventoryFastArray() : Owner(nullptr) {}

@@ -7,11 +7,10 @@
 #include "StructUtils/InstancedStruct.h"
 #include "INV_ItemFragment.generated.h"
 
-class UINV_Composite_Base;
 class APlayerController;
 
 USTRUCT(BlueprintType)
-struct FInv_ItemFragment
+struct INVENTORYCORE_API FInv_ItemFragment
 {
 	GENERATED_BODY()
 	FInv_ItemFragment() {}
@@ -35,19 +34,13 @@ private:
 
 //Item fragment specifically for assimilation into widget
 USTRUCT(BlueprintType)
-struct FINV_InventoryItemFragment : public FInv_ItemFragment
+struct INVENTORYCORE_API FINV_InventoryItemFragment : public FInv_ItemFragment
 {
 	GENERATED_BODY()
-	// Applies this fragment to a compatible UI composite widget.
-	virtual void Assimilate(UINV_Composite_Base* Composite) const;
-	
-protected:
-	// True if this fragment and target widget use the same fragment tag.
-	bool MatchesWidgetTag(const UINV_Composite_Base* Composite) const;
 };
 
 USTRUCT(BlueprintType)
-struct FINV_GridFragment : public FInv_ItemFragment
+struct INVENTORYCORE_API FINV_GridFragment : public FInv_ItemFragment
 {
 	GENERATED_BODY()
 	// Grid dimensions and padding for this item.
@@ -67,12 +60,12 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct FINV_ImageFragment : public FINV_InventoryItemFragment
+struct INVENTORYCORE_API FINV_ImageFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
 	// Icon texture used for UI.
 	FORCEINLINE UTexture2D* GetIcon() const { return Icon.Get(); }
-	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
+	FORCEINLINE const FVector2D& GetIconDimensions() const { return IconDimensions; }
 	
 private:
 	// Icon asset.
@@ -85,12 +78,11 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct FINV_TextFragment : public FINV_InventoryItemFragment
+struct INVENTORYCORE_API FINV_TextFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
 	FText GetText() const { return FragmentText; }
 	void SetText(const FText& Text) { FragmentText = Text; }
-	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Text")
@@ -98,13 +90,17 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct FINV_LabeledNumberFragment : public FINV_InventoryItemFragment
+struct INVENTORYCORE_API FINV_LabeledNumberFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
-	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
 	virtual void InitializeRuntimeState() override;
 	// Current runtime value shown/used by this fragment.
 	float GetValue() const { return Value; }
+	FText GetLabelText() const { return Text_Label; }
+	bool GetCollapseLabel() const { return bCollapseLabel; }
+	bool GetCollapseValue() const { return bCollapseValue; }
+	int32 GetMinFractionalDigits() const { return MinFractionalDigits; }
+	int32 GetMaxFractionalDigits() const { return MaxFractionalDigits; }
 	
 	// When runtime state is initialized, this fragment will randomize. However, once equipped and dropped,
 	// an item should retain same value (do not reapply randomization)
@@ -144,7 +140,7 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct FINV_StackableFragment : public FInv_ItemFragment
+struct INVENTORYCORE_API FINV_StackableFragment : public FInv_ItemFragment
 {
 	GENERATED_BODY()
 	// Stack size data for stackable items.
@@ -165,7 +161,7 @@ private:
 
 // Consume Fragments
 USTRUCT(BlueprintType)
-struct FINV_ConsumeModifier : public FINV_LabeledNumberFragment
+struct INVENTORYCORE_API FINV_ConsumeModifier : public FINV_LabeledNumberFragment
 {
 	GENERATED_BODY()
 	// Applies this modifier's gameplay effect when consumed.
@@ -173,15 +169,14 @@ struct FINV_ConsumeModifier : public FINV_LabeledNumberFragment
 };
 
 USTRUCT(BlueprintType)
-struct FINV_ConsumableFragment : public FINV_InventoryItemFragment
+struct INVENTORYCORE_API FINV_ConsumableFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
 	// Applies all configured consume modifiers.
 	virtual void OnConsume(APlayerController* PC);
-	// Populates UI with all consume modifiers.
-	virtual void Assimilate(UINV_Composite_Base* Composite) const override;
 	// Initializes runtime state for all consume modifiers.
 	virtual void InitializeRuntimeState() override;
+	const TArray<TInstancedStruct<FINV_ConsumeModifier>>& GetConsumeModifiers() const { return ConsumeModifiers; }
 	
 private:
 	// Per-consumable modifier list (e.g. health/mana restore values).
@@ -190,14 +185,14 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct FINV_HealthPotionFragment : public FINV_ConsumeModifier
+struct INVENTORYCORE_API FINV_HealthPotionFragment : public FINV_ConsumeModifier
 {
 	GENERATED_BODY()
 	virtual void OnConsume(APlayerController* PC) override;
 };
 
 USTRUCT(BlueprintType)
-struct FINV_ManaPotionFragment : public FINV_ConsumeModifier
+struct INVENTORYCORE_API FINV_ManaPotionFragment : public FINV_ConsumeModifier
 {
 	GENERATED_BODY()
 	virtual void OnConsume(APlayerController* PC) override;

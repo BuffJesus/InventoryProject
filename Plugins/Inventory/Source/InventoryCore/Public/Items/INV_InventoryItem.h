@@ -14,7 +14,7 @@ struct FINV_GridFragment;
 struct FINV_ImageFragment;
 
 UCLASS()
-class INVENTORY_API UINV_InventoryItem : public UObject
+class INVENTORYCORE_API UINV_InventoryItem : public UObject
 {
 	GENERATED_BODY()
 
