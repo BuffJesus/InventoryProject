@@ -4,16 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Items/Fragments/INV_ItemFragment.h"
 #include "Types/INV_GridTypes.h"
-#include "UI/Inventory/HoverItem/INV_HoverItem.h"
-#include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 
 class UINV_ItemPopUp;
 enum class EINV_GridSlotState : uint8;
 class UINV_HoverItem;
 class UINV_SlottedItem;
+class UINV_InventoryItem;
+struct FGameplayTag;
 struct FINV_ItemManifest;
+struct FINV_GridFragment;
+struct FINV_ImageFragment;
+struct FINV_GridWidgetFactoryConfig;
 class UINV_ItemComponent;
 
 #include "INV_InventoryGrid.generated.h"
@@ -46,7 +48,7 @@ public:
 	
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
 	
-	FORCEINLINE bool HasHoverItem() const { return IsValid(HoverItem); }
+	FORCEINLINE bool HasHoverItem() const { return HoverItem.Get() != nullptr; }
 
 private:
 	// Owning inventory component for events.

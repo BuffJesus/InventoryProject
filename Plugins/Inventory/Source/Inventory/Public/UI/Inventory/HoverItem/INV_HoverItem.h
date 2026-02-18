@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Blueprint/UserWidget.h"
-#include "Items/INV_InventoryItem.h"
 #include "INV_HoverItem.generated.h"
 
 class UTextBlock;
 class UImage;
+class UINV_InventoryItem;
 
 /**
  * The HoverItem is the item that will appear and follow mouse when inventory item has been clicked

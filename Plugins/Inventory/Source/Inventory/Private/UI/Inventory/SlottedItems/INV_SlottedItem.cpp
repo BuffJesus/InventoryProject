@@ -2,6 +2,7 @@
 
 
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
@@ -28,7 +29,7 @@ void UINV_SlottedItem::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
 
 void UINV_SlottedItem::SetImageBrush(const FSlateBrush& Brush) const
 {
-	if (IsValid(Image_Icon))
+	if (IsValid(Image_Icon.Get()))
 	{
 		Image_Icon->SetBrush(Brush);
 	}

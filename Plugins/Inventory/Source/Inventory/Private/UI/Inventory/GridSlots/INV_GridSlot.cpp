@@ -3,7 +3,9 @@
 
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "Components/Image.h"
+#include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_FragmentTags.h"
+#include "UI/ItemPopUp/INV_ItemPopUp.h"
 
 void UINV_GridSlot::NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {

@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/Image.h"
 #include "Items/INV_InventoryItem.h"
 #include "INV_SlottedItem.generated.h"
 

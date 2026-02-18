@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Items/INV_InventoryItem.h"
-#include "UI/ItemPopUp/INV_ItemPopUp.h"
 #include "INV_GridSlot.generated.h"
 
 class UImage;
+class UINV_ItemPopUp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGridSlotEvent, int32, GridIndex, const FPointerEvent&, MouseEvent);
 
