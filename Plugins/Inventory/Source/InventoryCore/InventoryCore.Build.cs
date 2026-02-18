@@ -10,7 +10,8 @@ public class InventoryCore : ModuleRules
 			new string[]
 			{
 				"Core",
-				"CoreUObject"
+				"CoreUObject",
+				"GameplayTags"
 			}
 		);
 
