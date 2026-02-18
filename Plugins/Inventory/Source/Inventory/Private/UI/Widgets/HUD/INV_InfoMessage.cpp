@@ -1,7 +1,7 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/HUD/INV_InfoMessage.h"
+#include "UI/Widgets/HUD/INV_InfoMessage.h"
 #include "Components/TextBlock.h"
 
 void UINV_InfoMessage::NativeOnInitialized()

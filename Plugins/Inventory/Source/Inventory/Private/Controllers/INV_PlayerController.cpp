@@ -9,7 +9,7 @@
 #include "Components/INV_InventoryComponent.h"
 #include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "UI/HUD/INV_HUDWidget.h"
+#include "UI/Widgets/HUD/INV_HUDWidget.h"
 
 AINV_PlayerController::AINV_PlayerController()
 {

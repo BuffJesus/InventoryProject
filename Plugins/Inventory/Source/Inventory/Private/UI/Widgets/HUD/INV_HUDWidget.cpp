@@ -1,10 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/HUD/INV_HUDWidget.h"
+#include "UI/Widgets/HUD/INV_HUDWidget.h"
 #include "Components/INV_InventoryComponent.h"
 #include "UI/Utils/INV_InventoryStatics.h"
-#include "UI/HUD/INV_InfoMessage.h"
+#include "UI/Widgets/HUD/INV_InfoMessage.h"
 
 void UINV_HUDWidget::NativeOnInitialized()
 {
