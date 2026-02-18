@@ -33,7 +33,7 @@ struct FINV_DropLocationResult
  * Handles ground tracing, collision detection, and pawn clearance.
  */
 UCLASS()
-class INVENTORY_API UINV_DropLocationCalculator : public UObject
+class INVENTORYCORE_API UINV_DropLocationCalculator : public UObject
 {
 	GENERATED_BODY()
 
