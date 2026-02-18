@@ -3,7 +3,7 @@
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
-#include "UI/INV_WidgetUtils.h"
+#include "UI/Utils/INV_WidgetUtils.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Components/CanvasPanel.h"

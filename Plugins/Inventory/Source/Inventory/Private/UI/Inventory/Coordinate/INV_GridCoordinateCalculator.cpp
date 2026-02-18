@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UI/Inventory/Coordinate/INV_GridCoordinateCalculator.h"
-#include "UI/INV_WidgetUtils.h"
+#include "UI/Utils/INV_WidgetUtils.h"
 
 FIntPoint UINV_GridCoordinateCalculator::CalculateHoverCoordinates(
 	const FVector2D& CanvasPos,

@@ -16,7 +16,7 @@
 #include "Items/Fragments/INV_FragmentTags.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Inventory/Transfer/INV_ItemTransferHandler.h"
-#include "UI/INV_WidgetUtils.h"
+#include "UI/Utils/INV_WidgetUtils.h"
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 #include "UI/Inventory/State/INV_GridStateManager.h"
 #include "UI/Inventory/Popup/INV_GridPopupManager.h"

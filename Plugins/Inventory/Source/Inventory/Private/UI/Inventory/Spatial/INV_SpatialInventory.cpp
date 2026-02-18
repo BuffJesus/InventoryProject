@@ -10,7 +10,8 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/WidgetSwitcher.h"
 #include "UI/Utils/INV_InventoryStatics.h"
-#include "UI/INV_WidgetUtils.h"
+#include "UI/Utils/INV_WidgetUtils.h"
+#include "Items/INV_InventoryItem.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/ItemDescription/INV_ItemDescription.h"
 #include "UI/ItemDescription/INV_ItemPresentationUtils.h"
@@ -150,7 +151,7 @@ UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
 
 void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const FVector2D& OpenPosition)
 {
-	if (!IsValid(Item) || !IsValid(CanvasPanel)) return;
+	if (!IsValid(Item) || !IsValid(CanvasPanel.Get())) return;
 	const auto& Manifest { Item->GetItemManifest() };
 
 	UINV_ItemDescription* DescriptionWidget = GetItemDescription();
