@@ -16,7 +16,7 @@ class UINV_Highlightable : public UInterface
 /**
  * 
  */
-class INVENTORY_API IINV_Highlightable
+class INVENTORYCORE_API IINV_Highlightable
 {
 	GENERATED_BODY()
 

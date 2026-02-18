@@ -27,7 +27,7 @@ public:
 	// Convenience for pulling category from an item component.
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static EINV_ItemCategory GetItemCategoryFromItemComp(UINV_ItemComponent* ItemComponent);
-	static bool GetValidInventoryComponent(APlayerController* PC, UINV_InventoryBase*& InventoryBase);
+	static bool TryGetInventoryBase(APlayerController* PC, UINV_InventoryBase*& OutInventoryBase);
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static void ItemHovered(APlayerController* PC, UINV_InventoryItem* Item);

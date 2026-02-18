@@ -11,7 +11,7 @@
  * 
  */
 UCLASS()
-class INVENTORY_API UINV_HighlightableStaticMesh : public UStaticMeshComponent, public IINV_Highlightable
+class INVENTORYCORE_API UINV_HighlightableStaticMesh : public UStaticMeshComponent, public IINV_Highlightable
 {
 	GENERATED_BODY()
 	

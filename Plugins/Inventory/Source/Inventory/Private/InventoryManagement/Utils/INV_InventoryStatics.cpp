@@ -22,20 +22,19 @@ EINV_ItemCategory UINV_InventoryStatics::GetItemCategoryFromItemComp(UINV_ItemCo
 	return ItemComponent->GetItemManifest().GetItemCategory();
 }
 
-bool UINV_InventoryStatics::GetValidInventoryComponent(APlayerController* PC, UINV_InventoryBase*& InventoryBase)
+bool UINV_InventoryStatics::TryGetInventoryBase(APlayerController* PC, UINV_InventoryBase*& OutInventoryBase)
 {
 	UINV_InventoryComponent* IC { GetInventoryComponent(PC) };
-	if (!IsValid(IC)) return true;
+	if (!IsValid(IC)) return false;
 
-	InventoryBase = { IC->GetInventoryMenu() };
-	if (!IsValid(InventoryBase)) return true;
-	return false;
+	OutInventoryBase = IC->GetInventoryMenu();
+	return IsValid(OutInventoryBase);
 }
 
 void UINV_InventoryStatics::ItemHovered(APlayerController* PC, UINV_InventoryItem* Item)
 {
 	UINV_InventoryBase* InventoryBase;
-	if (GetValidInventoryComponent(PC, InventoryBase)) return;
+	if (!TryGetInventoryBase(PC, InventoryBase)) return;
 
 	if (InventoryBase->HasHoverItem()) return;
 	
@@ -45,7 +44,7 @@ void UINV_InventoryStatics::ItemHovered(APlayerController* PC, UINV_InventoryIte
 void UINV_InventoryStatics::ItemUnhovered(APlayerController* PC)
 {
 	UINV_InventoryBase* InventoryBase;
-	if (GetValidInventoryComponent(PC, InventoryBase)) return;
+	if (!TryGetInventoryBase(PC, InventoryBase)) return;
 	
 	InventoryBase->OnItemUnhovered();
 }
@@ -53,7 +52,7 @@ void UINV_InventoryStatics::ItemUnhovered(APlayerController* PC)
 void UINV_InventoryStatics::ItemInspected(APlayerController* PC, UINV_InventoryItem* Item, const FVector2D& OpenPosition)
 {
 	UINV_InventoryBase* InventoryBase;
-	if (GetValidInventoryComponent(PC, InventoryBase)) return;
+	if (!TryGetInventoryBase(PC, InventoryBase)) return;
 	if (!IsValid(Item)) return;
 
 	InventoryBase->OnItemInspected(Item, OpenPosition);
