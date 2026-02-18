@@ -14,7 +14,7 @@ struct FInv_ItemFragment;
 // The item manifest contains all necessary data to create a new inventory item
 
 USTRUCT(BlueprintType)
-struct INVENTORY_API FINV_ItemManifest
+struct INVENTORYCORE_API FINV_ItemManifest
 {
 	GENERATED_BODY()
 	// Mutable access to raw fragment storage (used when constructing runtime items).

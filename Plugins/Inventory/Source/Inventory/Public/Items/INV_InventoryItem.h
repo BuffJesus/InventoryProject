@@ -1,9 +1,9 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Manifest/INV_ItemManifest.h"
+#include "Items/Manifest/INV_ItemManifest.h"
 #include "UObject/Object.h"
 #include "StructUtils/InstancedStruct.h"
 #include "INV_InventoryItem.generated.h"
@@ -50,7 +50,7 @@ public:
 	
 private:
 	// Instanced manifest (fragments + tags).
-	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/Inventory.INV_ItemManifest"), Replicated)
+	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"), Replicated)
 	FInstancedStruct ItemManifest;
 	
 	// Total stacks stored for this item.

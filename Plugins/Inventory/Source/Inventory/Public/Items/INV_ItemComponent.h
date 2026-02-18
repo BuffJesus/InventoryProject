@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
-#include "Manifest/INV_ItemManifest.h"
+#include "Items/Manifest/INV_ItemManifest.h"
 #include "INV_ItemComponent.generated.h"
 
 
