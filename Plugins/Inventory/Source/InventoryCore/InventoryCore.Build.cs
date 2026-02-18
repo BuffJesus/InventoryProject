@@ -10,8 +10,7 @@ public class InventoryCore : ModuleRules
 			new string[]
 			{
 				"Core",
-				"CoreUObject",
-				"NetCore"
+				"CoreUObject"
 			}
 		);
 

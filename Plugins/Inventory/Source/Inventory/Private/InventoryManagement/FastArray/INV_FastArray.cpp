@@ -3,6 +3,8 @@
 
 #include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
+#include "Items/INV_InventoryItem.h"
 
 TArray<UINV_InventoryItem*> FINV_InventoryFastArray::GetAllItems() const
 {
@@ -31,7 +33,7 @@ void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> Remove
 			}
 			if (Callbacks.UnregisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
 			{
-				Callbacks.UnregisterReplicatedSubObject(RemovedItem);
+				Callbacks.UnregisterReplicatedSubObject(static_cast<UObject*>(RemovedItem));
 			}
 		}
 	}
@@ -64,7 +66,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemCo
 
 	if (Callbacks.RegisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
 	{
-		Callbacks.RegisterReplicatedSubObject(NewEntry.Item);
+		Callbacks.RegisterReplicatedSubObject(static_cast<UObject*>(NewEntry.Item.Get()));
 	}
 	MarkItemDirty(NewEntry);
 
