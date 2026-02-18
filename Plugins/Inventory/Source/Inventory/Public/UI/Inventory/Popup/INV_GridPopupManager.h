@@ -3,8 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "INV_GridPopupManager.generated.h"
 
 class UINV_ItemPopUp;
 class UINV_GridSlot;
@@ -17,11 +15,8 @@ class APlayerController;
  * Manages item popup menu creation, positioning, and lifecycle.
  * Handles popup action callbacks and click-outside-to-close detection.
  */
-UCLASS()
-class INVENTORY_API UINV_GridPopupManager : public UObject
+class INVENTORY_API FINV_GridPopupManager
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Create and display an item popup menu at the clicked grid slot.
@@ -36,6 +31,7 @@ public:
 	 * @return Created popup widget (or null if failed)
 	 */
 	static UINV_ItemPopUp* CreateItemPopup(
+		TObjectPtr<UINV_ItemPopUp>& ItemPopUp,
 		const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 		int32 GridIndex,
 		TSubclassOf<UINV_ItemPopUp> ItemPopUpClass,

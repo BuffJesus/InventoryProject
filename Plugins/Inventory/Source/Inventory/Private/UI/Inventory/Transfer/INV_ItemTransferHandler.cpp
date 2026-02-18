@@ -69,7 +69,7 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 		UINV_InventoryItem* SourceItem = SourceSlot->GetInventoryItem().Get();
 		if (!IsValid(SourceItem)) return Result;
 
-		const FINV_GridFragment* SourceGridFragment = SourceItem->GetItemManifest().GetFragmentOfType<FINV_GridFragment>();
+		const FINV_GridFragment* SourceGridFragment = SourceItem->GetCachedGridFragment();
 		if (!SourceGridFragment) return Result;
 
 		DisplacedItems.Add(FDisplacedItemPlan{
@@ -92,7 +92,7 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 		UINV_InventoryItem* SourceItem = GridSlots[OverlappedIndex]->GetInventoryItem().Get();
 		if (!IsValid(SourceItem)) return Result;
 
-		const FINV_GridFragment* SourceGridFragment = SourceItem->GetItemManifest().GetFragmentOfType<FINV_GridFragment>();
+		const FINV_GridFragment* SourceGridFragment = SourceItem->GetCachedGridFragment();
 		if (!SourceGridFragment) return Result;
 
 		MarkFootprint(SimulatedOccupied, GridSlots, GridSize, OverlappedIndex, SourceGridFragment->GetGridSize(), false);
@@ -279,3 +279,4 @@ bool FINV_ItemTransferHandler::FindFirstFitPlacement(
 	OutIndex = INDEX_NONE;
 	return false;
 }
+

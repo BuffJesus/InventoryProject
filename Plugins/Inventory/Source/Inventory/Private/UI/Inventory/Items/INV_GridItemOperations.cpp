@@ -5,7 +5,6 @@
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "Items/Fragments/INV_FragmentTags.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 
 void UINV_GridItemOperations::UpdateGridSlots(
@@ -32,7 +31,7 @@ void UINV_GridItemOperations::UpdateGridSlots(
 		GridSlots[Index]->SetStackCount(StackAmount);
 	}
 
-	const FINV_GridFragment* GridFragment = NewItem->GetItemManifest().GetFragmentOfType<FINV_GridFragment>();
+	const FINV_GridFragment* GridFragment = NewItem->GetCachedGridFragment();
 	if (!GridFragment)
 	{
 		return;
@@ -68,7 +67,7 @@ void UINV_GridItemOperations::RemoveItemFromGrid(
 		return;
 	}
 
-	const FINV_GridFragment* GridFragment = InventoryItem->GetItemManifest().GetFragmentOfType<FINV_GridFragment>();
+	const FINV_GridFragment* GridFragment = InventoryItem->GetCachedGridFragment();
 	if (!GridFragment)
 	{
 		return;
@@ -131,3 +130,4 @@ void UINV_GridItemOperations::ApplyStackUpdates(
 		SlottedItem->UpdateStackCount(NewStackCount);
 	}
 }
+

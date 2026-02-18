@@ -5,7 +5,6 @@
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "Items/Fragments/INV_FragmentTags.h"
 #include "UI/Inventory/EventHandling/INV_GridEventHandler.h"
 
 FINV_GridClickResult UINV_GridClickActionResolver::ResolveSlottedItemClick(
@@ -193,7 +192,7 @@ int32 UINV_GridClickActionResolver::FindBestMultiBlockerAnchor(
 		const UINV_InventoryItem* BlockingItem = GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().Get();
 		if (!IsValid(BlockingItem)) continue;
 
-		const FINV_GridFragment* BlockingGridFragment = BlockingItem->GetItemManifest().GetFragmentOfType<FINV_GridFragment>();
+		const FINV_GridFragment* BlockingGridFragment = BlockingItem->GetCachedGridFragment();
 		const FIntPoint BlockingDimensions = BlockingGridFragment ? BlockingGridFragment->GetGridSize() : FIntPoint(1, 1);
 		const int32 BlockingArea = BlockingDimensions.X * BlockingDimensions.Y;
 
@@ -238,7 +237,7 @@ bool UINV_GridClickActionResolver::ShouldUseSpatialSwap(
 	}
 
 	const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-	const FINV_GridFragment* ClickedGridFragment = ClickedItem->GetItemManifest().GetFragmentOfType<FINV_GridFragment>();
+	const FINV_GridFragment* ClickedGridFragment = ClickedItem->GetCachedGridFragment();
 	const FIntPoint ClickedDimensions = ClickedGridFragment ? ClickedGridFragment->GetGridSize() : FIntPoint(1, 1);
 
 	const bool bDirectSameSlotDrop = ItemDropIndex != INDEX_NONE && ItemDropIndex == GridIndex;
@@ -247,3 +246,4 @@ bool UINV_GridClickActionResolver::ShouldUseSpatialSwap(
 	// Use spatial swap if not a direct same-slot drop OR not single-tile
 	return !bDirectSameSlotDrop || !bIsSingleTileInteraction;
 }
+

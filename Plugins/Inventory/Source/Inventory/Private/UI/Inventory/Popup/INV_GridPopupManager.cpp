@@ -11,7 +11,8 @@
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 
-UINV_ItemPopUp* UINV_GridPopupManager::CreateItemPopup(
+UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
+	TObjectPtr<UINV_ItemPopUp>& ItemPopUp,
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	int32 GridIndex,
 	TSubclassOf<UINV_ItemPopUp> ItemPopUpClass,
@@ -23,16 +24,27 @@ UINV_ItemPopUp* UINV_GridPopupManager::CreateItemPopup(
 
 	UINV_InventoryItem* RightClickedItem = GridSlots[GridIndex]->GetInventoryItem().Get();
 	if (!IsValid(RightClickedItem)) return nullptr;
-	if (IsValid(GridSlots[GridIndex]->GetItemPopUp())) return nullptr;
 	if (!ItemPopUpClass) return nullptr;
 	if (!IsValid(OwningCanvasPanel)) return nullptr;
 	if (!IsValid(OwningWidget)) return nullptr;
 
-	UINV_ItemPopUp* ItemPopUp = CreateWidget<UINV_ItemPopUp>(OwningWidget, ItemPopUpClass);
-	GridSlots[GridIndex]->SetItemPopUp(ItemPopUp);
+	// Reuse existing popup when possible to avoid repeated widget creation.
+	if (!IsValid(ItemPopUp))
+	{
+		ItemPopUp = CreateWidget<UINV_ItemPopUp>(OwningWidget, ItemPopUpClass);
+	}
 	if (!IsValid(ItemPopUp)) return nullptr;
 
-	OwningCanvasPanel->AddChild(ItemPopUp);
+	if (ItemPopUp->GetParent() != OwningCanvasPanel)
+	{
+		ItemPopUp->RemoveFromParent();
+		OwningCanvasPanel->AddChild(ItemPopUp);
+	}
+
+	ItemPopUp->SetGridIndex(GridIndex);
+	ItemPopUp->SetVisibility(ESlateVisibility::Visible);
+	ItemPopUp->ResetMenuState();
+
 	UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp);
 	if (!IsValid(CanvasSlot)) return nullptr;
 
@@ -66,7 +78,7 @@ UINV_ItemPopUp* UINV_GridPopupManager::CreateItemPopup(
 	return ItemPopUp;
 }
 
-bool UINV_GridPopupManager::ClosePopupIfClickedOutside(
+bool FINV_GridPopupManager::ClosePopupIfClickedOutside(
 	TObjectPtr<UINV_ItemPopUp>& ItemPopUp,
 	APlayerController* PlayerController)
 {
@@ -83,14 +95,12 @@ bool UINV_GridPopupManager::ClosePopupIfClickedOutside(
 	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
 	if (ItemPopUp->GetCachedGeometry().IsUnderLocation(CursorPosition)) return false;
 
-	ItemPopUp->RemoveFromParent();
-	ItemPopUp = nullptr;
+	ItemPopUp->SetVisibility(ESlateVisibility::Collapsed);
 	return true;
 }
 
-void UINV_GridPopupManager::CloseActiveItemPopup(TObjectPtr<UINV_ItemPopUp>& ItemPopUp)
+void FINV_GridPopupManager::CloseActiveItemPopup(TObjectPtr<UINV_ItemPopUp>& ItemPopUp)
 {
 	if (!IsValid(ItemPopUp)) return;
-	ItemPopUp->RemoveFromParent();
-	ItemPopUp = nullptr;
+	ItemPopUp->SetVisibility(ESlateVisibility::Collapsed);
 }

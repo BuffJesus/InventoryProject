@@ -13,9 +13,8 @@
 #include "UI/Utils/INV_InventoryStatics.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
-#include "Items/Fragments/INV_FragmentTags.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "UI/Inventory/Transfer/INV_ItemTransferHandler.h"
+#include "UI/Inventory/Services/INV_GridSwapService.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 #include "UI/Inventory/State/INV_GridStateManager.h"
@@ -110,12 +109,12 @@ const FINV_GridFragment* UINV_InventoryGrid::TryGetGridFragmentAtIndex(const int
 	if (!GridSlots.IsValidIndex(Index)) return nullptr;
 	const UINV_InventoryItem* Item = GridSlots[Index]->GetInventoryItem().Get();
 	if (!IsValid(Item)) return nullptr;
-	return GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
+	return Item->GetCachedGridFragment();
 }
 
 FIntPoint UINV_InventoryGrid::GetItemDimensionsOrDefault(const UINV_InventoryItem* Item) const
 {
-	const FINV_GridFragment* GridFragment = GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
+	const FINV_GridFragment* GridFragment = IsValid(Item) ? Item->GetCachedGridFragment() : nullptr;
 	return GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 }
 
@@ -136,12 +135,12 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 
 void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 {
-	UINV_GridPopupManager::ClosePopupIfClickedOutside(ItemPopUp, GetOwningPlayer());
+	FINV_GridPopupManager::ClosePopupIfClickedOutside(ItemPopUp, GetOwningPlayer());
 }
 
 void UINV_InventoryGrid::CloseActiveItemPopup()
 {
-	UINV_GridPopupManager::CloseActiveItemPopup(ItemPopUp);
+	FINV_GridPopupManager::CloseActiveItemPopup(ItemPopUp);
 }
 
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
@@ -283,8 +282,8 @@ void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 In
                                         const int32 StackAmount)
 {
 	// Build the slotted widget and place it on the canvas using factory
-	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment) };
-	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(Item, FragmentTags::IconFragment) };
+	const FINV_GridFragment* GridFragment { IsValid(Item) ? Item->GetCachedGridFragment() : nullptr };
+	const FINV_ImageFragment* ImageFragment { IsValid(Item) ? Item->GetCachedImageFragment() : nullptr };
 	if (!GridFragment || !ImageFragment) return;
 
 	UINV_SlottedItem* SlottedItem = CreateSlottedItem(Item, bStackable, StackAmount, GridFragment, ImageFragment, Index);
@@ -440,60 +439,49 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 	if (!GridSlots[GridIndex]->GetInventoryItem().IsValid()) return;
 
 	UINV_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
-	const FINV_GridFragment* HoverGridFragment { GetFragment<FINV_GridFragment>(HoverInventoryItem, FragmentTags::GridFragment) };
+	const FINV_GridFragment* HoverGridFragment { IsValid(HoverInventoryItem) ? HoverInventoryItem->GetCachedGridFragment() : nullptr };
 	if (!HoverGridFragment) return;
 
-	// Prefer the computed hover drop index, but fall back to clicked index if needed
-	const int32 TargetDropIndex = GridSlots.IsValidIndex(ItemDropIndex) ? ItemDropIndex : GridIndex;
-
-	// Delegate swap planning to transfer handler
-	FINV_SwapResult SwapPlan = FINV_ItemTransferHandler::PlanSwapOperation(
-		GridSlots,
-		GridSize,
-		HoverGridFragment->GetGridSize(),
-		TargetDropIndex,
-		GridIndex);
-
-	if (!SwapPlan.bSuccess)
-	{
-		// Swap not possible
-		return;
-	}
-
-	// Store hover item state before modification
 	const int32 TempStackCount { HoverItem->GetStackCount() };
 	const bool bTempIsStackable { HoverItem->IsStackable() };
 	const int32 HoverPreviousIndex = HoverItem->GetPreviousGridIndex();
 
-	// Keep same previous grid index for the newly hovered clicked item
-	AssignHoverItem(ClickedInventoryItem, GridIndex, HoverPreviousIndex);
-
-	// Remove all overlapped blockers
-	for (const TPair<UINV_InventoryItem*, int32>& ItemToRemove : SwapPlan.ItemsToRemove)
-	{
-		if (IsValid(ItemToRemove.Key))
+	const FINV_GridSwapCallbacks Callbacks{
+		[this](UINV_InventoryItem* Item, const int32 NewGridIndex, const int32 PreviousGridIndex)
 		{
-			RemoveItemFromGrid(ItemToRemove.Key, ItemToRemove.Value);
+			AssignHoverItem(Item, NewGridIndex, PreviousGridIndex);
+		},
+		[this](UINV_InventoryItem* Item, const int32 RemoveIndex)
+		{
+			RemoveItemFromGrid(Item, RemoveIndex);
+		},
+		[this](UINV_InventoryItem* Item, const int32 AddIndex, const bool bStackable, const int32 StackCount)
+		{
+			AddItemAtIndex(Item, AddIndex, bStackable, StackCount);
+		},
+		[this](UINV_InventoryItem* Item, const int32 UpdateIndex, const bool bStackable, const int32 StackCount)
+		{
+			UpdateGridSlots(Item, UpdateIndex, bStackable, StackCount);
+		},
+		[this]()
+		{
+			RefreshGridSlotVisualsFromAvailability();
 		}
-	}
+	};
 
-	// Place hovered item at destination
-	AddItemAtIndex(HoverInventoryItem, SwapPlan.PlacementIndex, bTempIsStackable, TempStackCount);
-	UpdateGridSlots(HoverInventoryItem, SwapPlan.PlacementIndex, bTempIsStackable, TempStackCount);
-
-	// Re-home displaced blockers
-	for (int32 i = 0; i < SwapPlan.ItemsToRelocate.Num(); ++i)
-	{
-		const TPair<UINV_InventoryItem*, int32>& Relocation = SwapPlan.ItemsToRelocate[i];
-		const int32 StackCount = SwapPlan.RelocationStackCounts[i];
-		const bool bStackable = SwapPlan.RelocationStackableFlags[i];
-
-		AddItemAtIndex(Relocation.Key, Relocation.Value, bStackable, StackCount);
-		UpdateGridSlots(Relocation.Key, Relocation.Value, bStackable, StackCount);
-	}
-
-	// Ensure no stale hover-highlight textures remain after relocation
-	RefreshGridSlotVisualsFromAvailability();
+	const bool bSwapExecuted = FINV_GridSwapService::ExecuteSwapWithHoverItem(
+		GridSlots,
+		GridSize,
+		ItemDropIndex,
+		ClickedInventoryItem,
+		GridIndex,
+		HoverInventoryItem,
+		HoverGridFragment->GetGridSize(),
+		TempStackCount,
+		bTempIsStackable,
+		HoverPreviousIndex,
+		Callbacks);
+	if (!bSwapExecuted) return;
 }
 
 void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
@@ -518,7 +506,7 @@ void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, c
 	ClearHoverItem();
 	ShowCursor();
 
-	const FINV_GridFragment* GridFragment { GridSlots[Index]->GetInventoryItem()->GetItemManifest().GetFragmentOfType<FINV_GridFragment>() };
+	const FINV_GridFragment* GridFragment { GridSlots[Index]->GetInventoryItem()->GetCachedGridFragment() };
 	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 	HighlightSlots(Index, Dimensions);
 }
@@ -702,8 +690,8 @@ void UINV_InventoryGrid::DropItem()
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 {
-	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(InventoryItem, FragmentTags::GridFragment) };
-	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(InventoryItem, FragmentTags::IconFragment) };
+	const FINV_GridFragment* GridFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedGridFragment() : nullptr };
+	const FINV_ImageFragment* ImageFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedImageFragment() : nullptr };
 	if (!GridFragment || !ImageFragment) return;
 
 	HoverItem = UINV_HoverItemManager::AssignHoverItem(
@@ -817,7 +805,8 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 {
-	ItemPopUp = UINV_GridPopupManager::CreateItemPopup(
+	ItemPopUp = FINV_GridPopupManager::CreateItemPopup(
+		ItemPopUp,
 		GridSlots,
 		GridIndex,
 		ItemPopUpClass,
@@ -852,3 +841,4 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	}
 	return false;
 }
+

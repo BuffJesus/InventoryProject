@@ -36,6 +36,7 @@ public:
 	FPopUpMenuInspect OnInspect;
 	
 	void ExecuteAndClose(const TFunctionRef<bool()>& Action);
+	void ResetMenuState() const;
 	void CollapseSplitButton() const;
 	void CollapseConsumeButton() const;
 	void SetSliderParams(const float Max, const float Value) const;

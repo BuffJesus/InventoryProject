@@ -30,7 +30,20 @@ void UINV_ItemPopUp::ExecuteAndClose(const TFunctionRef<bool()>& Action)
 {
 	if (Action())
 	{
-		RemoveFromParent();
+		SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UINV_ItemPopUp::ResetMenuState() const
+{
+	Button_Split->SetVisibility(ESlateVisibility::Visible);
+	Slider_Split->SetVisibility(ESlateVisibility::Visible);
+	Text_SplitAmount->SetVisibility(ESlateVisibility::Visible);
+	Button_Drop->SetVisibility(ESlateVisibility::Visible);
+	Button_Consume->SetVisibility(ESlateVisibility::Visible);
+	if (IsValid(Button_Inspect))
+	{
+		Button_Inspect->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
