@@ -18,6 +18,7 @@ UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
 	// Replicate items as registered subobjects.
 	bReplicateUsingRegisteredSubObjectList = true;
 	bInventoryMenuOpen = false;
+	ConfigureFastArrayCallbacks();
 }
 
 void UINV_InventoryComponent::BeginPlay()
@@ -25,6 +26,51 @@ void UINV_InventoryComponent::BeginPlay()
 	Super::BeginPlay();
 	
 	ConstructInventory();
+}
+
+void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
+{
+	FINV_FastArrayCallbacks Callbacks;
+	Callbacks.CreateItemFromPickup = [](UINV_ItemComponent* ItemComponent, AActor* OwningActor) -> UINV_InventoryItem*
+	{
+		if (!IsValid(ItemComponent) || !IsValid(OwningActor)) return nullptr;
+		UINV_InventoryItem* Item = ItemComponent->GetItemManifestMutable().CreateItem(OwningActor);
+		if (!IsValid(Item)) return nullptr;
+		Item->SetItemRarityOptions(ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
+		return Item;
+	};
+	Callbacks.MatchesItemByTypeAndRarity = [](const UINV_InventoryItem* Item, const FGameplayTag& ItemType, const bool bUseItemRarity, const FGameplayTag& ItemRarityTag)
+	{
+		if (!IsValid(Item)) return false;
+		if (!Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
+		if (Item->IsItemRarityEnabled() != bUseItemRarity) return false;
+		if (!bUseItemRarity) return true;
+		return Item->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
+	};
+	Callbacks.OnItemAdded = [this](UINV_InventoryItem* Item)
+	{
+		OnItemAdded.Broadcast(Item);
+	};
+	Callbacks.OnItemRemoved = [this](UINV_InventoryItem* Item)
+	{
+		OnItemRemoved.Broadcast(Item);
+	};
+	Callbacks.RegisterReplicatedSubObject = [this](UObject* SubObj)
+	{
+		AddRepSubObj(SubObj);
+	};
+	Callbacks.UnregisterReplicatedSubObject = [this](UObject* SubObj)
+	{
+		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))
+		{
+			RemoveReplicatedSubObject(SubObj);
+		}
+	};
+	Callbacks.CanUseReplicationSubObjectList = [this]()
+	{
+		return IsUsingRegisteredSubObjectList() && IsReadyForReplication();
+	};
+	InventoryFastArray.SetCallbacks(MoveTemp(Callbacks));
 }
 
 void UINV_InventoryComponent::ToggleInventoryMenu()

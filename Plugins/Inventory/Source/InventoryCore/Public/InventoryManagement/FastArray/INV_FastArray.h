@@ -7,31 +7,49 @@
 #include "INV_FastArray.generated.h"
 
 struct FGameplayTag;
+class AActor;
 class UINV_ItemComponent;
-class UINV_InventoryComponent;
 class UINV_InventoryItem;
+
+struct FINV_FastArrayCallbacks
+{
+	// Runtime item construction and matching hooks.
+	TFunction<UINV_InventoryItem*(UINV_ItemComponent*, AActor*)> CreateItemFromPickup;
+	TFunction<bool(const UINV_InventoryItem*, const FGameplayTag&, bool, const FGameplayTag&)> MatchesItemByTypeAndRarity;
+
+	// Item lifecycle notifications.
+	TFunction<void(UINV_InventoryItem*)> OnItemAdded;
+	TFunction<void(UINV_InventoryItem*)> OnItemRemoved;
+
+	// Replication subobject management hooks.
+	TFunction<void(UObject*)> RegisterReplicatedSubObject;
+	TFunction<void(UObject*)> UnregisterReplicatedSubObject;
+	TFunction<bool()> CanUseReplicationSubObjectList;
+};
 
 // A single replicated inventory entry.
 USTRUCT(BlueprintType)
-struct FINV_InventoryEntry : public FFastArraySerializerItem
+struct INVENTORYCORE_API FINV_InventoryEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	FINV_InventoryEntry(){}
 	
 private:
 	friend struct FINV_InventoryFastArray;
-	friend UINV_InventoryComponent;
 	// The actual item object for this entry.
 	UPROPERTY() TObjectPtr<UINV_InventoryItem> Item { nullptr };
 };
 
 // Replicated list of inventory items.
 USTRUCT(BlueprintType)
-struct FINV_InventoryFastArray : public FFastArraySerializer
+struct INVENTORYCORE_API FINV_InventoryFastArray : public FFastArraySerializer
 {
 	GENERATED_BODY()
 	FINV_InventoryFastArray() : Owner(nullptr) {}
 	FINV_InventoryFastArray(UActorComponent* InOwner) : Owner(InOwner) {}
+
+	void SetCallbacks(FINV_FastArrayCallbacks&& InCallbacks) { Callbacks = MoveTemp(InCallbacks); }
+	void ClearCallbacks() { Callbacks = FINV_FastArrayCallbacks{}; }
 	
 	// Returns all valid inventory item objects currently held in entries.
 	TArray<UINV_InventoryItem*> GetAllItems() const;
@@ -60,11 +78,12 @@ struct FINV_InventoryFastArray : public FFastArraySerializer
 		const FGameplayTag& ItemRarityTag);
 
 private:
-	friend UINV_InventoryComponent;
 	// FastArray entries replicated to clients.
 	UPROPERTY() TArray<FINV_InventoryEntry> Entries;
 	// Owning component used for callbacks.
 	UPROPERTY(NotReplicated) TObjectPtr<UActorComponent> Owner { nullptr };
+	// Externalized hooks to avoid coupling with specific owner component types.
+	FINV_FastArrayCallbacks Callbacks;
 };
 
 template<>

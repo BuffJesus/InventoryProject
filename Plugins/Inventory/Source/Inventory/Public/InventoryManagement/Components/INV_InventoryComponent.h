@@ -61,6 +61,7 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	void ConfigureFastArrayCallbacks();
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
 	
