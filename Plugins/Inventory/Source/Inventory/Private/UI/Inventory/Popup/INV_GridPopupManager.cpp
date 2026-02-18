@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UI/Inventory/Popup/INV_GridPopupManager.h"
-#include "UI/ItemPopUp/INV_ItemPopUp.h"
+#include "UI/Popup/INV_ItemPopUp.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "Items/INV_InventoryItem.h"
 #include "Components/CanvasPanel.h"

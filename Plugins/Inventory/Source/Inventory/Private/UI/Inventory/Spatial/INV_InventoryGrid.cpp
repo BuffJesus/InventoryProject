@@ -29,7 +29,7 @@
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
-#include "UI/ItemPopUp/INV_ItemPopUp.h"
+#include "UI/Popup/INV_ItemPopUp.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 

@@ -1,7 +1,7 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/ItemPopUp/INV_ItemPopUp.h"
+#include "UI/Popup/INV_ItemPopUp.h"
 #include "Components/Button.h"
 #include "Components/SizeBox.h"
 #include "Components/Slider.h"
