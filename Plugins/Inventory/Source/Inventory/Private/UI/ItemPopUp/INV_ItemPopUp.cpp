@@ -3,6 +3,7 @@
 
 #include "UI/ItemPopUp/INV_ItemPopUp.h"
 #include "Components/Button.h"
+#include "Components/SizeBox.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
 
@@ -55,7 +56,7 @@ void UINV_ItemPopUp::SetSliderParams(const float Max, const float Value) const
 
 FVector2D UINV_ItemPopUp::GetBoxSize() const
 {
-	return IsValid(SizeBox_Root)
+	return IsValid(SizeBox_Root.Get())
 		? FVector2D(SizeBox_Root->GetWidthOverride(), SizeBox_Root->GetHeightOverride())
 		: FVector2D::ZeroVector;
 }

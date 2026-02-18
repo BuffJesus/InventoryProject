@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/SizeBox.h"
 #include "INV_ItemPopUp.generated.h"
 
 class USizeBox;

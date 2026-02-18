@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/SizeBox.h"
 #include "UI/Composite/INV_Composite.h"
 #include "INV_ItemDescription.generated.h"
+class USizeBox;
 
 /**
  * 
@@ -16,10 +16,7 @@ class INVENTORY_API UINV_ItemDescription : public UINV_Composite
 	GENERATED_BODY()
 	
 public:
-	FORCEINLINE FVector2D GetBoxSize() const
-	{
-		return IsValid(SizeBox) ? SizeBox->GetDesiredSize() : FVector2D::ZeroVector;
-	}
+	FVector2D GetBoxSize() const;
 	
 private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USizeBox> SizeBox;
