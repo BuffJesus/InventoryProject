@@ -58,6 +58,7 @@ public:
 	FStackChange OnStackChange;
 
 protected:
+	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
 
 private:

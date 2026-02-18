@@ -18,12 +18,18 @@ UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
 	// Replicate items as registered subobjects.
 	bReplicateUsingRegisteredSubObjectList = true;
 	bInventoryMenuOpen = false;
+}
+
+void UINV_InventoryComponent::OnRegister()
+{
+	Super::OnRegister();
 	ConfigureFastArrayCallbacks();
 }
 
 void UINV_InventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	ConfigureFastArrayCallbacks();
 	
 	ConstructInventory();
 }
