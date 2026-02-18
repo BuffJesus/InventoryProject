@@ -5,6 +5,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
@@ -224,31 +225,36 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 	if (!GetOwner()) return;
 	
 	// Ask the UI for available space and stacking info.
-	FINV_SlotAvailabilityResult Result { Inventory->HasRoomForItem(ItemComponent) };
-	
+	const FINV_SlotAvailabilityResult SpaceResult { Inventory->HasRoomForItem(ItemComponent) };
 	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(
 		ItemComponent->GetItemManifest().GetItemType(),
 		ItemComponent->IsItemRarityEnabled(),
 		ItemComponent->GetItemRarityTag()) };
-	Result.Item = FoundItem;
-	
-	if (Result.TotalRoomToFill == 0)
+
+	const FINV_AddItemDecision Decision = FINV_InventoryAddResolver::Resolve(
+		SpaceResult,
+		IsValid(FoundItem));
+
+	switch (Decision.Action)
 	{
-		// No room to add.
+	case EINV_AddItemAction::NoRoom:
 		OnNoRoomInInventory.Broadcast();
-		return;
-	}
-	
-	if (Result.Item.IsValid() && Result.bStackable)
-	{
-		// Add stacks to an existing item.
-		OnStackChange.Broadcast(Result);
-		Server_AddStacksToItem(ItemComponent, Result.TotalRoomToFill, Result.Remainder);
-	}
-	else if (Result.TotalRoomToFill > 0)
-	{
+		break;
+	case EINV_AddItemAction::AddStacks:
+		{
+			FINV_SlotAvailabilityResult StackResult = SpaceResult;
+			StackResult.Item = FoundItem;
+			OnStackChange.Broadcast(StackResult);
+		}
+		Server_AddStacksToItem(ItemComponent, Decision.StackCountToAdd, Decision.Remainder);
+		break;
+	case EINV_AddItemAction::AddNewItem:
 		// Create a new inventory entry.
-		Server_AddNewItem(ItemComponent, Result.bStackable ? Result.TotalRoomToFill : 0);
+		Server_AddNewItem(ItemComponent, Decision.StackCountToAdd);
+		break;
+	case EINV_AddItemAction::None:
+	default:
+		break;
 	}
 }
 
