@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/Composite/INV_Leaf_LabeledValue.h"
+#include "UI/Widgets/Composite/INV_Leaf_LabeledValue.h"
 #include "Components/TextBlock.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 

@@ -6,6 +6,7 @@
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
@@ -14,6 +15,7 @@ FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 	const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridPlacementEngine_HasRoomForItem);
 	// Walk the grid and compute how much space we can fill.
 	FINV_SlotAvailabilityResult Result;
 
@@ -120,6 +122,7 @@ FINV_SpaceQueryResult FINV_GridPlacementEngine::CheckHoverPosition(
 	const FIntPoint& Position,
 	const FIntPoint& Dimensions)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridPlacementEngine_CheckHoverPosition);
 	FINV_SpaceQueryResult Result;
 
 	// Convert position to index

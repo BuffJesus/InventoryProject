@@ -9,6 +9,7 @@
 #include "Components/INV_InventoryComponent.h"
 #include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "UI/Widgets/HUD/INV_HUDWidget.h"
 
 AINV_PlayerController::AINV_PlayerController()
@@ -19,8 +20,21 @@ AINV_PlayerController::AINV_PlayerController()
 void AINV_PlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	// Continuously trace for items in front of the camera.
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_PlayerController_Tick);
+
+	// Interaction highlight/prompt is local-only UI behavior.
+	if (!IsLocalController()) return;
+
+	if (TraceIntervalSeconds <= 0.f)
+	{
+		TraceForItem();
+		return;
+	}
+
+	TraceIntervalAccumulator += DeltaTime;
+	if (TraceIntervalAccumulator < TraceIntervalSeconds) return;
+
+	TraceIntervalAccumulator = 0.f;
 	TraceForItem();
 }
 
@@ -44,6 +58,7 @@ void AINV_PlayerController::BeginPlay()
 	
 	InventoryComponent = FindComponentByClass<UINV_InventoryComponent>();
 	CreateHUDWidget();
+	TraceIntervalAccumulator = TraceIntervalSeconds;
 }
 
 void AINV_PlayerController::SetupInputComponent()
@@ -81,6 +96,8 @@ void AINV_PlayerController::CreateHUDWidget()
 
 void AINV_PlayerController::TraceForItem()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_PlayerController_TraceForItem);
+
 	// Trace from the center of the viewport.
 	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
 	

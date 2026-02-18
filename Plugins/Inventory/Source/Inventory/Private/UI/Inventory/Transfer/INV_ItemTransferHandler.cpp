@@ -7,6 +7,7 @@
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
@@ -15,6 +16,7 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 	const int32 TargetDropIndex,
 	const int32 ClickedIndex)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_ItemTransferHandler_PlanSwapOperation);
 	FINV_SwapResult Result;
 
 	if (!GridSlots.IsValidIndex(TargetDropIndex) || !GridSlots.IsValidIndex(ClickedIndex))

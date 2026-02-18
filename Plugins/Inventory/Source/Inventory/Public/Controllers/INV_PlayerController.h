@@ -58,6 +58,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
 	// How far to trace for items.
 	double TraceLength { 500.f };
+
+	UPROPERTY(EditDefaultsOnly, Category="INV|Trace", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "0.25"))
+	// How often to run item trace in seconds (0 = every tick).
+	float TraceIntervalSeconds { 0.05f };
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
 	// Collision channel used for item tracing.
@@ -66,4 +70,6 @@ private:
 	// Current and previous trace hits.
 	TWeakObjectPtr<AActor> ThisActor { nullptr };
 	TWeakObjectPtr<AActor> LastActor { nullptr };
+	// Time accumulator for trace throttling.
+	float TraceIntervalAccumulator { 0.f };
 };

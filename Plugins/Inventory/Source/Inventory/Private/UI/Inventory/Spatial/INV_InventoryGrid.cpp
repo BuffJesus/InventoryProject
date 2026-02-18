@@ -30,6 +30,7 @@
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/Popup/INV_ItemPopUp.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 
@@ -77,6 +78,7 @@ void UINV_InventoryGrid::NativeOnInitialized()
 
 void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_NativeTick);
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	ClosePopupIfClickedOutside();
 	
@@ -144,6 +146,7 @@ void UINV_InventoryGrid::CloseActiveItemPopup()
 
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_OnTileParamsUpdated);
 	if (!IsValid(HoverItem)) return;
 
 	// Get hover item dimensions
@@ -430,6 +433,7 @@ void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
  */
 void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_SwapWithHoverItem);
 	if (!IsValid(HoverItem)) return;
 	if (!IsValid(ClickedInventoryItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
@@ -753,6 +757,7 @@ FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UIN
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_OnSlottedItemClicked);
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 	CloseActiveItemPopup();
 

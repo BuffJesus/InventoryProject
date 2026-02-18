@@ -1,9 +1,9 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Composite/INV_Composite.h"
+#include "UI/Widgets/Composite/INV_Composite.h"
 #include "INV_ItemDescription.generated.h"
 class USizeBox;
 

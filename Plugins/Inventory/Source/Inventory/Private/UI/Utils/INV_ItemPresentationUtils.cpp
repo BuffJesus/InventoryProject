@@ -1,10 +1,10 @@
 #include "UI/Utils/INV_ItemPresentationUtils.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifest.h"
-#include "UI/Composite/INV_Composite_Base.h"
-#include "UI/Composite/INV_Leaf_Image.h"
-#include "UI/Composite/INV_Leaf_LabeledValue.h"
-#include "UI/Composite/INV_Leaf_Text.h"
+#include "UI/Widgets/Composite/INV_Composite_Base.h"
+#include "UI/Widgets/Composite/INV_Leaf_Image.h"
+#include "UI/Widgets/Composite/INV_Leaf_LabeledValue.h"
+#include "UI/Widgets/Composite/INV_Leaf_Text.h"
 
 namespace
 {

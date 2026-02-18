@@ -1,7 +1,7 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/Composite/INV_Composite.h"
+#include "UI/Widgets/Composite/INV_Composite.h"
 #include "Blueprint/WidgetTree.h"
 
 void UINV_Composite::NativeOnInitialized()
