@@ -43,7 +43,6 @@ public class Inventory : ModuleRules
 				"UMG",
 				"NetCore",
 				"GameplayTags",
-				"StructUtils",
 				"InputCore"
 				// ... add private dependencies that you statically link with here ...	
 			}

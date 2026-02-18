@@ -4,7 +4,7 @@
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "InventoryManagement/Utils/INV_InventoryStatics.h"
+#include "InventoryManagement/Utils/INV_GridIteration.h"
 
 void UINV_GridStateManager::HighlightSlots(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
@@ -15,9 +15,7 @@ void UINV_GridStateManager::HighlightSlots(
 {
 	if (!bMouseWithinCanvas) return;
 
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, Index, Dimensions, GridWidth,
+	FINV_GridIteration::ForEach2D(GridSlots, Index, Dimensions, GridWidth,
 		[](UINV_GridSlot* GridSlot)
 	{
 		GridSlot->SetOccupiedTexture();
@@ -30,9 +28,7 @@ void UINV_GridStateManager::UnHighlightSlots(
 	const int32 Index,
 	const FIntPoint& Dimensions)
 {
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, Index, Dimensions, GridWidth,
+	FINV_GridIteration::ForEach2D(GridSlots, Index, Dimensions, GridWidth,
 		[](UINV_GridSlot* GridSlot)
 	{
 		ApplyStateBasedOnAvailability(GridSlot);
@@ -46,9 +42,7 @@ void UINV_GridStateManager::ChangeSlotState(
 	const FIntPoint& Dimensions,
 	const EINV_GridSlotState State)
 {
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, Index, Dimensions, GridWidth,
+	FINV_GridIteration::ForEach2D(GridSlots, Index, Dimensions, GridWidth,
 		[State](UINV_GridSlot* GridSlot)
 	{
 		switch (State)
@@ -76,7 +70,6 @@ TArray<int32> UINV_GridStateManager::HighlightBlockingItems(
 	TFunction<const FINV_GridFragment*(int32)> GetItemFragment)
 {
 	TArray<int32> GrayedOutIndices;
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
 
 	for (const int32 UpperLeftIndex : BlockingUpperLeftIndices)
 	{
@@ -87,7 +80,7 @@ TArray<int32> UINV_GridStateManager::HighlightBlockingItems(
 
 		GrayedOutIndices.Add(UpperLeftIndex);
 
-		UINV_InventoryStatics::ForEach2D(MutableGridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridWidth,
+		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridWidth,
 			[](UINV_GridSlot* GridSlot)
 		{
 			GridSlot->SetGrayedOutTexture();
@@ -103,8 +96,6 @@ void UINV_GridStateManager::UnHighlightBlockingItems(
 	const TArray<int32>& GrayedOutIndices,
 	TFunction<const FINV_GridFragment*(int32)> GetItemFragment)
 {
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
 	for (const int32 UpperLeftIndex : GrayedOutIndices)
 	{
 		if (!GridSlots.IsValidIndex(UpperLeftIndex)) continue;
@@ -112,7 +103,7 @@ void UINV_GridStateManager::UnHighlightBlockingItems(
 		const FINV_GridFragment* GridFragment = GetItemFragment(UpperLeftIndex);
 		if (!GridFragment) continue;
 
-		UINV_InventoryStatics::ForEach2D(MutableGridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridWidth,
+		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, GridFragment->GetGridSize(), GridWidth,
 			[](UINV_GridSlot* GridSlot)
 		{
 			ApplyStateBasedOnAvailability(GridSlot);

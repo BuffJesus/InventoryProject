@@ -5,6 +5,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
 #include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
 #include "Engine/World.h"
@@ -41,7 +42,9 @@ void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
 	Callbacks.CreateItemFromPickup = [](UINV_ItemComponent* ItemComponent, AActor* OwningActor) -> UINV_InventoryItem*
 	{
 		if (!IsValid(ItemComponent) || !IsValid(OwningActor)) return nullptr;
-		UINV_InventoryItem* Item = ItemComponent->GetItemManifestMutable().CreateItem(OwningActor);
+		UINV_InventoryItem* Item = FINV_ItemManifestRuntimeOps::CreateItemFromManifest(
+			ItemComponent->GetItemManifestMutable(),
+			OwningActor);
 		if (!IsValid(Item)) return nullptr;
 		Item->SetItemRarityOptions(ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
 		return Item;
@@ -170,7 +173,12 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		StackableFragment->SetStackCount(StackCount);
 	}
 	
-	UINV_ItemComponent* SpawnedItemComponent = ItemManifest.SpawnPickupActor(this, SpawnLocation, SpawnRotation, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+	UINV_ItemComponent* SpawnedItemComponent = FINV_ItemManifestRuntimeOps::SpawnPickupActorFromManifest(
+		ItemManifest,
+		this,
+		SpawnLocation,
+		SpawnRotation,
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
 	if (SpawnedItemComponent)
 	{
 		SpawnedItemComponent->SetItemRarityOptions(Item->IsItemRarityEnabled(), Item->GetItemRarityTag());

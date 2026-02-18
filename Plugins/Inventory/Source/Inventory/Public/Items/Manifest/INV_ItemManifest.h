@@ -9,10 +9,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "INV_ItemManifest.generated.h"
 
-class UINV_Composite_Base;
 struct FInv_ItemFragment;
-class UINV_InventoryItem;
-class UINV_ItemComponent;
 
 // The item manifest contains all necessary data to create a new inventory item
 
@@ -22,14 +19,12 @@ struct INVENTORY_API FINV_ItemManifest
 	GENERATED_BODY()
 	// Mutable access to raw fragment storage (used when constructing runtime items).
 	TArray<TInstancedStruct<FInv_ItemFragment>>& GetFragmentsMutable() { return Fragments; }
-	
-	// Create an inventory item object from this manifest and initialize fragment runtime state.
-	// This consumes fragment payload from this manifest instance via ClearFragments().
-	UINV_InventoryItem* CreateItem(UObject* NewOuter);
 	// High-level category for UI placement.
 	EINV_ItemCategory GetItemCategory() const { return ItemCategory; }
 	// Gameplay tag that identifies the item type.
 	FGameplayTag GetItemType() const { return ItemType; }
+	// Pickup actor class for world spawn flow.
+	TSubclassOf<AActor> GetPickupActorClass() const { return PickupActorClass; }
 	
 	// Find the first fragment of T that matches the provided fragment tag.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
@@ -46,13 +41,6 @@ struct INVENTORY_API FINV_ItemManifest
 	// Collect all fragments of type T.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	TArray<const T*> GetFragmentsOfType() const;
-	
-	// Spawn pickup actor and copy this manifest into its item component.
-	UINV_ItemComponent* SpawnPickupActor(const UObject* WorldContextObject, const FVector& SpawnLocation, const FRotator& SpawnRotation,
-		ESpawnActorCollisionHandlingMethod SpawnCollisionHandling = ESpawnActorCollisionHandlingMethod::AlwaysSpawn) const;
-	
-	// Apply all UI-facing fragments to a description/widget composite.
-	void AssimilateInventoryFragments(UINV_Composite_Base* Composite) const;
 	
 private:
 	// Item fragments that describe behavior and UI.
@@ -71,8 +59,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<AActor> PickupActorClass;
 	
-	// Clears fragment payload after this manifest has been consumed to create an inventory item.
-	void ClearFragments();
 };
 
 template <typename T> requires std::derived_from<T, FInv_ItemFragment>

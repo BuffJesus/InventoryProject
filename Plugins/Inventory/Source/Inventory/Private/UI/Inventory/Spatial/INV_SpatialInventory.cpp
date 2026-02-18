@@ -13,6 +13,7 @@
 #include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/ItemDescription/INV_ItemDescription.h"
+#include "UI/ItemDescription/INV_ItemPresentationUtils.h"
 #include "Framework/Application/SlateApplication.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
@@ -161,7 +162,7 @@ void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const 
 	{
 		Widget->SetItemRarityTag(ItemRarityTag);
 	});
-	Manifest.AssimilateInventoryFragments(DescriptionWidget);
+	FINV_ItemPresentationUtils::AssimilateInventoryFragments(Manifest, DescriptionWidget);
 	
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
 	DescriptionWidget->SetVisibility(ESlateVisibility::Visible);

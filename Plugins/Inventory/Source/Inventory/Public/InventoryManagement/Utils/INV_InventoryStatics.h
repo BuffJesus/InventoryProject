@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "INV_InventoryStatics.generated.h"
 
@@ -29,10 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static EINV_ItemCategory GetItemCategoryFromItemComp(UINV_ItemComponent* ItemComponent);
 	static bool GetValidInventoryComponent(APlayerController* PC, UINV_InventoryBase*& InventoryBase);
-
-	template<typename T, typename FuncT>
-	// Iterate a 2D region inside a flat array.
-	static void ForEach2D(TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns, const FuncT& Function);
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static void ItemHovered(APlayerController* PC, UINV_InventoryItem* Item);
@@ -43,21 +38,3 @@ public:
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static void ItemInspected(APlayerController* PC, UINV_InventoryItem* Item, const FVector2D& OpenPosition);
 };
-
-template <typename T, typename FuncT>
-void UINV_InventoryStatics::ForEach2D(TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns,
-	const FuncT& Function)
-	{
-		for (int32 j { 0 }; j < Range2D.Y; ++j)
-		{
-			for (int32 i { 0 }; i < Range2D.X; ++i)
-			{
-				const FIntPoint Coordinates = FINV_GridIteration::GetPositionFromIndex(Index, GridColumns) + FIntPoint(i, j);
-				const int32 TileIndex = FINV_GridIteration::GetIndexFromPosition(Coordinates, GridColumns);
-				if (Array.IsValidIndex(TileIndex))
-				{
-					Function(Array[TileIndex]);
-			}
-		}
-	}
-}

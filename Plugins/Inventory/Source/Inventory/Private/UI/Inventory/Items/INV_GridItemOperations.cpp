@@ -6,7 +6,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Fragments/INV_FragmentTags.h"
-#include "InventoryManagement/Utils/INV_InventoryStatics.h"
+#include "InventoryManagement/Utils/INV_GridIteration.h"
 
 void UINV_GridItemOperations::UpdateGridSlots(
 	TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
@@ -40,7 +40,7 @@ void UINV_GridItemOperations::UpdateGridSlots(
 
 	const FIntPoint Dimensions = GridFragment->GetGridSize();
 
-	UINV_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, GridWidth,
+	FINV_GridIteration::ForEach2D(GridSlots, Index, Dimensions, GridWidth,
 		[&](UINV_GridSlot* GridSlot)
 		{
 			// Mark all slots as occupied by this item.
@@ -74,7 +74,7 @@ void UINV_GridItemOperations::RemoveItemFromGrid(
 		return;
 	}
 
-	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, GridFragment->GetGridSize(), GridWidth,
+	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, GridFragment->GetGridSize(), GridWidth,
 		[&](UINV_GridSlot* GridSlot)
 		{
 			// Clear slot state.

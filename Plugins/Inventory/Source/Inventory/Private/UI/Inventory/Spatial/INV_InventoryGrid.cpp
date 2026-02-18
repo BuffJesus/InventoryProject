@@ -9,6 +9,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
 #include "InventoryManagement/GridPlacement/INV_GridPlacementEngine.h"
+#include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
@@ -155,7 +156,7 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	// Show the exact hovered-item placement footprint with a distinct visual.
 	if (FINV_GridPlacementEngine::IsInGridBounds(ItemDropIndex, Dimensions, GridSize))
 	{
-		UINV_InventoryStatics::ForEach2D(GridSlots, ItemDropIndex, Dimensions, GridSize.X,
+		FINV_GridIteration::ForEach2D(GridSlots, ItemDropIndex, Dimensions, GridSize.X,
 			[](UINV_GridSlot* GridSlot)
 		{
 			GridSlot->SetSelectedTexture();
@@ -659,7 +660,7 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(HoveredInventoryItem, FragmentTags::GridFragment) };
 	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 
-	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
+	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
 	{
 		GridSlot->SetSelectedTexture();
 	});
@@ -676,7 +677,7 @@ void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerE
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(HoveredInventoryItem, FragmentTags::GridFragment) };
 	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 
-	UINV_InventoryStatics::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
+	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
 	{
 		GridSlot->SetOccupiedTexture();
 	});
