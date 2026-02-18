@@ -6,7 +6,7 @@
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
-#include "InventoryManagement/GridPlacement/INV_GridPlacementEngine.h"
+#include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
 
 FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,

@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "UI/Inventory/Spatial/INV_SpatialInventory.h"
@@ -9,7 +9,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/WidgetSwitcher.h"
-#include "InventoryManagement/Utils/INV_InventoryStatics.h"
+#include "UI/Utils/INV_InventoryStatics.h"
 #include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/ItemDescription/INV_ItemDescription.h"

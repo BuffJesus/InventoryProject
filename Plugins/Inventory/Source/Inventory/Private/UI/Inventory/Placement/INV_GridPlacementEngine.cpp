@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "InventoryManagement/GridPlacement/INV_GridPlacementEngine.h"
+#include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifest.h"
