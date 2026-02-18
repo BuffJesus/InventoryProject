@@ -4,8 +4,8 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifest.h"
+#include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
-#include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "InventoryManagement/GridPlacement/INV_GridPlacementEngine.h"
 
 FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
@@ -29,9 +29,7 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 
 	// Gather all unique overlapped items under the hovered footprint
 	TSet<int32> OverlappedUpperLeftIndices;
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, TargetDropIndex, HoverItemDimensions, GridSize.X,
+	FINV_GridIteration::ForEach2D(GridSlots, TargetDropIndex, HoverItemDimensions, GridSize.X,
 		[&](const UINV_GridSlot* GridSlot)
 	{
 		if (GridSlot->GetInventoryItem().IsValid())
@@ -228,9 +226,7 @@ void FINV_ItemTransferHandler::MarkFootprint(
 	const FIntPoint& Dimensions,
 	const bool bOccupied)
 {
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, StartIndex, Dimensions, GridSize.X,
+	FINV_GridIteration::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
 		[&](const UINV_GridSlot* GridSlotRef)
 	{
 		OccupancyMap[GridSlotRef->GetTileIndex()] = bOccupied;
@@ -250,9 +246,7 @@ bool FINV_ItemTransferHandler::CanFitAtIndex(
 	}
 
 	bool bCanFit = true;
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, StartIndex, Dimensions, GridSize.X,
+	FINV_GridIteration::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
 		[&](const UINV_GridSlot* GridSlotRef)
 	{
 		if (OccupancyMap[GridSlotRef->GetTileIndex()])

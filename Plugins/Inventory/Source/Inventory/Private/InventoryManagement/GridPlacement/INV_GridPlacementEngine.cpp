@@ -4,8 +4,8 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifest.h"
+#include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
-#include "InventoryManagement/Utils/INV_InventoryStatics.h"
 
 FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
@@ -132,9 +132,7 @@ FINV_SpaceQueryResult FINV_GridPlacementEngine::CheckHoverPosition(
 
 	// if more than one of the indices is occupied with the same item, need to check if all have same upper left index
 	TSet<int32> OccupiedUpperLeftIndices;
-	// Need to cast away const for ForEach2D which expects non-const reference
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, StartIndex, Dimensions, GridSize.X,
+	FINV_GridIteration::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
 		[&](const UINV_GridSlot* GridSlot)
 	{
 		if (GridSlot->GetInventoryItem().IsValid())
@@ -268,9 +266,7 @@ bool FINV_GridPlacementEngine::HasRoomAtIndex(
 {
 	// is there room at index (i.e., other items in the way)?
 	bool bHasRoomAtIndex = true;
-	// Need to cast away const for ForEach2D which expects non-const reference
-	TArray<TObjectPtr<UINV_GridSlot>>& MutableGridSlots = const_cast<TArray<TObjectPtr<UINV_GridSlot>>&>(GridSlots);
-	UINV_InventoryStatics::ForEach2D(MutableGridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X,
+	FINV_GridIteration::ForEach2D(GridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X,
 		[&](const UINV_GridSlot* SubGridSlot)
 		{
 			if (CheckSlotConstraints(GridSlots, GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed,

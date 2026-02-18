@@ -3,6 +3,7 @@
 
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
 #include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "UI/Inventory/Base/INV_InventoryBase.h"
 

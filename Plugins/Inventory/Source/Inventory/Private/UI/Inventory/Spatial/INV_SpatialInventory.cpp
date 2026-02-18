@@ -10,6 +10,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/WidgetSwitcher.h"
 #include "InventoryManagement/Utils/INV_InventoryStatics.h"
+#include "UI/INV_WidgetUtils.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/ItemDescription/INV_ItemDescription.h"
 #include "Framework/Application/SlateApplication.h"

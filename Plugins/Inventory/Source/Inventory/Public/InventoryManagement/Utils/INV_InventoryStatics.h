@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "UI/INV_WidgetUtils.h"
-#include "UI/Inventory/Base/INV_InventoryBase.h"
 #include "INV_InventoryStatics.generated.h"
 
 class UINV_InventoryItem;
 class UINV_ItemComponent;
+class UINV_InventoryBase;
 enum class EINV_ItemCategory : uint8;
 class UINV_InventoryComponent;
 /**
@@ -47,16 +47,16 @@ public:
 template <typename T, typename FuncT>
 void UINV_InventoryStatics::ForEach2D(TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns,
 	const FuncT& Function)
-{
-	for (int32 j { 0 }; j < Range2D.Y; ++j)
 	{
-		for (int32 i { 0 }; i < Range2D.X; ++i)
+		for (int32 j { 0 }; j < Range2D.Y; ++j)
 		{
-			const FIntPoint Coordinates = UINV_WidgetUtils::GetPositionFromIndex(Index, GridColumns) + FIntPoint(i, j);
-			const int32 TileIndex = UINV_WidgetUtils::GetIndexFromPosition(Coordinates, GridColumns);
-			if (Array.IsValidIndex(TileIndex))
+			for (int32 i { 0 }; i < Range2D.X; ++i)
 			{
-				Function(Array[TileIndex]);
+				const FIntPoint Coordinates = FINV_GridIteration::GetPositionFromIndex(Index, GridColumns) + FIntPoint(i, j);
+				const int32 TileIndex = FINV_GridIteration::GetIndexFromPosition(Coordinates, GridColumns);
+				if (Array.IsValidIndex(TileIndex))
+				{
+					Function(Array[TileIndex]);
 			}
 		}
 	}
