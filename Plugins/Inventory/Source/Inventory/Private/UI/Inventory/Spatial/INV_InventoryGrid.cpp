@@ -17,7 +17,6 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Inventory/Transfer/INV_ItemTransferHandler.h"
 #include "UI/INV_WidgetUtils.h"
-#include "UI/Inventory/EventHandling/INV_GridEventHandler.h"
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 #include "UI/Inventory/State/INV_GridStateManager.h"
 #include "UI/Inventory/Popup/INV_GridPopupManager.h"
@@ -102,6 +101,20 @@ FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasP
 EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
 	return UINV_GridCoordinateCalculator::CalculateTileQuadrant(CanvasPos, MousePos, TileSize);
+}
+
+const FINV_GridFragment* UINV_InventoryGrid::TryGetGridFragmentAtIndex(const int32 Index) const
+{
+	if (!GridSlots.IsValidIndex(Index)) return nullptr;
+	const UINV_InventoryItem* Item = GridSlots[Index]->GetInventoryItem().Get();
+	if (!IsValid(Item)) return nullptr;
+	return GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
+}
+
+FIntPoint UINV_InventoryGrid::GetItemDimensionsOrDefault(const UINV_InventoryItem* Item) const
+{
+	const FINV_GridFragment* GridFragment = GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
+	return GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 }
 
 void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos)
@@ -193,32 +206,16 @@ void UINV_InventoryGrid::HighlightBlockingItems(const TArray<int32>& BlockingUpp
 	LastHighlightedIndex = INDEX_NONE;
 	LastHighlightedDimensions = FIntPoint::ZeroValue;
 
-	// Lambda to get grid fragment for an item at a given index
-	auto GetFragmentAtIndex = [this](int32 Index) -> const FINV_GridFragment*
-	{
-		if (!GridSlots.IsValidIndex(Index)) return nullptr;
-		const UINV_InventoryItem* Item = GridSlots[Index]->GetInventoryItem().Get();
-		if (!IsValid(Item)) return nullptr;
-		return GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
-	};
-
 	LastGrayedOutUpperLeftIndices = UINV_GridStateManager::HighlightBlockingItems(
-		GridSlots, GridSize.X, BlockingUpperLeftIndices, GetFragmentAtIndex);
+		GridSlots, GridSize.X, BlockingUpperLeftIndices,
+		[this](const int32 Index) { return TryGetGridFragmentAtIndex(Index); });
 }
 
 void UINV_InventoryGrid::UnHighlightBlockingItems()
 {
-	// Lambda to get grid fragment for an item at a given index
-	auto GetFragmentAtIndex = [this](int32 Index) -> const FINV_GridFragment*
-	{
-		if (!GridSlots.IsValidIndex(Index)) return nullptr;
-		const UINV_InventoryItem* Item = GridSlots[Index]->GetInventoryItem().Get();
-		if (!IsValid(Item)) return nullptr;
-		return GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment);
-	};
-
 	UINV_GridStateManager::UnHighlightBlockingItems(
-		GridSlots, GridSize.X, LastGrayedOutUpperLeftIndices, GetFragmentAtIndex);
+		GridSlots, GridSize.X, LastGrayedOutUpperLeftIndices,
+		[this](const int32 Index) { return TryGetGridFragmentAtIndex(Index); });
 	LastGrayedOutUpperLeftIndices.Reset();
 }
 
@@ -657,8 +654,7 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;
 
-	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(HoveredInventoryItem, FragmentTags::GridFragment) };
-	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	const FIntPoint Dimensions = GetItemDimensionsOrDefault(HoveredInventoryItem);
 
 	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
 	{
@@ -674,8 +670,7 @@ void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerE
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;
 
-	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(HoveredInventoryItem, FragmentTags::GridFragment) };
-	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	const FIntPoint Dimensions = GetItemDimensionsOrDefault(HoveredInventoryItem);
 
 	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
 	{
@@ -839,16 +834,6 @@ bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }
 
-bool UINV_InventoryGrid::IsRightClick(const FPointerEvent& MouseEvent) const
-{
-	return UINV_GridEventHandler::IsRightClick(MouseEvent);
-}
-
-bool UINV_InventoryGrid::IsLeftClick(const FPointerEvent& MouseEvent) const
-{
-	return UINV_GridEventHandler::IsLeftClick(MouseEvent);
-}
-
 bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize,
 	const FVector2D& Loc)
 {
@@ -861,31 +846,4 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 		return true;
 	}
 	return false;
-}
-
-bool UINV_InventoryGrid::IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const
-{
-	return UINV_GridStackOperations::IsSameStackable(HoverItem, ClickedInventoryItem);
-}
-
-bool UINV_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount,
-	const int32 MaxStackSize) const
-{
-	// Delegate to event handler
-	return UINV_GridEventHandler::DetermineStackAction(0, HoveredStackCount, MaxStackSize, RoomInClickedSlot) ==
-		FINV_ClickActionResult::EAction::SwapStacks;
-}
-
-bool UINV_InventoryGrid::ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const
-{
-	// Delegate to event handler
-	return UINV_GridEventHandler::DetermineStackAction(0, HoveredStackCount, 0, RoomInClickedSlot) ==
-		FINV_ClickActionResult::EAction::MergeStacks;
-}
-
-bool UINV_InventoryGrid::ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const
-{
-	// Delegate to event handler
-	return UINV_GridEventHandler::DetermineStackAction(0, HoveredStackCount, 0, RoomInClickedSlot) ==
-		FINV_ClickActionResult::EAction::FillStack;
 }

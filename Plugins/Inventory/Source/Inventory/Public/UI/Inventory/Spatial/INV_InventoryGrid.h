@@ -102,13 +102,7 @@ private:
 
 	// Note: Core placement logic methods moved to FINV_GridPlacementEngine for reusability and testability
 	bool MatchesCategory(const UINV_InventoryItem* Item) const;
-	bool IsRightClick(const FPointerEvent& MouseEvent) const;
-	bool IsLeftClick(const FPointerEvent& MouseEvent) const;
 	bool CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Loc);
-	bool IsSameStackable(const UINV_InventoryItem* ClickedInventoryItem) const;
-	bool ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize) const;
-	bool ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const;
-	bool ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const;
 	bool GetRightClickedInventoryItem(int32 Index, UINV_InventoryItem*& RightClickedItem);
 	
 	
@@ -131,6 +125,8 @@ private:
 
 	FIntPoint CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
 	EINV_TileQuadrant CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const;
+	const FINV_GridFragment* TryGetGridFragmentAtIndex(int32 Index) const;
+	FIntPoint GetItemDimensionsOrDefault(const UINV_InventoryItem* Item) const;
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	FINV_StackDetails CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem);
