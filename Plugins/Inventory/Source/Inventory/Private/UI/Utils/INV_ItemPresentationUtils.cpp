@@ -1,4 +1,4 @@
-#include "UI/ItemDescription/INV_ItemPresentationUtils.h"
+#include "UI/Utils/INV_ItemPresentationUtils.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "UI/Composite/INV_Composite_Base.h"

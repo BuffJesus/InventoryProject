@@ -14,7 +14,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/ItemDescription/INV_ItemDescription.h"
-#include "UI/ItemDescription/INV_ItemPresentationUtils.h"
+#include "UI/Utils/INV_ItemPresentationUtils.h"
 #include "Framework/Application/SlateApplication.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
