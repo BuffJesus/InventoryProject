@@ -5,7 +5,7 @@
 #include "Components/INV_InventoryComponent.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
-#include "UI/Inventory/Base/INV_InventoryBase.h"
+#include "UI/Base/INV_InventoryBase.h"
 
 UINV_InventoryComponent* UINV_InventoryStatics::GetInventoryComponent(const APlayerController* PlayerController)
 {

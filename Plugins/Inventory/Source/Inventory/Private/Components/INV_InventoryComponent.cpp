@@ -11,7 +11,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "UI/Inventory/Base/INV_InventoryBase.h"
+#include "UI/Base/INV_InventoryBase.h"
 
 UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
 {

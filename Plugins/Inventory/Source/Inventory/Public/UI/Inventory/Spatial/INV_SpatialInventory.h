@@ -1,9 +1,9 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Inventory/Base/INV_InventoryBase.h"
+#include "UI/Base/INV_InventoryBase.h"
 #include "INV_SpatialInventory.generated.h"
 
 class UINV_ItemDescription;
