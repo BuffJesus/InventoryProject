@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Player/INV_PlayerController.h"
@@ -6,7 +6,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Inventory.h"
 #include "Interaction/INV_Highlightable.h"
-#include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Components/INV_InventoryComponent.h"
 #include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/HUD/INV_HUDWidget.h"

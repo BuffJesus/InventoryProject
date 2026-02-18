@@ -2,7 +2,7 @@
 
 
 #include "UI/HUD/INV_HUDWidget.h"
-#include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Components/INV_InventoryComponent.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 #include "UI/HUD/INV_InfoMessage.h"
 

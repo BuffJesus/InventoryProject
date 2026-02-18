@@ -7,7 +7,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Components/INV_InventoryComponent.h"
 #include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Utils/INV_InventoryStatics.h"

@@ -1,6 +1,6 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "InventoryManagement/Components/INV_InventoryComponent.h"
+#include "Components/INV_InventoryComponent.h"
 #include "Inventory.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
