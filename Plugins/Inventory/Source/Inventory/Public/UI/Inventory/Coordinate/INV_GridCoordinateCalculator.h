@@ -3,19 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "Types/INV_GridTypes.h"
-#include "INV_GridCoordinateCalculator.generated.h"
 
 /**
  * Handles coordinate transformations and tile calculations for grid inventory.
  * Provides pure mathematical functions for converting between screen space and grid space.
  */
-UCLASS()
-class INVENTORY_API UINV_GridCoordinateCalculator : public UObject
+class INVENTORY_API FINV_GridCoordinateCalculator
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Calculate grid coordinates from mouse position.

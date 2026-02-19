@@ -6,7 +6,7 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 
-void UINV_GridStateManager::HighlightSlots(
+void FINV_GridStateManager::HighlightSlots(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const int32 GridWidth,
 	const int32 Index,
@@ -22,7 +22,7 @@ void UINV_GridStateManager::HighlightSlots(
 	});
 }
 
-void UINV_GridStateManager::UnHighlightSlots(
+void FINV_GridStateManager::UnHighlightSlots(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const int32 GridWidth,
 	const int32 Index,
@@ -35,7 +35,7 @@ void UINV_GridStateManager::UnHighlightSlots(
 	});
 }
 
-void UINV_GridStateManager::ChangeSlotState(
+void FINV_GridStateManager::ChangeSlotState(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const int32 GridWidth,
 	const int32 Index,
@@ -63,7 +63,7 @@ void UINV_GridStateManager::ChangeSlotState(
 	});
 }
 
-TArray<int32> UINV_GridStateManager::HighlightBlockingItems(
+TArray<int32> FINV_GridStateManager::HighlightBlockingItems(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const int32 GridWidth,
 	const TArray<int32>& BlockingUpperLeftIndices,
@@ -90,7 +90,7 @@ TArray<int32> UINV_GridStateManager::HighlightBlockingItems(
 	return GrayedOutIndices;
 }
 
-void UINV_GridStateManager::UnHighlightBlockingItems(
+void FINV_GridStateManager::UnHighlightBlockingItems(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const int32 GridWidth,
 	const TArray<int32>& GrayedOutIndices,
@@ -111,7 +111,7 @@ void UINV_GridStateManager::UnHighlightBlockingItems(
 	}
 }
 
-void UINV_GridStateManager::RefreshAllSlotVisuals(const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots)
+void FINV_GridStateManager::RefreshAllSlotVisuals(const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots)
 {
 	for (UINV_GridSlot* GridSlot : GridSlots)
 	{
@@ -120,7 +120,7 @@ void UINV_GridStateManager::RefreshAllSlotVisuals(const TArray<TObjectPtr<UINV_G
 	}
 }
 
-void UINV_GridStateManager::ApplyStateBasedOnAvailability(UINV_GridSlot* GridSlot)
+void FINV_GridStateManager::ApplyStateBasedOnAvailability(UINV_GridSlot* GridSlot)
 {
 	if (!IsValid(GridSlot)) return;
 

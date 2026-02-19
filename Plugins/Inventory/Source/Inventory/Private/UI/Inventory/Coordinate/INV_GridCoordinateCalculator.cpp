@@ -3,7 +3,7 @@
 #include "UI/Inventory/Coordinate/INV_GridCoordinateCalculator.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 
-FIntPoint UINV_GridCoordinateCalculator::CalculateHoverCoordinates(
+FIntPoint FINV_GridCoordinateCalculator::CalculateHoverCoordinates(
 	const FVector2D& CanvasPos,
 	const FVector2D& MousePos,
 	float TileSize)
@@ -14,7 +14,7 @@ FIntPoint UINV_GridCoordinateCalculator::CalculateHoverCoordinates(
 	};
 }
 
-EINV_TileQuadrant UINV_GridCoordinateCalculator::CalculateTileQuadrant(
+EINV_TileQuadrant FINV_GridCoordinateCalculator::CalculateTileQuadrant(
 	const FVector2D& CanvasPos,
 	const FVector2D& MousePos,
 	float TileSize)
@@ -40,7 +40,7 @@ EINV_TileQuadrant UINV_GridCoordinateCalculator::CalculateTileQuadrant(
 	return HoveredTileQuadrant;
 }
 
-bool UINV_GridCoordinateCalculator::IsOutsideBounds(
+bool FINV_GridCoordinateCalculator::IsOutsideBounds(
 	const FVector2D& BoundaryPos,
 	const FVector2D& BoundarySize,
 	const FVector2D& MousePos)

@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Types/INV_GridTypes.h"
-#include "INV_GridStateManager.generated.h"
 
 class UINV_GridSlot;
 class UINV_InventoryItem;
@@ -15,11 +14,8 @@ enum class EINV_GridSlotState : uint8;
  * Manages visual state of grid slots including highlighting, graying out, and texture updates.
  * Handles state transitions and ensures consistent visual feedback.
  */
-UCLASS()
-class INVENTORY_API UINV_GridStateManager : public UObject
+class INVENTORY_API FINV_GridStateManager
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Highlight a rectangular region of slots.

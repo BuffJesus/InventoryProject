@@ -3,8 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "INV_GridPopupActions.generated.h"
 
 class UINV_GridSlot;
 class UINV_SlottedItem;
@@ -16,11 +14,8 @@ class APlayerController;
  * Utility class for popup menu action handlers.
  * Handles split, drop, consume, and inspect actions from popup menus.
  */
-UCLASS()
-class INVENTORY_API UINV_GridPopupActions : public UObject
+class INVENTORY_API FINV_GridPopupActions
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Execute split action - split stack and assign portion to hover item.

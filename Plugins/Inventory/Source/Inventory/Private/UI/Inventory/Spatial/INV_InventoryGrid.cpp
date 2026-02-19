@@ -97,12 +97,12 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 
 FIntPoint UINV_InventoryGrid::CalculateHoverCoordinates(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
-	return UINV_GridCoordinateCalculator::CalculateHoverCoordinates(CanvasPos, MousePos, TileSize);
+	return FINV_GridCoordinateCalculator::CalculateHoverCoordinates(CanvasPos, MousePos, TileSize);
 }
 
 EINV_TileQuadrant UINV_InventoryGrid::CalculateTileQuadrant(const FVector2D& CanvasPos, const FVector2D& MousePos) const
 {
-	return UINV_GridCoordinateCalculator::CalculateTileQuadrant(CanvasPos, MousePos, TileSize);
+	return FINV_GridCoordinateCalculator::CalculateTileQuadrant(CanvasPos, MousePos, TileSize);
 }
 
 const FINV_GridFragment* UINV_InventoryGrid::TryGetGridFragmentAtIndex(const int32 Index) const
@@ -185,20 +185,20 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 void UINV_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dimensions)
 {
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-	UINV_GridStateManager::HighlightSlots(GridSlots, GridSize.X, Index, Dimensions, bMouseWithinCanvas);
+	FINV_GridStateManager::HighlightSlots(GridSlots, GridSize.X, Index, Dimensions, bMouseWithinCanvas);
 	LastHighlightedDimensions = Dimensions;
 	LastHighlightedIndex = Index;
 }
 
 void UINV_InventoryGrid::UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions)
 {
-	UINV_GridStateManager::UnHighlightSlots(GridSlots, GridSize.X, Index, Dimensions);
+	FINV_GridStateManager::UnHighlightSlots(GridSlots, GridSize.X, Index, Dimensions);
 }
 
 void UINV_InventoryGrid::ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EINV_GridSlotState GridSlotState)
 {
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-	UINV_GridStateManager::ChangeSlotState(GridSlots, GridSize.X, Index, Dimensions, GridSlotState);
+	FINV_GridStateManager::ChangeSlotState(GridSlots, GridSize.X, Index, Dimensions, GridSlotState);
 	LastHighlightedIndex = Index;
 	LastHighlightedDimensions = Dimensions;
 }
@@ -209,14 +209,14 @@ void UINV_InventoryGrid::HighlightBlockingItems(const TArray<int32>& BlockingUpp
 	LastHighlightedIndex = INDEX_NONE;
 	LastHighlightedDimensions = FIntPoint::ZeroValue;
 
-	LastGrayedOutUpperLeftIndices = UINV_GridStateManager::HighlightBlockingItems(
+	LastGrayedOutUpperLeftIndices = FINV_GridStateManager::HighlightBlockingItems(
 		GridSlots, GridSize.X, BlockingUpperLeftIndices,
 		[this](const int32 Index) { return TryGetGridFragmentAtIndex(Index); });
 }
 
 void UINV_InventoryGrid::UnHighlightBlockingItems()
 {
-	UINV_GridStateManager::UnHighlightBlockingItems(
+	FINV_GridStateManager::UnHighlightBlockingItems(
 		GridSlots, GridSize.X, LastGrayedOutUpperLeftIndices,
 		[this](const int32 Index) { return TryGetGridFragmentAtIndex(Index); });
 	LastGrayedOutUpperLeftIndices.Reset();
@@ -224,7 +224,7 @@ void UINV_InventoryGrid::UnHighlightBlockingItems()
 
 void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
 {
-	UINV_GridStateManager::RefreshAllSlotVisuals(GridSlots);
+	FINV_GridStateManager::RefreshAllSlotVisuals(GridSlots);
 }
 
 // NOTE: CalculateStartingCoordinate moved to FINV_GridPlacementEngine
@@ -635,7 +635,7 @@ void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 	if (!RightClickedItem->IsStackable()) return;
 
-	UINV_GridPopupActions::ExecuteSplit(
+	FINV_GridPopupActions::ExecuteSplit(
 		GridSlots,
 		SlottedItems,
 		RightClickedItem,
@@ -668,7 +668,7 @@ void UINV_InventoryGrid::OnPopUpMenuConsume(int32 Index)
 	UINV_InventoryItem* RightClickedItem;
 	if (!GetRightClickedInventoryItem(Index, RightClickedItem)) return;
 
-	const int32 NewStackCount = UINV_GridPopupActions::ExecuteConsume(
+	const int32 NewStackCount = FINV_GridPopupActions::ExecuteConsume(
 		GridSlots,
 		SlottedItems,
 		RightClickedItem,
@@ -903,7 +903,7 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	const FVector2D& Loc)
 {
 	bLastMouseWithinCanvas = bMouseWithinCanvas;
-	bMouseWithinCanvas = !UINV_GridCoordinateCalculator::IsOutsideBounds(BoundaryPos, BoundarySize, Loc);
+	bMouseWithinCanvas = !FINV_GridCoordinateCalculator::IsOutsideBounds(BoundaryPos, BoundarySize, Loc);
 	if (!bMouseWithinCanvas && bLastMouseWithinCanvas)
 	{
 		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);

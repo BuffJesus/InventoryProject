@@ -6,7 +6,7 @@
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "Items/INV_InventoryItem.h"
 
-void UINV_GridPopupActions::ExecuteSplit(
+void FINV_GridPopupActions::ExecuteSplit(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const TMap<int32, TObjectPtr<UINV_SlottedItem>>& SlottedItems,
 	UINV_InventoryItem* Item,
@@ -57,7 +57,7 @@ void UINV_GridPopupActions::ExecuteSplit(
 	}
 }
 
-int32 UINV_GridPopupActions::ExecuteConsume(
+int32 FINV_GridPopupActions::ExecuteConsume(
 	TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const TMap<int32, TObjectPtr<UINV_SlottedItem>>& SlottedItems,
 	UINV_InventoryItem* Item,
