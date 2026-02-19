@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "UI/Inventory/Click/INV_GridClickActionResolver.h"
-#include "UI/Inventory/Stack/INV_GridStackOperations.h"
 
 class UINV_InventoryItem;
 
@@ -18,7 +17,7 @@ struct FINV_GridClickExecutionCallbacks
 	TFunction<void(int32 GridIndex)> PlaceItem;
 };
 
-class INVENTORY_API FINV_GridClickExecutionService
+class INVENTORYUI_API FINV_GridClickExecutionService
 {
 public:
 	static void ExecuteSlottedItemClick(

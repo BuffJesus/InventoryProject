@@ -14,7 +14,7 @@ class APlayerController;
  * Utility class for popup menu action handlers.
  * Handles split, drop, consume, and inspect actions from popup menus.
  */
-class INVENTORY_API FINV_GridPopupActions
+class INVENTORYUI_API FINV_GridPopupActions
 {
 public:
 	/**

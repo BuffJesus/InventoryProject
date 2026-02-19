@@ -14,7 +14,7 @@ enum class EINV_GridSlotState : uint8;
  * Manages visual state of grid slots including highlighting, graying out, and texture updates.
  * Handles state transitions and ensures consistent visual feedback.
  */
-class INVENTORY_API FINV_GridStateManager
+class INVENTORYUI_API FINV_GridStateManager
 {
 public:
 	/**

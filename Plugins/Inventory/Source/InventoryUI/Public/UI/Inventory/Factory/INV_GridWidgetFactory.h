@@ -38,7 +38,7 @@ struct FINV_GridWidgetFactoryConfig
  * Factory for creating and configuring inventory grid widgets.
  * Handles slotted items, grid slots, and their visual properties.
  */
-class INVENTORY_API FINV_GridWidgetFactory
+class INVENTORYUI_API FINV_GridWidgetFactory
 {
 public:
 	/**

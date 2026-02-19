@@ -16,7 +16,7 @@ struct FINV_ImageFragment;
  * Manages hover item lifecycle, creation, and cursor visibility.
  * Handles pickup, assignment, and cleanup of dragged inventory items.
  */
-class INVENTORY_API FINV_HoverItemManager
+class INVENTORYUI_API FINV_HoverItemManager
 {
 public:
 	/**

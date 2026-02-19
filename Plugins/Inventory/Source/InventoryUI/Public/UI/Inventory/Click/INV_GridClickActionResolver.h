@@ -45,7 +45,7 @@ struct FINV_GridClickResult
  * Resolves what action should be performed when clicking on grid items.
  * Handles complex decision logic for stack operations, swaps, and placements.
  */
-class INVENTORY_API FINV_GridClickActionResolver
+class INVENTORYUI_API FINV_GridClickActionResolver
 {
 public:
 	/**
