@@ -15,6 +15,7 @@
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Inventory/Services/INV_GridSwapService.h"
+#include "UI/Inventory/Services/INV_GridClickExecutionService.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "UI/Inventory/Factory/INV_GridWidgetFactory.h"
 #include "UI/Inventory/State/INV_GridStateManager.h"
@@ -48,7 +49,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 	const FGameplayTag& ItemRarityTag)
 {
 	if (!Manifest) return FINV_SlotAvailabilityResult {};
-	// Delegate to placement engine for pure logic computation
+	// Delegate to the placement engine for pure logic computation
 	return FINV_GridPlacementEngine::HasRoomForItem(GridSlots, GridSize, *Manifest, bUseItemRarity, ItemRarityTag);
 }
 
@@ -81,7 +82,7 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	ClosePopupIfClickedOutside();
 	
-	// Track mouse position for hover placement.
+	// Track the mouse position for hover placement.
 	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
 	const FVector2D CanvasSize = UINV_WidgetUtils::GetWidgetSize(CanvasPanel);
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
@@ -248,7 +249,7 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 
 FVector2D UINV_InventoryGrid::GetDrawSize(const FINV_GridFragment* GridFragment) const
 {
-	return UINV_GridWidgetFactory::CalculateDrawSize(GridFragment, TileSize);
+	return FINV_GridWidgetFactory::CalculateDrawSize(GridFragment, TileSize);
 }
 
 FINV_GridWidgetFactoryConfig UINV_InventoryGrid::CreateFactoryConfig() const
@@ -265,7 +266,7 @@ UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item
 {
 	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
 
-	UINV_SlottedItem* SlottedItem = UINV_GridWidgetFactory::CreateSlottedItem(
+	UINV_SlottedItem* SlottedItem = FINV_GridWidgetFactory::CreateSlottedItem(
 		Item, bStackable, StackAmount, GridFragment, ImageFragment, Index, Config, this, SlottedItemClass);
 
 	if (IsValid(SlottedItem))
@@ -290,7 +291,7 @@ void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 In
 	if (!IsValid(SlottedItem)) return;
 
 	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
-	UINV_GridWidgetFactory::AddSlottedItemToCanvas(SlottedItem, Index, GridFragment, Config);
+	FINV_GridWidgetFactory::AddSlottedItemToCanvas(SlottedItem, Index, GridFragment, Config);
 
 	SlottedItems.Add(Index, SlottedItem);
 }
@@ -299,13 +300,13 @@ void UINV_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FINV_Gr
 	UINV_SlottedItem* SlottedItem)
 {
 	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
-	UINV_GridWidgetFactory::AddSlottedItemToCanvas(SlottedItem, Index, GridFragment, Config);
+	FINV_GridWidgetFactory::AddSlottedItemToCanvas(SlottedItem, Index, GridFragment, Config);
 }
 
 void UINV_InventoryGrid::UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount)
 {
 	checkf(GridSlots.IsValidIndex(Index), TEXT("Index out of bounds!"));
-	UINV_GridItemOperations::UpdateGridSlots(GridSlots, NewItem, Index, bStackableItem, StackAmount, GridSize.X);
+	FINV_GridItemOperations::UpdateGridSlots(GridSlots, NewItem, Index, bStackableItem, StackAmount, GridSize.X);
 }
 
 void UINV_InventoryGrid::ConstructGrid()
@@ -317,7 +318,7 @@ void UINV_InventoryGrid::ConstructGrid()
 		return;
 	}
 
-	// Setup factory configuration
+	// Set up factory configuration
 	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
 
 	// Create grid slots and place them on the canvas using factory
@@ -330,10 +331,10 @@ void UINV_InventoryGrid::ConstructGrid()
 			const FIntPoint TilePosition { i, j };
 			const int32 Index = UINV_WidgetUtils::GetIndexFromPosition(TilePosition, GridSize.X);
 
-			UINV_GridSlot* GridSlot = UINV_GridWidgetFactory::CreateGridSlot(Index, Config, this, SlotClass);
+			UINV_GridSlot* GridSlot = FINV_GridWidgetFactory::CreateGridSlot(Index, Config, this, SlotClass);
 			if (!IsValid(GridSlot)) continue;
 
-			UINV_GridWidgetFactory::AddGridSlotToCanvas(GridSlot, Index, Config);
+			FINV_GridWidgetFactory::AddGridSlotToCanvas(GridSlot, Index, Config);
 
 			GridSlots.Add(GridSlot);
 			GridSlot->GridSlotClicked.AddDynamic(this, &ThisClass::OnGridSlotClicked);
@@ -360,31 +361,33 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		GridIndex,
 		ItemDropIndex);
 
-	// Execute the resolved action
-	switch (ActionResult.Action)
+	const FINV_GridClickExecutionCallbacks Callbacks
 	{
-	case EINV_ClickAction::SwapItems:
-		// Route to slotted item handler for the target item
-		if (GridSlots.IsValidIndex(ActionResult.TargetIndex))
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		[this, MouseEvent](const int32 TargetIndex)
 		{
-			OnSlottedItemClicked(ActionResult.TargetIndex, MouseEvent);
+			if (GridSlots.IsValidIndex(TargetIndex))
+			{
+				OnSlottedItemClicked(TargetIndex, MouseEvent);
+			}
+		},
+		[this](const int32 TargetIndex)
+		{
+			PutDownOnIndex(TargetIndex);
 		}
-		break;
+	};
 
-	case EINV_ClickAction::PlaceItem:
-		PutDownOnIndex(ActionResult.TargetIndex);
-		break;
-
-	case EINV_ClickAction::None:
-	default:
-		// No action
-		break;
-	}
+	FINV_GridClickExecutionService::ExecuteGridSlotClick(ActionResult, Callbacks);
 }
 
 void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 {
-	// Convert hover item into a slotted item.
+	// Convert a hover item into a slotted item.
 	AddItemAtIndex(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	UpdateGridSlots(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	ClearHoverItem();
@@ -392,7 +395,7 @@ void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 
 void UINV_InventoryGrid::ClearHoverItem()
 {
-	UINV_HoverItemManager::ClearHoverItem(HoverItem);
+	FINV_HoverItemManager::ClearHoverItem(HoverItem);
 	ShowCursor();
 }
 
@@ -413,7 +416,7 @@ void UINV_InventoryGrid::SetOwningCanvas(UCanvasPanel* OwningCanvas)
 
 void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
 {
-	UINV_HoverItemManager::SetCursorWidget(GetOwningPlayer(), CursorWidget);
+	FINV_HoverItemManager::SetCursorWidget(GetOwningPlayer(), CursorWidget);
 }
 
 /**
@@ -486,7 +489,7 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 
 void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
 {
-	UINV_GridStackOperations::SwapStackCounts(
+	FINV_GridStackOperations::SwapStackCounts(
 		GridSlots[Index],
 		SlottedItems.FindChecked(Index),
 		HoverItem,
@@ -497,7 +500,7 @@ void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const in
 void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount,
 	const int32 Index)
 {
-	UINV_GridStackOperations::ConsumeHoverItemStacks(
+	FINV_GridStackOperations::ConsumeHoverItemStacks(
 		GridSlots[Index],
 		SlottedItems.FindChecked(Index),
 		ClickedStackCount,
@@ -513,7 +516,7 @@ void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, c
 
 void UINV_InventoryGrid::FillInStack(const int32 FillAmount, const int32 Remainder, const int32 Index)
 {
-	UINV_GridStackOperations::FillInStack(
+	FINV_GridStackOperations::FillInStack(
 		GridSlots[Index],
 		SlottedItems.FindChecked(Index),
 		HoverItem,
@@ -524,7 +527,7 @@ void UINV_InventoryGrid::FillInStack(const int32 FillAmount, const int32 Remaind
 UUserWidget* UINV_InventoryGrid::GetCursorWidget(TObjectPtr<UUserWidget>& CachedWidget,
                                                  const TSubclassOf<UUserWidget>& WidgetClass)
 {
-	return UINV_HoverItemManager::GetOrCreateCursorWidget(CachedWidget, WidgetClass, GetOwningPlayer());
+	return FINV_HoverItemManager::GetOrCreateCursorWidget(CachedWidget, WidgetClass, GetOwningPlayer());
 }
 
 UUserWidget* UINV_InventoryGrid::GetVisibleCursorWidget()
@@ -564,7 +567,7 @@ bool UINV_InventoryGrid::GetRightClickedInventoryItem(int32 Index, UINV_Inventor
 	}
 
 	RightClickedItem = GridSlots[Index]->GetInventoryItem().Get();
-	// Return true if item was found and is valid
+	// Return true if the item was found and is valid
 	return IsValid(RightClickedItem);
 }
 
@@ -694,7 +697,7 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 	const FINV_ImageFragment* ImageFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedImageFragment() : nullptr };
 	if (!GridFragment || !ImageFragment) return;
 
-	HoverItem = UINV_HoverItemManager::AssignHoverItem(
+	HoverItem = FINV_HoverItemManager::AssignHoverItem(
 		HoverItem,
 		HoverItemClass,
 		InventoryItem,
@@ -709,12 +712,12 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, cons
 	const int32 PreviousGridIndex)
 {
 	AssignHoverItem(InventoryItem);
-	UINV_HoverItemManager::ConfigureHoverItemProperties(HoverItem, GridSlots[GridIndex], InventoryItem, PreviousGridIndex);
+	FINV_HoverItemManager::ConfigureHoverItemProperties(HoverItem, GridSlots[GridIndex], InventoryItem, PreviousGridIndex);
 }
 
 void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex)
 {
-	UINV_GridItemOperations::RemoveItemFromGrid(GridSlots, SlottedItems, InventoryItem, GridIndex, GridSize.X);
+	FINV_GridItemOperations::RemoveItemFromGrid(GridSlots, SlottedItems, InventoryItem, GridIndex, GridSize.X);
 }
 
 void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
@@ -722,7 +725,7 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 	if (!MatchesCategory(Result.Item.Get())) return;
 
 	// Apply stack changes using utility
-	UINV_GridItemOperations::ApplyStackUpdates(GridSlots, SlottedItems, Result);
+	FINV_GridItemOperations::ApplyStackUpdates(GridSlots, SlottedItems, Result);
 
 	// Add new items at indices that didn't have items
 	for (const auto& Availability : Result.SlotAvailabilities)
@@ -737,7 +740,7 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 
 FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem)
 {
-	return UINV_GridStackOperations::CalculateStackDetails(
+	return FINV_GridStackOperations::CalculateStackDetails(
 		GridSlots[GridIndex],
 		HoverItem,
 		ClickedInventoryItem);
@@ -769,38 +772,42 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		StackDetails,
 		ItemDropIndex);
 
-	// Execute the resolved action
-	switch (ActionResult.Action)
+	const FINV_GridClickExecutionCallbacks Callbacks
 	{
-	case EINV_ClickAction::Pickup:
-		Pickup(ClickedInventoryItem, GridIndex);
-		break;
+		[this](UINV_InventoryItem* Item, const int32 Index)
+		{
+			Pickup(Item, Index);
+		},
+		[this](const int32 Index)
+		{
+			CreateItemPopup(Index);
+		},
+		[this](const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
+		{
+			SwapStackCounts(ClickedStackCount, HoveredStackCount, Index);
+		},
+		[this](const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
+		{
+			ConsumeHoverItemStacks(ClickedStackCount, HoveredStackCount, Index);
+		},
+		[this](const int32 FillAmount, const int32 Remainder, const int32 Index)
+		{
+			FillInStack(FillAmount, Remainder, Index);
+		},
+		[this](UINV_InventoryItem* Item, const int32 Index)
+		{
+			SwapWithHoverItem(Item, Index);
+		},
+		nullptr,
+		nullptr
+	};
 
-	case EINV_ClickAction::CreatePopup:
-		CreateItemPopup(GridIndex);
-		break;
-
-	case EINV_ClickAction::SwapStackCounts:
-		SwapStackCounts(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
-		break;
-
-	case EINV_ClickAction::ConsumeHoverStacks:
-		ConsumeHoverItemStacks(StackDetails.ClickedStackCount, StackDetails.HoveredStackCount, GridIndex);
-		break;
-
-	case EINV_ClickAction::FillStack:
-		FillInStack(ActionResult.AuxiliaryValue, StackDetails.HoveredStackCount - ActionResult.AuxiliaryValue, GridIndex);
-		break;
-
-	case EINV_ClickAction::SwapItems:
-		SwapWithHoverItem(ClickedInventoryItem, GridIndex);
-		break;
-
-	case EINV_ClickAction::None:
-	default:
-		// No action
-		break;
-	}
+	FINV_GridClickExecutionService::ExecuteSlottedItemClick(
+		ActionResult,
+		StackDetails,
+		ClickedInventoryItem,
+		GridIndex,
+		Callbacks);
 }
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
@@ -841,4 +848,5 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	}
 	return false;
 }
+
 

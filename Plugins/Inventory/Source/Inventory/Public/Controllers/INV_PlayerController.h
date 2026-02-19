@@ -62,6 +62,22 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "0.25"))
 	// How often to run item trace in seconds (0 = every tick).
 	float TraceIntervalSeconds { 0.05f };
+
+	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
+	// If enabled, only retrace when view position/rotation changed past thresholds.
+	bool bOnlyTraceOnViewChange { true };
+
+	UPROPERTY(EditDefaultsOnly, Category="INV|Trace", meta = (EditCondition = "bOnlyTraceOnViewChange", ClampMin = "0.0", UIMin = "0.0"))
+	// Minimum camera location movement (cm) required to trigger a retrace.
+	float MinViewLocationDeltaCm { 0.5f };
+
+	UPROPERTY(EditDefaultsOnly, Category="INV|Trace", meta = (EditCondition = "bOnlyTraceOnViewChange", ClampMin = "0.0", UIMin = "0.0"))
+	// Minimum camera rotation delta (deg) required to trigger a retrace.
+	float MinViewRotationDeltaDeg { 0.1f };
+
+	UPROPERTY(EditDefaultsOnly, Category="INV|Trace", meta = (EditCondition = "bOnlyTraceOnViewChange", ClampMin = "0.0", UIMin = "0.0"))
+	// Force periodic retrace even without camera movement (0 disables).
+	float MaxIdleRetraceSeconds { 0.25f };
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Trace")
 	// Collision channel used for item tracing.
@@ -72,4 +88,10 @@ private:
 	TWeakObjectPtr<AActor> LastActor { nullptr };
 	// Time accumulator for trace throttling.
 	float TraceIntervalAccumulator { 0.f };
+	// Time since last trace while view is unchanged.
+	float IdleRetraceAccumulator { 0.f };
+	// Last traced view state used for movement/rotation threshold checks.
+	FVector LastTraceViewLocation { FVector::ZeroVector };
+	FRotator LastTraceViewRotation { FRotator::ZeroRotator };
+	bool bHasLastTraceView { false };
 };

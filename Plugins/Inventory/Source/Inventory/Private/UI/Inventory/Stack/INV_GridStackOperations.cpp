@@ -7,7 +7,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 
-FINV_StackDetails UINV_GridStackOperations::CalculateStackDetails(
+FINV_StackDetails FINV_GridStackOperations::CalculateStackDetails(
 	const UINV_GridSlot* GridSlot,
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem)
@@ -26,7 +26,7 @@ FINV_StackDetails UINV_GridStackOperations::CalculateStackDetails(
 	return FINV_StackDetails { ClickedStackCount, RoomInClickedSlot, HoveredStackCount, MaxStackSize };
 }
 
-bool UINV_GridStackOperations::IsSameStackable(
+bool FINV_GridStackOperations::IsSameStackable(
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem)
 {
@@ -40,7 +40,7 @@ bool UINV_GridStackOperations::IsSameStackable(
 	return bIsSameItem && bIsStackable;
 }
 
-void UINV_GridStackOperations::SwapStackCounts(
+void FINV_GridStackOperations::SwapStackCounts(
 	UINV_GridSlot* GridSlot,
 	UINV_SlottedItem* SlottedItem,
 	UINV_HoverItem* HoverItem,
@@ -57,7 +57,7 @@ void UINV_GridStackOperations::SwapStackCounts(
 	HoverItem->UpdateStackCount(ClickedStackCount);
 }
 
-void UINV_GridStackOperations::ConsumeHoverItemStacks(
+void FINV_GridStackOperations::ConsumeHoverItemStacks(
 	UINV_GridSlot* GridSlot,
 	UINV_SlottedItem* SlottedItem,
 	int32 ClickedStackCount,
@@ -75,7 +75,7 @@ void UINV_GridStackOperations::ConsumeHoverItemStacks(
 	SlottedItem->UpdateStackCount(NewClickedStackCount);
 }
 
-void UINV_GridStackOperations::FillInStack(
+void FINV_GridStackOperations::FillInStack(
 	UINV_GridSlot* GridSlot,
 	UINV_SlottedItem* SlottedItem,
 	UINV_HoverItem* HoverItem,

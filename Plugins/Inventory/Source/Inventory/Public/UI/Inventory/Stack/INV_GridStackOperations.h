@@ -3,9 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "Types/INV_GridTypes.h"
-#include "INV_GridStackOperations.generated.h"
 
 class UINV_GridSlot;
 class UINV_SlottedItem;
@@ -16,11 +14,8 @@ class UINV_InventoryItem;
  * Manages stack-related operations for grid inventory system.
  * Handles stack swapping, merging, filling, and compatibility checks.
  */
-UCLASS()
-class INVENTORY_API UINV_GridStackOperations : public UObject
+class INVENTORY_API FINV_GridStackOperations
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Calculate stack details for a grid slot.

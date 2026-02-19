@@ -10,7 +10,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
-UINV_SlottedItem* UINV_GridWidgetFactory::CreateSlottedItem(
+UINV_SlottedItem* FINV_GridWidgetFactory::CreateSlottedItem(
 	UINV_InventoryItem* Item,
 	const bool bStackable,
 	const int32 StackAmount,
@@ -41,7 +41,7 @@ UINV_SlottedItem* UINV_GridWidgetFactory::CreateSlottedItem(
 	return SlottedItem;
 }
 
-UINV_GridSlot* UINV_GridWidgetFactory::CreateGridSlot(
+UINV_GridSlot* FINV_GridWidgetFactory::CreateGridSlot(
 	const int32 Index,
 	const FINV_GridWidgetFactoryConfig& Config,
 	UUserWidget* Outer,
@@ -57,7 +57,7 @@ UINV_GridSlot* UINV_GridWidgetFactory::CreateGridSlot(
 	return GridSlot;
 }
 
-FVector2D UINV_GridWidgetFactory::CalculateDrawSize(
+FVector2D FINV_GridWidgetFactory::CalculateDrawSize(
 	const FINV_GridFragment* GridFragment,
 	const float TileSize)
 {
@@ -68,7 +68,7 @@ FVector2D UINV_GridWidgetFactory::CalculateDrawSize(
 	return IconSize;
 }
 
-FVector2D UINV_GridWidgetFactory::CalculateWidgetPosition(
+FVector2D FINV_GridWidgetFactory::CalculateWidgetPosition(
 	const int32 Index,
 	const FINV_GridFragment* GridFragment,
 	const FINV_GridWidgetFactoryConfig& Config)
@@ -83,7 +83,7 @@ FVector2D UINV_GridWidgetFactory::CalculateWidgetPosition(
 	return DrawPos;
 }
 
-void UINV_GridWidgetFactory::AddSlottedItemToCanvas(
+void FINV_GridWidgetFactory::AddSlottedItemToCanvas(
 	UINV_SlottedItem* SlottedItem,
 	const int32 Index,
 	const FINV_GridFragment* GridFragment,
@@ -101,7 +101,7 @@ void UINV_GridWidgetFactory::AddSlottedItemToCanvas(
 	CanvasSlot->SetPosition(CalculateWidgetPosition(Index, GridFragment, Config));
 }
 
-void UINV_GridWidgetFactory::AddGridSlotToCanvas(
+void FINV_GridWidgetFactory::AddGridSlotToCanvas(
 	UINV_GridSlot* GridSlot,
 	const int32 Index,
 	const FINV_GridWidgetFactoryConfig& Config)
@@ -117,7 +117,7 @@ void UINV_GridWidgetFactory::AddGridSlotToCanvas(
 	CanvasSlot->SetPosition(CalculateWidgetPosition(Index, nullptr, Config));
 }
 
-void UINV_GridWidgetFactory::SetSlottedItemImageBrush(
+void FINV_GridWidgetFactory::SetSlottedItemImageBrush(
 	const FINV_GridFragment* GridFragment,
 	const FINV_ImageFragment* ImageFragment,
 	UINV_SlottedItem* SlottedItem,

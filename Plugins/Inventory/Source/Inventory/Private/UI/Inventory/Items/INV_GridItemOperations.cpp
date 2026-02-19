@@ -7,7 +7,7 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 
-void UINV_GridItemOperations::UpdateGridSlots(
+void FINV_GridItemOperations::UpdateGridSlots(
 	TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	UINV_InventoryItem* NewItem,
 	const int32 Index,
@@ -50,7 +50,7 @@ void UINV_GridItemOperations::UpdateGridSlots(
 		});
 }
 
-void UINV_GridItemOperations::RemoveItemFromGrid(
+void FINV_GridItemOperations::RemoveItemFromGrid(
 	TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	TMap<int32, TObjectPtr<UINV_SlottedItem>>& SlottedItems,
 	const UINV_InventoryItem* InventoryItem,
@@ -95,7 +95,7 @@ void UINV_GridItemOperations::RemoveItemFromGrid(
 	}
 }
 
-void UINV_GridItemOperations::ApplyStackUpdates(
+void FINV_GridItemOperations::ApplyStackUpdates(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const TMap<int32, TObjectPtr<UINV_SlottedItem>>& SlottedItems,
 	const FINV_SlotAvailabilityResult& Result)

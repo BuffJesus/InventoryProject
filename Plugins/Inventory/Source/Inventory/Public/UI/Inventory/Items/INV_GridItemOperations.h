@@ -3,8 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "INV_GridItemOperations.generated.h"
 
 class UINV_GridSlot;
 class UINV_SlottedItem;
@@ -16,11 +14,8 @@ struct FINV_SlotAvailabilityResult;
  * Utility class for grid item operations.
  * Handles updating grid slot state and managing item placement/removal.
  */
-UCLASS()
-class INVENTORY_API UINV_GridItemOperations : public UObject
+class INVENTORY_API FINV_GridItemOperations
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Update grid slots when adding an item to the grid.

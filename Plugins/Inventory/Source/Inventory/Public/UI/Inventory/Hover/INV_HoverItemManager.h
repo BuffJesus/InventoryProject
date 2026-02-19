@@ -3,8 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "INV_HoverItemManager.generated.h"
 
 class UINV_HoverItem;
 class UINV_InventoryItem;
@@ -18,11 +16,8 @@ struct FINV_ImageFragment;
  * Manages hover item lifecycle, creation, and cursor visibility.
  * Handles pickup, assignment, and cleanup of dragged inventory items.
  */
-UCLASS()
-class INVENTORY_API UINV_HoverItemManager : public UObject
+class INVENTORY_API FINV_HoverItemManager
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Create or update hover item widget with inventory item data.

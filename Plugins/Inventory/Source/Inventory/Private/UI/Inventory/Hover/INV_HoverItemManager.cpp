@@ -8,7 +8,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "GameFramework/PlayerController.h"
 
-UINV_HoverItem* UINV_HoverItemManager::AssignHoverItem(
+UINV_HoverItem* FINV_HoverItemManager::AssignHoverItem(
 	UINV_HoverItem* HoverItem,
 	TSubclassOf<UINV_HoverItem> HoverItemClass,
 	UINV_InventoryItem* InventoryItem,
@@ -60,7 +60,7 @@ UINV_HoverItem* UINV_HoverItemManager::AssignHoverItem(
 	return HoverItem;
 }
 
-void UINV_HoverItemManager::ConfigureHoverItemProperties(
+void FINV_HoverItemManager::ConfigureHoverItemProperties(
 	UINV_HoverItem* HoverItem,
 	const UINV_GridSlot* GridSlot,
 	const UINV_InventoryItem* InventoryItem,
@@ -75,7 +75,7 @@ void UINV_HoverItemManager::ConfigureHoverItemProperties(
 	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? GridSlot->GetStackCount() : 0);
 }
 
-void UINV_HoverItemManager::ClearHoverItem(TObjectPtr<UINV_HoverItem>& HoverItem)
+void FINV_HoverItemManager::ClearHoverItem(TObjectPtr<UINV_HoverItem>& HoverItem)
 {
 	if (!IsValid(HoverItem))
 	{
@@ -87,7 +87,7 @@ void UINV_HoverItemManager::ClearHoverItem(TObjectPtr<UINV_HoverItem>& HoverItem
 	HoverItem = nullptr;
 }
 
-UUserWidget* UINV_HoverItemManager::GetOrCreateCursorWidget(
+UUserWidget* FINV_HoverItemManager::GetOrCreateCursorWidget(
 	TObjectPtr<UUserWidget>& CachedWidget,
 	const TSubclassOf<UUserWidget>& WidgetClass,
 	APlayerController* OwningPlayer)
@@ -105,7 +105,7 @@ UUserWidget* UINV_HoverItemManager::GetOrCreateCursorWidget(
 	return CachedWidget;
 }
 
-void UINV_HoverItemManager::SetCursorWidget(
+void FINV_HoverItemManager::SetCursorWidget(
 	APlayerController* PlayerController,
 	UUserWidget* CursorWidget)
 {

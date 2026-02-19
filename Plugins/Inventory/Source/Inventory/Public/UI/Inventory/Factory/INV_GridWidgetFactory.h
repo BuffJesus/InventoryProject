@@ -9,6 +9,7 @@ class UINV_SlottedItem;
 class UINV_GridSlot;
 class UINV_InventoryItem;
 class UCanvasPanel;
+class UUserWidget;
 struct FINV_GridFragment;
 struct FINV_ImageFragment;
 
@@ -37,11 +38,8 @@ struct FINV_GridWidgetFactoryConfig
  * Factory for creating and configuring inventory grid widgets.
  * Handles slotted items, grid slots, and their visual properties.
  */
-UCLASS()
-class INVENTORY_API UINV_GridWidgetFactory : public UObject
+class INVENTORY_API FINV_GridWidgetFactory
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Create a slotted item widget with all properties configured.

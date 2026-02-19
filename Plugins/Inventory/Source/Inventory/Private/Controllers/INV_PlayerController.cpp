@@ -27,14 +27,48 @@ void AINV_PlayerController::Tick(float DeltaTime)
 
 	if (TraceIntervalSeconds <= 0.f)
 	{
-		TraceForItem();
-		return;
+		TraceIntervalAccumulator = 0.f;
+	}
+	else
+	{
+		TraceIntervalAccumulator += DeltaTime;
+		if (TraceIntervalAccumulator < TraceIntervalSeconds) return;
+		TraceIntervalAccumulator = 0.f;
 	}
 
-	TraceIntervalAccumulator += DeltaTime;
-	if (TraceIntervalAccumulator < TraceIntervalSeconds) return;
+	if (bOnlyTraceOnViewChange)
+	{
+		FVector ViewLocation = FVector::ZeroVector;
+		FRotator ViewRotation = FRotator::ZeroRotator;
+		GetPlayerViewPoint(ViewLocation, ViewRotation);
 
-	TraceIntervalAccumulator = 0.f;
+		bool bShouldTrace = !bHasLastTraceView;
+		if (!bShouldTrace)
+		{
+			const float LocationDeltaSq = FVector::DistSquared(ViewLocation, LastTraceViewLocation);
+			const float RequiredLocationDeltaSq = FMath::Square(MinViewLocationDeltaCm);
+			const FRotator DeltaRotation = (ViewRotation - LastTraceViewRotation).GetNormalized();
+			const float MaxRotationDelta = FMath::Max3(
+				FMath::Abs(DeltaRotation.Pitch),
+				FMath::Abs(DeltaRotation.Yaw),
+				FMath::Abs(DeltaRotation.Roll));
+
+			bShouldTrace = LocationDeltaSq >= RequiredLocationDeltaSq || MaxRotationDelta >= MinViewRotationDeltaDeg;
+
+			if (!bShouldTrace && MaxIdleRetraceSeconds > 0.f)
+			{
+				IdleRetraceAccumulator += (TraceIntervalSeconds > 0.f) ? TraceIntervalSeconds : DeltaTime;
+				bShouldTrace = IdleRetraceAccumulator >= MaxIdleRetraceSeconds;
+			}
+		}
+
+		if (!bShouldTrace) return;
+		LastTraceViewLocation = ViewLocation;
+		LastTraceViewRotation = ViewRotation;
+		bHasLastTraceView = true;
+		IdleRetraceAccumulator = 0.f;
+	}
+
 	TraceForItem();
 }
 
@@ -59,6 +93,8 @@ void AINV_PlayerController::BeginPlay()
 	InventoryComponent = FindComponentByClass<UINV_InventoryComponent>();
 	CreateHUDWidget();
 	TraceIntervalAccumulator = TraceIntervalSeconds;
+	IdleRetraceAccumulator = 0.f;
+	bHasLastTraceView = false;
 }
 
 void AINV_PlayerController::SetupInputComponent()
