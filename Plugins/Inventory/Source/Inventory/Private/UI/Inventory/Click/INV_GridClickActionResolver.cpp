@@ -23,7 +23,7 @@ FINV_GridClickResult FINV_GridClickActionResolver::ResolveSlottedItemClick(
 	}
 
 	// No hover item + left click = pickup
-	if (!IsValid(HoverItem) && UINV_GridEventHandler::IsLeftClick(MouseEvent))
+	if (!IsValid(HoverItem) && FINV_GridEventHandler::IsLeftClick(MouseEvent))
 	{
 		Result.Action = EINV_ClickAction::Pickup;
 		Result.TargetIndex = GridIndex;
@@ -31,7 +31,7 @@ FINV_GridClickResult FINV_GridClickActionResolver::ResolveSlottedItemClick(
 	}
 
 	// Right click = show popup
-	if (UINV_GridEventHandler::IsRightClick(MouseEvent))
+	if (FINV_GridEventHandler::IsRightClick(MouseEvent))
 	{
 		if (IsValid(HoverItem))
 		{
@@ -46,7 +46,7 @@ FINV_GridClickResult FINV_GridClickActionResolver::ResolveSlottedItemClick(
 	if (IsSameStackable(HoverItem, ClickedItem))
 	{
 		// Determine stack action
-		const FINV_ClickActionResult::EAction StackAction = UINV_GridEventHandler::DetermineStackAction(
+		const FINV_ClickActionResult::EAction StackAction = FINV_GridEventHandler::DetermineStackAction(
 			StackDetails.ClickedStackCount,
 			StackDetails.HoveredStackCount,
 			StackDetails.MaxStackSize,

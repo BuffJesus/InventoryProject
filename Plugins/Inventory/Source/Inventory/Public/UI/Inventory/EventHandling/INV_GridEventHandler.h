@@ -42,11 +42,8 @@ struct FINV_ClickActionResult
  * Utility class for handling grid input events and determining appropriate actions.
  * Provides pure decision logic without mutating state.
  */
-UCLASS()
-class INVENTORY_API UINV_GridEventHandler : public UObject
+class INVENTORY_API FINV_GridEventHandler
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Check if a mouse event is a left click.

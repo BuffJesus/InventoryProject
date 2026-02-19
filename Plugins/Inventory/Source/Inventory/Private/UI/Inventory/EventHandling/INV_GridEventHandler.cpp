@@ -6,22 +6,22 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Framework/Application/SlateApplication.h"
 
-bool UINV_GridEventHandler::IsLeftClick(const FPointerEvent& MouseEvent)
+bool FINV_GridEventHandler::IsLeftClick(const FPointerEvent& MouseEvent)
 {
 	return MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 }
 
-bool UINV_GridEventHandler::IsRightClick(const FPointerEvent& MouseEvent)
+bool FINV_GridEventHandler::IsRightClick(const FPointerEvent& MouseEvent)
 {
 	return MouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
 }
 
-bool UINV_GridEventHandler::IsShiftClick(const FPointerEvent& MouseEvent)
+bool FINV_GridEventHandler::IsShiftClick(const FPointerEvent& MouseEvent)
 {
 	return MouseEvent.IsShiftDown();
 }
 
-int32 UINV_GridEventHandler::FindBestAnchorForMultiBlocker(
+int32 FINV_GridEventHandler::FindBestAnchorForMultiBlocker(
 	const TArray<int32>& BlockingIndices,
 	TFunction<FIntPoint(int32)> GetItemDimensions,
 	TFunction<FGameplayTag(int32)> GetItemType,
@@ -50,7 +50,7 @@ int32 UINV_GridEventHandler::FindBestAnchorForMultiBlocker(
 	return BestAnchorIndex;
 }
 
-bool UINV_GridEventHandler::CanMergeStacks(
+bool FINV_GridEventHandler::CanMergeStacks(
 	const UINV_InventoryItem* Item1,
 	const UINV_InventoryItem* Item2)
 {
@@ -85,7 +85,7 @@ bool UINV_GridEventHandler::CanMergeStacks(
 	return true;
 }
 
-void UINV_GridEventHandler::CalculateStackMerge(
+void FINV_GridEventHandler::CalculateStackMerge(
 	const int32 SourceStackCount,
 	const int32 TargetStackCount,
 	const int32 MaxStackSize,
@@ -99,7 +99,7 @@ void UINV_GridEventHandler::CalculateStackMerge(
 	OutTargetFinal = TargetStackCount + OutAmountToTransfer;
 }
 
-FINV_ClickActionResult::EAction UINV_GridEventHandler::DetermineStackAction(
+FINV_ClickActionResult::EAction FINV_GridEventHandler::DetermineStackAction(
 	const int32 ClickedStackCount,
 	const int32 HoverStackCount,
 	const int32 MaxStackSize,
@@ -132,7 +132,7 @@ FINV_ClickActionResult::EAction UINV_GridEventHandler::DetermineStackAction(
 	return FINV_ClickActionResult::EAction::None;
 }
 
-bool UINV_GridEventHandler::ShouldSwapStackCounts(
+bool FINV_GridEventHandler::ShouldSwapStackCounts(
 	const int32 RoomInClickedSlot,
 	const int32 HoverStackCount,
 	const int32 MaxStackSize)
@@ -140,14 +140,14 @@ bool UINV_GridEventHandler::ShouldSwapStackCounts(
 	return RoomInClickedSlot == 0 && HoverStackCount < MaxStackSize;
 }
 
-bool UINV_GridEventHandler::ShouldConsumeHoverItem(
+bool FINV_GridEventHandler::ShouldConsumeHoverItem(
 	const int32 HoverStackCount,
 	const int32 RoomInClickedSlot)
 {
 	return RoomInClickedSlot >= HoverStackCount;
 }
 
-bool UINV_GridEventHandler::ShouldFillStack(
+bool FINV_GridEventHandler::ShouldFillStack(
 	const int32 RoomInClickedSlot,
 	const int32 HoverStackCount)
 {
