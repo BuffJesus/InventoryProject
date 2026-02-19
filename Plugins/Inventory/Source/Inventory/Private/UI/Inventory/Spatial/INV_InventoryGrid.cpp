@@ -706,6 +706,7 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;
+	UINV_InventoryStatics::ItemHovered(GetOwningPlayer(), const_cast<UINV_InventoryItem*>(HoveredInventoryItem));
 
 	const FIntPoint Dimensions = GetItemDimensionsOrDefault(HoveredInventoryItem);
 
@@ -719,6 +720,7 @@ void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerE
 {
 	if (IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
+	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;

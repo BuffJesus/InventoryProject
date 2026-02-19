@@ -5,7 +5,6 @@
 #include "Components/Image.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_FragmentTags.h"
-#include "UI/Popup/INV_ItemPopUp.h"
 
 void UINV_GridSlot::NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -32,12 +31,8 @@ FReply UINV_GridSlot::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const
 
 void UINV_GridSlot::SetItemPopUp(UINV_ItemPopUp* PopUp)
 {
-	ItemPopUp = PopUp;
-	if (IsValid(ItemPopUp.Get()))
-	{
-		ItemPopUp->SetGridIndex(GetTileIndex());
-		ItemPopUp->OnNativeDestruct.AddUObject(this, &ThisClass::OnItemPopUpDestruct);
-	}
+	(void)PopUp;
+	ItemPopUp.Reset();
 }
 
 void UINV_GridSlot::SetUnoccupiedTexture()

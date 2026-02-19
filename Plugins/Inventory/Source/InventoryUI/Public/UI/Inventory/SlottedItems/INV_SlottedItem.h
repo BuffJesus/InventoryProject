@@ -18,7 +18,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemUnhovered, int32, GridI
  * 
  */
 UCLASS()
-class INVENTORY_API UINV_SlottedItem : public UUserWidget
+class INVENTORYUI_API UINV_SlottedItem : public UUserWidget
 {
 	GENERATED_BODY()
 	

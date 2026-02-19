@@ -22,7 +22,7 @@ enum class EINV_GridSlotState : uint8
 };
 
 UCLASS()
-class INVENTORY_API UINV_GridSlot : public UUserWidget
+class INVENTORYUI_API UINV_GridSlot : public UUserWidget
 {
 	GENERATED_BODY()
 	

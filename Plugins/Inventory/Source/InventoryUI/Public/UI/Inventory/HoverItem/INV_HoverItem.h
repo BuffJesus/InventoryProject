@@ -15,7 +15,7 @@ class UINV_InventoryItem;
  * The HoverItem is the item that will appear and follow mouse when inventory item has been clicked
  */
 UCLASS()
-class INVENTORY_API UINV_HoverItem : public UUserWidget
+class INVENTORYUI_API UINV_HoverItem : public UUserWidget
 {
 	GENERATED_BODY()
 

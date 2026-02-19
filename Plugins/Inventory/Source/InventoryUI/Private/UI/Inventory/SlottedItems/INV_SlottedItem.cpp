@@ -4,7 +4,6 @@
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "UI/Utils/INV_InventoryStatics.h"
 
 FReply UINV_SlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -17,14 +16,12 @@ void UINV_SlottedItem::NativeOnMouseEnter(const FGeometry& MyGeometry, const FPo
 {
 	Super::NativeOnMouseEnter(MyGeometry, MouseEvent);
 	OnSlottedItemHovered.Broadcast(GridIndex, MouseEvent);
-	UINV_InventoryStatics::ItemHovered(GetOwningPlayer(), InventoryItem.Get());
 }
 
 void UINV_SlottedItem::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	Super::NativeOnMouseLeave(MouseEvent);
 	OnSlottedItemUnhovered.Broadcast(GridIndex, MouseEvent);
-	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 }
 
 void UINV_SlottedItem::SetImageBrush(const FSlateBrush& Brush) const
