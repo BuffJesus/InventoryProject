@@ -42,7 +42,7 @@ struct FINV_ClickActionResult
  * Utility class for handling grid input events and determining appropriate actions.
  * Provides pure decision logic without mutating state.
  */
-class INVENTORY_API FINV_GridEventHandler
+class INVENTORYUI_API FINV_GridEventHandler
 {
 public:
 	/**

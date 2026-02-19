@@ -9,7 +9,7 @@
  * Handles coordinate transformations and tile calculations for grid inventory.
  * Provides pure mathematical functions for converting between screen space and grid space.
  */
-class INVENTORY_API FINV_GridCoordinateCalculator
+class INVENTORYUI_API FINV_GridCoordinateCalculator
 {
 public:
 	/**

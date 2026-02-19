@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class Inventory : ModuleRules
 {
@@ -10,6 +11,7 @@ public class Inventory : ModuleRules
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
+				Path.Combine(ModuleDirectory, "../InventoryUI/Public"),
 				// ... add public include paths required here ...
 			}
 		);
@@ -27,6 +29,7 @@ public class Inventory : ModuleRules
 			{
 				"Core",
 				"InventoryCore",
+				"InventoryUI",
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);

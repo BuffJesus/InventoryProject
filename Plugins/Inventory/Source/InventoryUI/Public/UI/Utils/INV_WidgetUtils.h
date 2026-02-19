@@ -12,7 +12,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class INVENTORY_API UINV_WidgetUtils : public UBlueprintFunctionLibrary
+class INVENTORYUI_API UINV_WidgetUtils : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 	
