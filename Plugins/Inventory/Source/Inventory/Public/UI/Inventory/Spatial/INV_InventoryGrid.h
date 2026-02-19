@@ -69,6 +69,14 @@ private:
 										const FINV_GridFragment* GridFragment,
 										const FINV_ImageFragment* ImageFragment,
 										const int32 Index);
+	UINV_SlottedItem* AcquireSlottedItem(UINV_InventoryItem* Item,
+		const bool bStackable,
+		int32 StackAmount,
+		const FINV_GridFragment* GridFragment,
+		const FINV_ImageFragment* ImageFragment,
+		const int32 Index);
+	void ReleaseSlottedItem(UINV_SlottedItem* SlottedItem);
+	void BindSlottedItemDelegates(UINV_SlottedItem* SlottedItem);
 	
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment, UINV_SlottedItem* SlottedItem);
@@ -153,6 +161,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_SlottedItem> SlottedItemClass;
 	
 	UPROPERTY() TMap<int32, TObjectPtr<UINV_SlottedItem>> SlottedItems;
+	UPROPERTY() TArray<TObjectPtr<UINV_SlottedItem>> SlottedItemPool;
+	UPROPERTY(EditAnywhere, Category = "INV|Grid", meta = (ClampMin = "0", UIMin = "0"))
+	int32 MaxPooledSlottedItems { 128 };
 	
 	UPROPERTY() TArray<TObjectPtr<UINV_GridSlot>> GridSlots;
 	

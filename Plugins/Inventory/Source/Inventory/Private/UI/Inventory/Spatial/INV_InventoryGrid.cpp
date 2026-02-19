@@ -264,19 +264,77 @@ FINV_GridWidgetFactoryConfig UINV_InventoryGrid::CreateFactoryConfig() const
 UINV_SlottedItem* UINV_InventoryGrid::CreateSlottedItem(UINV_InventoryItem* Item, const bool bStackable, const int32 StackAmount,
 	const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment, const int32 Index)
 {
-	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
+	return AcquireSlottedItem(Item, bStackable, StackAmount, GridFragment, ImageFragment, Index);
+}
 
-	UINV_SlottedItem* SlottedItem = FINV_GridWidgetFactory::CreateSlottedItem(
-		Item, bStackable, StackAmount, GridFragment, ImageFragment, Index, Config, this, SlottedItemClass);
+UINV_SlottedItem* UINV_InventoryGrid::AcquireSlottedItem(UINV_InventoryItem* Item, const bool bStackable, const int32 StackAmount,
+	const FINV_GridFragment* GridFragment, const FINV_ImageFragment* ImageFragment, const int32 Index)
+{
+	const FINV_GridWidgetFactoryConfig Config = CreateFactoryConfig();
+	UINV_SlottedItem* SlottedItem = nullptr;
+
+	while (SlottedItemPool.Num() > 0 && !IsValid(SlottedItem))
+	{
+		SlottedItem = SlottedItemPool.Pop(EAllowShrinking::No);
+	}
 
 	if (IsValid(SlottedItem))
 	{
-		SlottedItem->OnSlottedItemClicked.AddDynamic(this, &ThisClass::OnSlottedItemClicked);
-		SlottedItem->OnSlottedItemHovered.AddDynamic(this, &ThisClass::OnSlottedItemHovered);
-		SlottedItem->OnSlottedItemUnhovered.AddDynamic(this, &ThisClass::OnSlottedItemUnhovered);
+		FINV_GridWidgetFactory::ConfigureSlottedItem(
+			SlottedItem,
+			Item,
+			bStackable,
+			StackAmount,
+			GridFragment,
+			ImageFragment,
+			Index,
+			Config);
+	}
+	else
+	{
+		SlottedItem = FINV_GridWidgetFactory::CreateSlottedItem(
+			Item, bStackable, StackAmount, GridFragment, ImageFragment, Index, Config, this, SlottedItemClass);
 	}
 
+	BindSlottedItemDelegates(SlottedItem);
 	return SlottedItem;
+}
+
+void UINV_InventoryGrid::ReleaseSlottedItem(UINV_SlottedItem* SlottedItem)
+{
+	if (!IsValid(SlottedItem))
+	{
+		return;
+	}
+
+	SlottedItem->SetInventoryItem(nullptr);
+	SlottedItem->SetGridIndex(INDEX_NONE);
+	SlottedItem->SetIsStackable(false);
+	SlottedItem->UpdateStackCount(0);
+	SlottedItem->SetVisibility(ESlateVisibility::Collapsed);
+	SlottedItem->RemoveFromParent();
+
+	if (MaxPooledSlottedItems <= 0 || SlottedItemPool.Num() >= MaxPooledSlottedItems)
+	{
+		return;
+	}
+
+	SlottedItemPool.Add(SlottedItem);
+}
+
+void UINV_InventoryGrid::BindSlottedItemDelegates(UINV_SlottedItem* SlottedItem)
+{
+	if (!IsValid(SlottedItem))
+	{
+		return;
+	}
+
+	SlottedItem->OnSlottedItemClicked.RemoveDynamic(this, &ThisClass::OnSlottedItemClicked);
+	SlottedItem->OnSlottedItemHovered.RemoveDynamic(this, &ThisClass::OnSlottedItemHovered);
+	SlottedItem->OnSlottedItemUnhovered.RemoveDynamic(this, &ThisClass::OnSlottedItemUnhovered);
+	SlottedItem->OnSlottedItemClicked.AddDynamic(this, &ThisClass::OnSlottedItemClicked);
+	SlottedItem->OnSlottedItemHovered.AddDynamic(this, &ThisClass::OnSlottedItemHovered);
+	SlottedItem->OnSlottedItemUnhovered.AddDynamic(this, &ThisClass::OnSlottedItemUnhovered);
 }
 
 void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable,
@@ -717,6 +775,12 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, cons
 
 void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex)
 {
+	TObjectPtr<UINV_SlottedItem> PooledSlottedItem;
+	if (SlottedItems.RemoveAndCopyValue(GridIndex, PooledSlottedItem))
+	{
+		ReleaseSlottedItem(PooledSlottedItem);
+	}
+
 	FINV_GridItemOperations::RemoveItemFromGrid(GridSlots, SlottedItems, InventoryItem, GridIndex, GridSize.X);
 }
 

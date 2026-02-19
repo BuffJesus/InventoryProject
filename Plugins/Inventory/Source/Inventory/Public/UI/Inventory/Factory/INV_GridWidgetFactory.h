@@ -67,6 +67,19 @@ public:
 		TSubclassOf<UINV_SlottedItem> SlottedItemClass);
 
 	/**
+	 * Reconfigure an existing slotted item widget for a new inventory item.
+	 */
+	static void ConfigureSlottedItem(
+		UINV_SlottedItem* SlottedItem,
+		UINV_InventoryItem* Item,
+		bool bStackable,
+		int32 StackAmount,
+		const FINV_GridFragment* GridFragment,
+		const FINV_ImageFragment* ImageFragment,
+		int32 Index,
+		const FINV_GridWidgetFactoryConfig& Config);
+
+	/**
 	 * Create a grid slot widget.
 	 *
 	 * @param Index Grid index position

@@ -30,6 +30,23 @@ UINV_SlottedItem* FINV_GridWidgetFactory::CreateSlottedItem(
 	UINV_SlottedItem* SlottedItem = CreateWidget<UINV_SlottedItem>(PC, SlottedItemClass);
 	if (!IsValid(SlottedItem)) return nullptr;
 
+	ConfigureSlottedItem(SlottedItem, Item, bStackable, StackAmount, GridFragment, ImageFragment, Index, Config);
+	return SlottedItem;
+}
+
+void FINV_GridWidgetFactory::ConfigureSlottedItem(
+	UINV_SlottedItem* SlottedItem,
+	UINV_InventoryItem* Item,
+	const bool bStackable,
+	const int32 StackAmount,
+	const FINV_GridFragment* GridFragment,
+	const FINV_ImageFragment* ImageFragment,
+	const int32 Index,
+	const FINV_GridWidgetFactoryConfig& Config)
+{
+	if (!IsValid(SlottedItem)) return;
+	if (!GridFragment || !ImageFragment) return;
+
 	SlottedItem->SetInventoryItem(Item);
 	SetSlottedItemImageBrush(GridFragment, ImageFragment, SlottedItem, Config.TileSize);
 	SlottedItem->SetGridIndex(Index);
@@ -37,8 +54,7 @@ UINV_SlottedItem* FINV_GridWidgetFactory::CreateSlottedItem(
 
 	const int32 StackUpdateAmount = bStackable ? StackAmount : 0;
 	SlottedItem->UpdateStackCount(StackUpdateAmount);
-
-	return SlottedItem;
+	SlottedItem->SetVisibility(ESlateVisibility::Visible);
 }
 
 UINV_GridSlot* FINV_GridWidgetFactory::CreateGridSlot(
