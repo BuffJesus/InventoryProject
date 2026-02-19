@@ -24,7 +24,7 @@ struct FGameplayTag;
  * - Stack compatibility checks
  * - Grid bounds validation
  */
-class INVENTORY_API FINV_GridPlacementEngine
+class INVENTORYUI_API FINV_GridPlacementEngine
 {
 public:
 	/**

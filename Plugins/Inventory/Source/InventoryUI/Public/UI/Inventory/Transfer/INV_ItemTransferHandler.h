@@ -46,7 +46,7 @@ struct FINV_SwapResult
  * Pure-logic handler for item transfers, swaps, and stack operations.
  * Separated from UI concerns to enable testability and reusability.
  */
-class INVENTORY_API FINV_ItemTransferHandler
+class INVENTORYUI_API FINV_ItemTransferHandler
 {
 public:
 	/**

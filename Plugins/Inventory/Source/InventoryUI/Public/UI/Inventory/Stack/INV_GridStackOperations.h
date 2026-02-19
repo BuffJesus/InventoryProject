@@ -14,7 +14,7 @@ class UINV_InventoryItem;
  * Manages stack-related operations for grid inventory system.
  * Handles stack swapping, merging, filling, and compatibility checks.
  */
-class INVENTORY_API FINV_GridStackOperations
+class INVENTORYUI_API FINV_GridStackOperations
 {
 public:
 	/**

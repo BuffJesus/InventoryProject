@@ -14,7 +14,7 @@ struct FINV_GridSwapCallbacks
 	TFunction<void()> RefreshGridSlotVisuals;
 };
 
-class INVENTORY_API FINV_GridSwapService
+class INVENTORYUI_API FINV_GridSwapService
 {
 public:
 	static bool ExecuteSwapWithHoverItem(

@@ -14,7 +14,7 @@ struct FINV_SlotAvailabilityResult;
  * Utility class for grid item operations.
  * Handles updating grid slot state and managing item placement/removal.
  */
-class INVENTORY_API FINV_GridItemOperations
+class INVENTORYUI_API FINV_GridItemOperations
 {
 public:
 	/**
