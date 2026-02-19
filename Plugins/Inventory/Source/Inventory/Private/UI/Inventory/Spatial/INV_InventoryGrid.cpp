@@ -412,7 +412,7 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
 
 	// Resolve what action to perform for empty slot click
-	const FINV_GridClickResult ActionResult = UINV_GridClickActionResolver::ResolveEmptySlotClick(
+	const FINV_GridClickResult ActionResult = FINV_GridClickActionResolver::ResolveEmptySlotClick(
 		HoverItem,
 		CurrentQueryResult,
 		GridSlots,
@@ -828,7 +828,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	const FINV_StackDetails StackDetails = CalculateStackDetails(GridIndex, ClickedInventoryItem);
 
 	// Resolve what action to perform
-	const FINV_GridClickResult ActionResult = UINV_GridClickActionResolver::ResolveSlottedItemClick(
+	const FINV_GridClickResult ActionResult = FINV_GridClickActionResolver::ResolveSlottedItemClick(
 		HoverItem,
 		ClickedInventoryItem,
 		MouseEvent,

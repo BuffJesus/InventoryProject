@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "GameplayTagContainer.h"
 #include "Types/INV_GridTypes.h"
 #include "INV_GridClickActionResolver.generated.h"
@@ -46,11 +45,8 @@ struct FINV_GridClickResult
  * Resolves what action should be performed when clicking on grid items.
  * Handles complex decision logic for stack operations, swaps, and placements.
  */
-UCLASS()
-class INVENTORY_API UINV_GridClickActionResolver : public UObject
+class INVENTORY_API FINV_GridClickActionResolver
 {
-	GENERATED_BODY()
-
 public:
 	/**
 	 * Determine action to perform when clicking on an item in the grid.

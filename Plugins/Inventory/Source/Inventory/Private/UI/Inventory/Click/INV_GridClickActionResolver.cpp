@@ -7,7 +7,7 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Inventory/EventHandling/INV_GridEventHandler.h"
 
-FINV_GridClickResult UINV_GridClickActionResolver::ResolveSlottedItemClick(
+FINV_GridClickResult FINV_GridClickActionResolver::ResolveSlottedItemClick(
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem,
 	const FPointerEvent& MouseEvent,
@@ -100,7 +100,7 @@ FINV_GridClickResult UINV_GridClickActionResolver::ResolveSlottedItemClick(
 	return Result;
 }
 
-FINV_GridClickResult UINV_GridClickActionResolver::ResolveEmptySlotClick(
+FINV_GridClickResult FINV_GridClickActionResolver::ResolveEmptySlotClick(
 	const UINV_HoverItem* HoverItem,
 	const FINV_SpaceQueryResult& CurrentQueryResult,
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
@@ -177,7 +177,7 @@ FINV_GridClickResult UINV_GridClickActionResolver::ResolveEmptySlotClick(
 	return Result;
 }
 
-int32 UINV_GridClickActionResolver::FindBestMultiBlockerAnchor(
+int32 FINV_GridClickActionResolver::FindBestMultiBlockerAnchor(
 	const TArray<int32>& BlockingIndices,
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const FGameplayTag& HoverItemType)
@@ -211,7 +211,7 @@ int32 UINV_GridClickActionResolver::FindBestMultiBlockerAnchor(
 	return BestAnchorIndex;
 }
 
-bool UINV_GridClickActionResolver::IsSameStackable(
+bool FINV_GridClickActionResolver::IsSameStackable(
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem)
 {
@@ -225,7 +225,7 @@ bool UINV_GridClickActionResolver::IsSameStackable(
 	return bIsSameItem && bIsStackable;
 }
 
-bool UINV_GridClickActionResolver::ShouldUseSpatialSwap(
+bool FINV_GridClickActionResolver::ShouldUseSpatialSwap(
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem,
 	int32 GridIndex,
