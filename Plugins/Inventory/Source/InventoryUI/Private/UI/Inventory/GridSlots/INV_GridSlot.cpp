@@ -37,6 +37,11 @@ void UINV_GridSlot::SetItemPopUp(UINV_ItemPopUp* PopUp)
 
 void UINV_GridSlot::SetUnoccupiedTexture()
 {
+	if (GridSlotState == EINV_GridSlotState::Unoccupied)
+	{
+		return;
+	}
+
 	// Visual state for empty slot.
 	GridSlotState = EINV_GridSlotState::Unoccupied;
 	Image_GridSlot->SetBrush(Brush_Unoccupied);
@@ -53,6 +58,11 @@ void UINV_GridSlot::SetOccupiedTexture()
 
 void UINV_GridSlot::SetSelectedTexture()
 {
+	if (GridSlotState == EINV_GridSlotState::Selected)
+	{
+		return;
+	}
+
 	// Visual state for selected slot.
 	GridSlotState = EINV_GridSlotState::Selected;
 	Image_GridSlot->SetBrush(Brush_Selected);
@@ -61,6 +71,11 @@ void UINV_GridSlot::SetSelectedTexture()
 
 void UINV_GridSlot::SetGrayedOutTexture()
 {
+	if (GridSlotState == EINV_GridSlotState::GrayedOut)
+	{
+		return;
+	}
+
 	// Visual state for blocked slot.
 	GridSlotState = EINV_GridSlotState::GrayedOut;
 	Image_GridSlot->SetBrush(Brush_GrayedOut);
