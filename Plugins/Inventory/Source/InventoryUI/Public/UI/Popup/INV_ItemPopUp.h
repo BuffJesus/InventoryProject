@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -20,7 +20,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FPopUpMenuInspect, int32, Index);
  * 
  */
 UCLASS()
-class INVENTORY_API UINV_ItemPopUp : public UUserWidget
+class INVENTORYUI_API UINV_ItemPopUp : public UUserWidget
 {
 	GENERATED_BODY()
 	

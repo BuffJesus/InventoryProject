@@ -15,7 +15,7 @@ class APlayerController;
  * Manages item popup menu creation, positioning, and lifecycle.
  * Handles popup action callbacks and click-outside-to-close detection.
  */
-class INVENTORY_API FINV_GridPopupManager
+class INVENTORYUI_API FINV_GridPopupManager
 {
 public:
 	/**

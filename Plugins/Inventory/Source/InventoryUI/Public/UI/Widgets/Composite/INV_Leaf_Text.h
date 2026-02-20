@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -12,7 +12,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class INVENTORY_API UINV_Leaf_Text : public UINV_Leaf
+class INVENTORYUI_API UINV_Leaf_Text : public UINV_Leaf
 {
 	GENERATED_BODY()
 	

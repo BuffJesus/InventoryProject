@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,7 +10,7 @@
  * 
  */
 UCLASS()
-class INVENTORY_API UINV_Leaf : public UINV_Composite_Base
+class INVENTORYUI_API UINV_Leaf : public UINV_Composite_Base
 {
 	GENERATED_BODY()
 	
