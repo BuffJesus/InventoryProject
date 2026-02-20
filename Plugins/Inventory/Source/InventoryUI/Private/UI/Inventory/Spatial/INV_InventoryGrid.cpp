@@ -947,11 +947,15 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 
 	if (!IsValid(ItemPopUp)) return;
 
-	// Bind callbacks using dynamic delegates
-	ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
-	ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
-	ItemPopUp->OnInspect.BindDynamic(this, &ThisClass::OnPopUpMenuInspect);
-	ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
+	// Bind popup callbacks once per popup widget instance.
+	if (BoundItemPopUpForCallbacks.Get() != ItemPopUp)
+	{
+		ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
+		ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
+		ItemPopUp->OnInspect.BindDynamic(this, &ThisClass::OnPopUpMenuInspect);
+		ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
+		BoundItemPopUpForCallbacks = ItemPopUp;
+	}
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const

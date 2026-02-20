@@ -96,6 +96,7 @@ private:
 	TSubclassOf<UINV_ItemPopUp> ItemPopUpClass;
 	
 	UPROPERTY() TObjectPtr<UINV_ItemPopUp> ItemPopUp;
+	TWeakObjectPtr<UINV_ItemPopUp> BoundItemPopUpForCallbacks { nullptr };
 	
 	UUserWidget* GetVisibleCursorWidget();
 	UUserWidget* GetHiddenCursorWidget();
