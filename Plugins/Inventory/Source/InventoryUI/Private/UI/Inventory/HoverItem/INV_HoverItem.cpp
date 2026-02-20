@@ -71,12 +71,7 @@ void UINV_HoverItem::UpdateStackCount(const int32 Count)
 
 FGameplayTag UINV_HoverItem::GetItemType() const
 {
-	// Pull the item tag from the backing item.
-	if (InventoryItem.IsValid())
-	{
-		return InventoryItem->GetItemManifest().GetItemType();
-	}
-	return FGameplayTag::EmptyTag;
+	return CachedItemType;
 }
 
 void UINV_HoverItem::SetIsStackable(bool bStacks)
@@ -97,4 +92,5 @@ UINV_InventoryItem* UINV_HoverItem::GetInventoryItem() const
 void UINV_HoverItem::SetInventoryItem(UINV_InventoryItem* Item)
 {
 	InventoryItem = Item;
+	CachedItemType = IsValid(Item) ? Item->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag;
 }

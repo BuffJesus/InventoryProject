@@ -66,6 +66,8 @@ private:
 	FIntPoint GridDimensions;
 	// Backing inventory item.
 	TWeakObjectPtr<UINV_InventoryItem> InventoryItem;
+	// Cached gameplay type of the hovered item.
+	FGameplayTag CachedItemType { FGameplayTag::EmptyTag };
 	// Whether the item uses stacks.
 	bool bIsStackable { false };
 	// Stack count shown on hover.

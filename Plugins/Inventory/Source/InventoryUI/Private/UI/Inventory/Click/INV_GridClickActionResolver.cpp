@@ -137,10 +137,7 @@ FINV_GridClickResult FINV_GridClickActionResolver::ResolveEmptySlotClick(
 	// Multi-blocker - find best anchor
 	if (!GridSlots[GridIndex]->GetInventoryItem().IsValid() && CurrentQueryResult.BlockingUpperLeftIndices.Num() > 1)
 	{
-		const UINV_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
-		const FGameplayTag HoverItemType = IsValid(HoverInventoryItem)
-			? HoverInventoryItem->GetItemManifest().GetItemType()
-			: FGameplayTag();
+		const FGameplayTag HoverItemType = HoverItem->GetItemType();
 
 		const int32 BestAnchor = FindBestMultiBlockerAnchor(
 			CurrentQueryResult.BlockingUpperLeftIndices,

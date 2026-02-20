@@ -121,6 +121,7 @@ FIntPoint UINV_InventoryGrid::GetItemDimensionsOrDefault(const UINV_InventoryIte
 void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos)
 {
 	if (!bMouseWithinCanvas) return;
+	if (!IsValid(HoverItem)) return;
 	
 	// Calculate tile quadrant, index, and coords
 	const FIntPoint HoveredTileCoords { CalculateHoverCoordinates(CanvasPos, MousePos) };
@@ -129,6 +130,8 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 	TileParams.TileCoordinates = HoveredTileCoords;
 	TileParams.TileIndex = UINV_WidgetUtils::GetIndexFromPosition(HoveredTileCoords, GridSize.X);
 	TileParams.TileQuadrant = CalculateTileQuadrant(CanvasPos, MousePos);
+
+	if (TileParams == LastTileParams) return;
 	
 	OnTileParamsUpdated(TileParams);
 }
