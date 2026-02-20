@@ -79,7 +79,26 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_NativeTick);
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	ClosePopupIfClickedOutside();
+
+	const bool bHasHoverItem = IsValid(HoverItem);
+	const bool bHasOpenPopup = IsValid(ItemPopUp) && ItemPopUp->GetVisibility() == ESlateVisibility::Visible;
+
+	// Idle fast-path: no drag interaction and no active popup to manage.
+	if (!bHasHoverItem && !bHasOpenPopup)
+	{
+		return;
+	}
+
+	if (bHasOpenPopup)
+	{
+		ClosePopupIfClickedOutside();
+	}
+
+	// No hover item means no placement/highlight updates required this frame.
+	if (!bHasHoverItem)
+	{
+		return;
+	}
 	
 	// Track the mouse position for hover placement.
 	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
@@ -138,6 +157,11 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 
 void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 {
+	if (!IsValid(ItemPopUp) || ItemPopUp->GetVisibility() != ESlateVisibility::Visible)
+	{
+		return;
+	}
+
 	FINV_GridPopupManager::ClosePopupIfClickedOutside(ItemPopUp, GetOwningPlayer());
 }
 
@@ -603,6 +627,7 @@ UUserWidget* UINV_InventoryGrid::GetHiddenCursorWidget()
 void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	if (IsValid(HoverItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
 	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
 	if (!GridSlot->GetAvailability()) return;
@@ -612,6 +637,7 @@ void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent&
 void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	if (IsValid(HoverItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
 	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
 	if (!GridSlot->GetAvailability()) return;
@@ -785,7 +811,7 @@ void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryI
 		ReleaseSlottedItem(PooledSlottedItem);
 	}
 
-	FINV_GridItemOperations::RemoveItemFromGrid(GridSlots, SlottedItems, InventoryItem, GridIndex, GridSize.X);
+	FINV_GridItemOperations::RemoveItemFromGrid(GridSlots, InventoryItem, GridIndex, GridSize.X);
 }
 
 void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)

@@ -52,7 +52,6 @@ void FINV_GridItemOperations::UpdateGridSlots(
 
 void FINV_GridItemOperations::RemoveItemFromGrid(
 	TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
-	TMap<int32, TObjectPtr<UINV_SlottedItem>>& SlottedItems,
 	const UINV_InventoryItem* InventoryItem,
 	const int32 GridIndex,
 	const int32 GridWidth)
@@ -83,16 +82,6 @@ void FINV_GridItemOperations::RemoveItemFromGrid(
 			GridSlot->SetAvailability(true);
 			GridSlot->SetStackCount(0);
 		});
-
-	if (SlottedItems.Contains(GridIndex))
-	{
-		TObjectPtr<UINV_SlottedItem> FoundSlottedItem;
-		SlottedItems.RemoveAndCopyValue(GridIndex, FoundSlottedItem);
-		if (IsValid(FoundSlottedItem))
-		{
-			FoundSlottedItem->RemoveFromParent();
-		}
-	}
 }
 
 void FINV_GridItemOperations::ApplyStackUpdates(

@@ -38,17 +38,14 @@ public:
 
 	/**
 	 * Remove an item from the grid, clearing all occupied slots.
-	 * Also removes the slotted item widget from the canvas.
 	 *
 	 * @param GridSlots All grid slots in the inventory
-	 * @param SlottedItems Map of slotted item widgets
 	 * @param InventoryItem Item to remove
 	 * @param GridIndex Upper-left index of the item
 	 * @param GridWidth Width of the grid for coordinate calculations
 	 */
 	static void RemoveItemFromGrid(
 		TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
-		TMap<int32, TObjectPtr<UINV_SlottedItem>>& SlottedItems,
 		const UINV_InventoryItem* InventoryItem,
 		int32 GridIndex,
 		int32 GridWidth);
