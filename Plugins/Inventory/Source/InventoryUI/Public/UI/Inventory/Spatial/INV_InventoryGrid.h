@@ -188,6 +188,7 @@ private:
 	bool bLastMouseWithinCanvas { false };
 	bool bHasLastTickInputs { false };
 	int32 LastHighlightedIndex { INDEX_NONE };
+	int32 LastHoveredSlottedIndex { INDEX_NONE };
 	FIntPoint LastHighlightedDimensions;
 	TArray<int32> LastGrayedOutUpperLeftIndices;
 	FVector2D LastTickCanvasPos { FVector2D::ZeroVector };

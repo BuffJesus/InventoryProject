@@ -498,6 +498,7 @@ void UINV_InventoryGrid::ClearHoverItem()
 {
 	FINV_HoverItemManager::ClearHoverItem(HoverItem);
 	bHasLastTickInputs = false;
+	LastHoveredSlottedIndex = INDEX_NONE;
 	ShowCursor();
 }
 
@@ -749,6 +750,7 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 {
 	if (IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
+	if (LastHoveredSlottedIndex == GridIndex) return;
 
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;
@@ -760,6 +762,8 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 	{
 		GridSlot->SetSelectedTexture();
 	});
+
+	LastHoveredSlottedIndex = GridIndex;
 }
 
 void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent)
@@ -777,6 +781,11 @@ void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerE
 	{
 		GridSlot->SetOccupiedTexture();
 	});
+
+	if (LastHoveredSlottedIndex == GridIndex)
+	{
+		LastHoveredSlottedIndex = INDEX_NONE;
+	}
 }
 
 void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
@@ -813,6 +822,7 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 		GetOwningPlayer(),
 		this);
 	bHasLastTickInputs = false;
+	LastHoveredSlottedIndex = INDEX_NONE;
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex,
@@ -863,6 +873,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_OnSlottedItemClicked);
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
+	LastHoveredSlottedIndex = INDEX_NONE;
 	CloseActiveItemPopup();
 
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
