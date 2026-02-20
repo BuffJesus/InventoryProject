@@ -44,6 +44,7 @@ void UINV_InventoryItem::BuildFragmentCache()
 {
 	// Cache frequently accessed fragments to avoid repeated linear searches
 	const FINV_ItemManifest& Manifest = GetItemManifest();
+	CachedItemType = Manifest.GetItemType();
 	CachedGridFragment = Manifest.GetFragmentOfTypeWithTag<FINV_GridFragment>(FragmentTags::GridFragment);
 	CachedImageFragment = Manifest.GetFragmentOfTypeWithTag<FINV_ImageFragment>(FragmentTags::IconFragment);
 	CachedStackableFragment = Manifest.GetFragmentOfTypeWithTag<FINV_StackableFragment>(FragmentTags::StackableFragment);
@@ -88,4 +89,14 @@ const FINV_ConsumableFragment* UINV_InventoryItem::GetCachedConsumableFragment()
 		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
 	}
 	return CachedConsumableFragment;
+}
+
+const FGameplayTag& UINV_InventoryItem::GetCachedItemType() const
+{
+	if (!CachedItemType.IsValid())
+	{
+		// Lazy cache build if not already cached
+		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
+	}
+	return CachedItemType;
 }

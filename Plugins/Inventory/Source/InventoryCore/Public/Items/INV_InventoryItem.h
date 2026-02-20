@@ -41,6 +41,8 @@ public:
 	FORCEINLINE bool IsItemRarityEnabled() const { return bUseItemRarity; }
 	// Item rarity tag used by UI.
 	FORCEINLINE const FGameplayTag& GetItemRarityTag() const { return ItemRarityTag; }
+	// Cached gameplay item type for hot-path comparisons.
+	const FGameplayTag& GetCachedItemType() const;
 	// Sets item rarity style data.
 	void SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag);
 
@@ -71,6 +73,7 @@ private:
 	mutable const FINV_ImageFragment* CachedImageFragment { nullptr };
 	mutable const FINV_StackableFragment* CachedStackableFragment { nullptr };
 	mutable const FINV_ConsumableFragment* CachedConsumableFragment { nullptr };
+	mutable FGameplayTag CachedItemType { FGameplayTag::EmptyTag };
 };
 
 template <typename FragmentType>

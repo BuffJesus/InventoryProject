@@ -195,7 +195,7 @@ int32 FINV_GridClickActionResolver::FindBestMultiBlockerAnchor(
 
 		// Prefer larger anchors; bias toward same-type
 		const bool bSameTypeAsHover = HoverItemType.IsValid() &&
-			BlockingItem->GetItemManifest().GetItemType().MatchesTagExact(HoverItemType);
+			BlockingItem->GetCachedItemType().MatchesTagExact(HoverItemType);
 		const int32 Score = BlockingArea + (bSameTypeAsHover ? 1000 : 0);
 
 		if (Score > BestScore)

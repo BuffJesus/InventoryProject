@@ -209,7 +209,7 @@ bool FINV_GridPlacementEngine::IsStackCompatible(
 	const FGameplayTag& ItemRarityTag)
 {
 	if (!IsValid(ExistingItem)) return false;
-	if (!ExistingItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
+	if (!ExistingItem->GetCachedItemType().MatchesTagExact(ItemType)) return false;
 	if (ExistingItem->IsItemRarityEnabled() != bUseItemRarity) return false;
 	if (!bUseItemRarity) return true;
 	return ExistingItem->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
