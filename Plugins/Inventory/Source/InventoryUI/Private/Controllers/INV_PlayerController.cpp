@@ -102,7 +102,6 @@ void AINV_PlayerController::BeginPlay()
 
 	if (TraceIntervalSeconds > 0.f)
 	{
-		SetActorTickEnabled(false);
 		GetWorldTimerManager().SetTimer(
 			TraceTimerHandle,
 			this,
@@ -110,10 +109,6 @@ void AINV_PlayerController::BeginPlay()
 			TraceIntervalSeconds,
 			true);
 		OnTraceTimerElapsed();
-	}
-	else
-	{
-		SetActorTickEnabled(true);
 	}
 }
 
