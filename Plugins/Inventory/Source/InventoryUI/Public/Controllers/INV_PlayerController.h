@@ -27,9 +27,14 @@ public:
 	void ToggleInventory();
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 
 private:
+	// Evaluate view-change thresholds and execute trace when conditions are met.
+	void AttemptTrace(float ElapsedSinceLastCheck);
+	// Timer callback for interval-based tracing.
+	void OnTraceTimerElapsed();
 	// Interact with the item under the crosshair.
 	void PrimaryInteract();
 	// Create the HUD widget for this player.
@@ -86,8 +91,8 @@ private:
 	// Current and previous trace hits.
 	TWeakObjectPtr<AActor> ThisActor { nullptr };
 	TWeakObjectPtr<AActor> LastActor { nullptr };
-	// Time accumulator for trace throttling.
-	float TraceIntervalAccumulator { 0.f };
+	// Timer used for interval-based tracing.
+	FTimerHandle TraceTimerHandle;
 	// Time since last trace while view is unchanged.
 	float IdleRetraceAccumulator { 0.f };
 	// Last traced view state used for movement/rotation threshold checks.

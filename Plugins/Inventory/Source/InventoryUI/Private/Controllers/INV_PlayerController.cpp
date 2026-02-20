@@ -9,6 +9,7 @@
 #include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
+#include "TimerManager.h"
 #include "UI/Widgets/HUD/INV_HUDWidget.h"
 
 AINV_PlayerController::AINV_PlayerController()
@@ -24,16 +25,15 @@ void AINV_PlayerController::Tick(float DeltaTime)
 	// Interaction highlight/prompt is local-only UI behavior.
 	if (!IsLocalController()) return;
 
-	if (TraceIntervalSeconds <= 0.f)
-	{
-		TraceIntervalAccumulator = 0.f;
-	}
-	else
-	{
-		TraceIntervalAccumulator += DeltaTime;
-		if (TraceIntervalAccumulator < TraceIntervalSeconds) return;
-		TraceIntervalAccumulator = 0.f;
-	}
+	// Interval-based tracing is handled by timer callback.
+	if (TraceIntervalSeconds > 0.f) return;
+
+	AttemptTrace(DeltaTime);
+}
+
+void AINV_PlayerController::AttemptTrace(const float ElapsedSinceLastCheck)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_PlayerController_AttemptTrace);
 
 	if (bOnlyTraceOnViewChange)
 	{
@@ -56,7 +56,7 @@ void AINV_PlayerController::Tick(float DeltaTime)
 
 			if (!bShouldTrace && MaxIdleRetraceSeconds > 0.f)
 			{
-				IdleRetraceAccumulator += (TraceIntervalSeconds > 0.f) ? TraceIntervalSeconds : DeltaTime;
+				IdleRetraceAccumulator += ElapsedSinceLastCheck;
 				bShouldTrace = IdleRetraceAccumulator >= MaxIdleRetraceSeconds;
 			}
 		}
@@ -95,9 +95,40 @@ void AINV_PlayerController::BeginPlay()
 	{
 		InventoryComponent->OnNoRoomInInventory.AddUniqueDynamic(HUDWidget, &UINV_HUDWidget::OnNoRoom);
 	}
-	TraceIntervalAccumulator = TraceIntervalSeconds;
 	IdleRetraceAccumulator = 0.f;
 	bHasLastTraceView = false;
+
+	if (!IsLocalController()) return;
+
+	if (TraceIntervalSeconds > 0.f)
+	{
+		SetActorTickEnabled(false);
+		GetWorldTimerManager().SetTimer(
+			TraceTimerHandle,
+			this,
+			&ThisClass::OnTraceTimerElapsed,
+			TraceIntervalSeconds,
+			true);
+		OnTraceTimerElapsed();
+	}
+	else
+	{
+		SetActorTickEnabled(true);
+	}
+}
+
+void AINV_PlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (TraceTimerHandle.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(TraceTimerHandle);
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+void AINV_PlayerController::OnTraceTimerElapsed()
+{
+	AttemptTrace(TraceIntervalSeconds > 0.f ? TraceIntervalSeconds : 0.f);
 }
 
 void AINV_PlayerController::SetupInputComponent()
