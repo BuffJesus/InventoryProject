@@ -104,6 +104,23 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	const FVector2D CanvasPos = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
 	const FVector2D CanvasSize = UINV_WidgetUtils::GetWidgetSize(CanvasPanel);
 	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+
+	// Skip redundant hover placement computation when tick inputs are effectively unchanged.
+	if (bHasLastTickInputs)
+	{
+		const bool bSameCanvasPos = CanvasPos.Equals(LastTickCanvasPos, KINDA_SMALL_NUMBER);
+		const bool bSameCanvasSize = CanvasSize.Equals(LastTickCanvasSize, KINDA_SMALL_NUMBER);
+		const bool bSameMousePos = MousePos.Equals(LastTickMousePos, KINDA_SMALL_NUMBER);
+		if (bSameCanvasPos && bSameCanvasSize && bSameMousePos)
+		{
+			return;
+		}
+	}
+
+	LastTickCanvasPos = CanvasPos;
+	LastTickCanvasSize = CanvasSize;
+	LastTickMousePos = MousePos;
+	bHasLastTickInputs = true;
 	
 	if (CursorExitedCanvas(CanvasPos, CanvasSize, MousePos))
 	{
@@ -480,6 +497,7 @@ void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 void UINV_InventoryGrid::ClearHoverItem()
 {
 	FINV_HoverItemManager::ClearHoverItem(HoverItem);
+	bHasLastTickInputs = false;
 	ShowCursor();
 }
 
@@ -794,6 +812,7 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 		TileSize,
 		GetOwningPlayer(),
 		this);
+	bHasLastTickInputs = false;
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex,
@@ -938,6 +957,7 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	{
 		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
 		UnHighlightBlockingItems();
+		bHasLastTickInputs = false;
 		return true;
 	}
 	return false;
