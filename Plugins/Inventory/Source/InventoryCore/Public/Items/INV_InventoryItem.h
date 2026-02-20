@@ -12,6 +12,8 @@ struct FGameplayTag;
 struct FINV_ItemManifest;
 struct FINV_GridFragment;
 struct FINV_ImageFragment;
+struct FINV_StackableFragment;
+struct FINV_ConsumableFragment;
 
 UCLASS()
 class INVENTORYCORE_API UINV_InventoryItem : public UObject
@@ -45,6 +47,8 @@ public:
 	// Cached fragment accessors for performance (commonly accessed fragments)
 	const FINV_GridFragment* GetCachedGridFragment() const;
 	const FINV_ImageFragment* GetCachedImageFragment() const;
+	const FINV_StackableFragment* GetCachedStackableFragment() const;
+	const FINV_ConsumableFragment* GetCachedConsumableFragment() const;
 	// Call this after setting the manifest to build the cache
 	void BuildFragmentCache();
 	
@@ -65,6 +69,8 @@ private:
 	// Fragment cache for frequently accessed fragments (not replicated, rebuilt on clients)
 	mutable const FINV_GridFragment* CachedGridFragment { nullptr };
 	mutable const FINV_ImageFragment* CachedImageFragment { nullptr };
+	mutable const FINV_StackableFragment* CachedStackableFragment { nullptr };
+	mutable const FINV_ConsumableFragment* CachedConsumableFragment { nullptr };
 };
 
 template <typename FragmentType>

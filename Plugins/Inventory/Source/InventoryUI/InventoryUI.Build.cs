@@ -23,7 +23,9 @@ public class InventoryUI : ModuleRules
 				"Slate",
 				"SlateCore",
 				"GameplayTags",
-				"UMG"
+				"UMG",
+				"EnhancedInput",
+				"NetCore"
 			}
 		);
 	}

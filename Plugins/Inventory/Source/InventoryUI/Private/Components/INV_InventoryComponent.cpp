@@ -1,0 +1,339 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#include "Components/INV_InventoryComponent.h"
+#include "Items/INV_InventoryItem.h"
+#include "Items/INV_ItemComponent.h"
+#include "Items/Fragments/INV_ItemFragment.h"
+#include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
+#include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
+#include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
+#include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
+#include "UI/Base/INV_InventoryBase.h"
+
+UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
+{
+	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
+	// Replicate items as registered subobjects.
+	bReplicateUsingRegisteredSubObjectList = true;
+	bInventoryMenuOpen = false;
+}
+
+void UINV_InventoryComponent::OnRegister()
+{
+	Super::OnRegister();
+	ConfigureFastArrayCallbacks();
+}
+
+void UINV_InventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	ConfigureFastArrayCallbacks();
+	
+	ConstructInventory();
+}
+
+void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
+{
+	FINV_FastArrayCallbacks Callbacks;
+	Callbacks.CreateItemFromPickup = [](UINV_ItemComponent* ItemComponent, AActor* OwningActor) -> UINV_InventoryItem*
+	{
+		if (!IsValid(ItemComponent) || !IsValid(OwningActor)) return nullptr;
+		UINV_InventoryItem* Item = FINV_ItemManifestRuntimeOps::CreateItemFromManifest(
+			ItemComponent->GetItemManifestMutable(),
+			OwningActor);
+		if (!IsValid(Item)) return nullptr;
+		Item->SetItemRarityOptions(ItemComponent->IsItemRarityEnabled(), ItemComponent->GetItemRarityTag());
+		return Item;
+	};
+	Callbacks.MatchesItemByTypeAndRarity = [](const UINV_InventoryItem* Item, const FGameplayTag& ItemType, const bool bUseItemRarity, const FGameplayTag& ItemRarityTag)
+	{
+		if (!IsValid(Item)) return false;
+		if (!Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
+		if (Item->IsItemRarityEnabled() != bUseItemRarity) return false;
+		if (!bUseItemRarity) return true;
+		return Item->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
+	};
+	Callbacks.OnItemAdded = [this](UINV_InventoryItem* Item)
+	{
+		OnItemAdded.Broadcast(Item);
+	};
+	Callbacks.OnItemRemoved = [this](UINV_InventoryItem* Item)
+	{
+		OnItemRemoved.Broadcast(Item);
+	};
+	Callbacks.RegisterReplicatedSubObject = [this](UObject* SubObj)
+	{
+		AddRepSubObj(SubObj);
+	};
+	Callbacks.UnregisterReplicatedSubObject = [this](UObject* SubObj)
+	{
+		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))
+		{
+			RemoveReplicatedSubObject(SubObj);
+		}
+	};
+	Callbacks.CanUseReplicationSubObjectList = [this]()
+	{
+		return IsUsingRegisteredSubObjectList() && IsReadyForReplication();
+	};
+	InventoryFastArray.SetCallbacks(MoveTemp(Callbacks));
+}
+
+void UINV_InventoryComponent::ToggleInventoryMenu()
+{
+	// Toggle UI visibility and input mode.
+	bInventoryMenuOpen ? HandleInventoryMenu(ESlateVisibility::Collapsed, false)
+		: HandleInventoryMenu(ESlateVisibility::Visible, true);
+}
+
+void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
+{
+	// Only register when replication is ready.
+	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))
+	{
+		AddReplicatedSubObject(SubObj);
+
+	}
+}
+
+void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ThisClass, InventoryFastArray);
+}
+
+void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem* Item, int32 StackCount)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!IsValid(Item)) return;
+
+	const bool bIsStackable = Item->IsStackable();
+	const int32 AvailableStackCount = bIsStackable ? FMath::Max(Item->GetTotalStackCount(), 1) : 1;
+	const int32 DroppedStackCount = FMath::Clamp(StackCount, 1, AvailableStackCount);
+	const int32 NewStackCount = AvailableStackCount - DroppedStackCount;
+
+	if (!bIsStackable || NewStackCount <= 0)
+	{
+		InventoryFastArray.RemoveEntry(Item);
+	}
+	else
+	{
+		Item->SetTotalStackCount(NewStackCount);
+	}
+	
+	SpawnDroppedItem(Item, DroppedStackCount);
+}
+
+void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!IsValid(Item)) return;
+	if (!OwningController.IsValid()) return;
+
+	const APawn* OwningPawn = OwningController->GetPawn();
+	if (!IsValid(OwningPawn)) return;
+
+	UWorld* World = GetWorld();
+	if (!IsValid(World)) return;
+
+	// Calculate safe drop location using utility
+	const FINV_DropLocationResult DropResult = UINV_DropLocationCalculator::CalculateDropLocation(
+		World,
+		OwningPawn,
+		GetOwner(),
+		DropSpawnAngleMin,
+		DropSpawnAngleMax,
+		DropSpawnDistanceMin,
+		DropSpawnDistanceMax,
+		DropValidationRadius,
+		DropValidationHalfHeight,
+		DropPlayerClearance,
+		RelativeSpawnElevation,
+		DropGroundTraceStartHeight,
+		DropGroundTraceDepth,
+		DropSurfaceOffset);
+
+	if (!DropResult.bIsValid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to calculate valid drop location. Item not spawned."));
+		return;
+	}
+
+	const FVector SpawnLocation = DropResult.Location;
+	const FRotator SpawnRotation = DropResult.Rotation;
+	
+	FINV_ItemManifest& ItemManifest { Item->GetItemManifestMutable() };
+	if (FINV_StackableFragment* StackableFragment = ItemManifest.GetFragmentOfTypeMutable<FINV_StackableFragment>())
+	{
+		StackableFragment->SetStackCount(StackCount);
+	}
+	
+	UINV_ItemComponent* SpawnedItemComponent = FINV_ItemManifestRuntimeOps::SpawnPickupActorFromManifest(
+		ItemManifest,
+		this,
+		SpawnLocation,
+		SpawnRotation,
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+	if (SpawnedItemComponent)
+	{
+		SpawnedItemComponent->SetItemRarityOptions(Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
+	}
+	else
+	{
+		// Failed to spawn pickup - restore item to inventory to prevent item loss
+		UE_LOG(LogTemp, Warning, TEXT("Failed to spawn dropped item pickup at location %s. Restoring item to inventory."), *SpawnLocation.ToString());
+
+		// Re-add the item to inventory if it was removed
+		if (UINV_InventoryItem* ExistingItem = InventoryFastArray.FindFirstItemByType(
+			Item->GetItemManifest().GetItemType(),
+			Item->IsItemRarityEnabled(),
+			Item->GetItemRarityTag()))
+		{
+			// Item still exists, restore stack count
+			ExistingItem->SetTotalStackCount(ExistingItem->GetTotalStackCount() + StackCount);
+		}
+		else
+		{
+			// Item was removed, re-add it
+			InventoryFastArray.AddEntry(Item);
+		}
+	}
+}
+
+void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+
+	const int32 NewStackCount = Item->GetTotalStackCount() - 1;
+	if (NewStackCount <= 0)
+	{
+		InventoryFastArray.RemoveEntry(Item);
+	}
+	else
+	{
+		Item->SetTotalStackCount(NewStackCount);
+	}
+
+	if (FINV_ConsumableFragment* ConsumableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_ConsumableFragment>())
+	{
+		ConsumableFragment->OnConsume(OwningController.Get());
+	}
+}
+
+void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
+{
+	if (!IsValid(ItemComponent)) return;
+	if (!IsValid(Inventory)) return;
+	if (!GetOwner()) return;
+	
+	// Ask the UI for available space and stacking info.
+	const FINV_SlotAvailabilityResult SpaceResult { Inventory->HasRoomForItem(ItemComponent) };
+	UINV_InventoryItem* FoundItem { InventoryFastArray.FindFirstItemByType(
+		ItemComponent->GetItemManifest().GetItemType(),
+		ItemComponent->IsItemRarityEnabled(),
+		ItemComponent->GetItemRarityTag()) };
+
+	const FINV_AddItemDecision Decision = FINV_InventoryAddResolver::Resolve(
+		SpaceResult,
+		IsValid(FoundItem));
+
+	switch (Decision.Action)
+	{
+	case EINV_AddItemAction::NoRoom:
+		OnNoRoomInInventory.Broadcast();
+		break;
+	case EINV_AddItemAction::AddStacks:
+		{
+			FINV_SlotAvailabilityResult StackResult = SpaceResult;
+			StackResult.Item = FoundItem;
+			OnStackChange.Broadcast(StackResult);
+		}
+		Server_AddStacksToItem(ItemComponent, Decision.StackCountToAdd, Decision.Remainder);
+		break;
+	case EINV_AddItemAction::AddNewItem:
+		// Create a new inventory entry.
+		Server_AddNewItem(ItemComponent, Decision.StackCountToAdd);
+		break;
+	case EINV_AddItemAction::None:
+	default:
+		break;
+	}
+}
+
+void UINV_InventoryComponent::ConstructInventory()
+{
+	OwningController = Cast<APlayerController>(GetOwner());
+	checkf(OwningController.IsValid(), TEXT("OwningController cannot be null"));
+	if (!OwningController->IsLocalController()) return;
+	
+	// Build and hide the inventory widget for local players.
+	Inventory = CreateWidget<UINV_InventoryBase>(OwningController.Get(), InventoryClass);
+	checkf(Inventory, TEXT("Inventory cannot be null"));
+	Inventory->AddToViewport();
+	Inventory->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen)
+{
+	if (!IsValid(Inventory)) return;
+	
+	// Update visibility and input mode.
+	Inventory->SetVisibility(Visibility);
+	bInventoryMenuOpen = bIsOpen;
+	
+	if (!OwningController.IsValid()) return;
+	
+	bIsOpen ? OwningController->SetInputMode(FInputModeGameAndUI()) 
+			: OwningController->SetInputMode(FInputModeGameOnly());
+	
+	OwningController->SetShowMouseCursor(bIsOpen);
+}
+
+void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
+{
+	if (!IsValid(ItemComponent)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	
+	// Create and replicate a new item.
+	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
+	NewItem->SetTotalStackCount(StackCount);
+	
+	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
+	{
+		OnItemAdded.Broadcast(NewItem);
+	}
+	
+	ItemComponent->PickedUp();
+}
+
+void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
+	int32 Remainder)
+{
+	if (!IsValid(ItemComponent)) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+
+	// Update existing stack count and handle remainder.
+	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
+	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(
+		ItemType,
+		ItemComponent->IsItemRarityEnabled(),
+		ItemComponent->GetItemRarityTag()) };
+	if (!IsValid(Item)) return;
+
+	const int32 OldStackCount = Item->GetTotalStackCount();
+	Item->SetTotalStackCount(OldStackCount + StackCount);
+
+	// Mark the fast array as dirty so replication knows it changed
+	InventoryFastArray.MarkArrayDirty();
+
+	if (Remainder == 0) ItemComponent->PickedUp();
+	else if (FINV_StackableFragment* StackableFragment = ItemComponent->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_StackableFragment>())
+	{
+		StackableFragment->SetStackCount(Remainder);
+	}
+}

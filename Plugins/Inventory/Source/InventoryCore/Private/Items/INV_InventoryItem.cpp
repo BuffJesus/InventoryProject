@@ -32,16 +32,12 @@ void UINV_InventoryItem::SetItemRarityOptions(bool bEnabled, const FGameplayTag&
 
 bool UINV_InventoryItem::IsStackable() const
 {
-	// Stackable if a stack fragment exists.
-	const FINV_StackableFragment* StackableFragment { GetItemManifest().GetFragmentOfType<FINV_StackableFragment>() };
-	return StackableFragment != nullptr;
+	return GetCachedStackableFragment() != nullptr;
 }
 
 bool UINV_InventoryItem::IsConsumable() const
 {
-	// Consumable if a consumable fragment exists.
-	const FINV_ConsumableFragment* ConsumableFragment { GetItemManifest().GetFragmentOfType<FINV_ConsumableFragment>() };
-	return ConsumableFragment != nullptr;
+	return GetCachedConsumableFragment() != nullptr;
 }
 
 void UINV_InventoryItem::BuildFragmentCache()
@@ -50,6 +46,8 @@ void UINV_InventoryItem::BuildFragmentCache()
 	const FINV_ItemManifest& Manifest = GetItemManifest();
 	CachedGridFragment = Manifest.GetFragmentOfTypeWithTag<FINV_GridFragment>(FragmentTags::GridFragment);
 	CachedImageFragment = Manifest.GetFragmentOfTypeWithTag<FINV_ImageFragment>(FragmentTags::IconFragment);
+	CachedStackableFragment = Manifest.GetFragmentOfTypeWithTag<FINV_StackableFragment>(FragmentTags::StackableFragment);
+	CachedConsumableFragment = Manifest.GetFragmentOfTypeWithTag<FINV_ConsumableFragment>(FragmentTags::ConsumableFragment);
 }
 
 const FINV_GridFragment* UINV_InventoryItem::GetCachedGridFragment() const
@@ -70,4 +68,24 @@ const FINV_ImageFragment* UINV_InventoryItem::GetCachedImageFragment() const
 		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
 	}
 	return CachedImageFragment;
+}
+
+const FINV_StackableFragment* UINV_InventoryItem::GetCachedStackableFragment() const
+{
+	if (!CachedStackableFragment)
+	{
+		// Lazy cache build if not already cached
+		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
+	}
+	return CachedStackableFragment;
+}
+
+const FINV_ConsumableFragment* UINV_InventoryItem::GetCachedConsumableFragment() const
+{
+	if (!CachedConsumableFragment)
+	{
+		// Lazy cache build if not already cached
+		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
+	}
+	return CachedConsumableFragment;
 }

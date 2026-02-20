@@ -42,7 +42,10 @@ void UINV_HoverItem::NativeOnInitialized()
 void UINV_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
 {
 	// Apply the icon brush.
-	Image_Icon->SetBrush(Brush);
+	if (IsValid(Image_Icon.Get()))
+	{
+		Image_Icon->SetBrush(Brush);
+	}
 }
 
 void UINV_HoverItem::UpdateStackCount(const int32 Count)
@@ -50,6 +53,11 @@ void UINV_HoverItem::UpdateStackCount(const int32 Count)
 	StackCount = Count;
 	
 	// Update stack count text.
+	if (!IsValid(Text_StackCount.Get()))
+	{
+		return;
+	}
+
 	if (Count > 0)
 	{
 		Text_StackCount->SetText(FText::AsNumber(Count));
@@ -75,7 +83,7 @@ void UINV_HoverItem::SetIsStackable(bool bStacks)
 {
 	// Hide stack count when not stackable.
 	bIsStackable = bStacks;
-	if (!bStacks)
+	if (!bStacks && IsValid(Text_StackCount.Get()))
 	{
 		Text_StackCount->SetVisibility(ESlateVisibility::Collapsed);
 	}

@@ -1,4 +1,5 @@
 #include "UI/Inventory/Services/INV_GridClickExecutionService.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 void FINV_GridClickExecutionService::ExecuteSlottedItemClick(
 	const FINV_GridClickResult& ActionResult,
@@ -7,6 +8,8 @@ void FINV_GridClickExecutionService::ExecuteSlottedItemClick(
 	const int32 GridIndex,
 	const FINV_GridClickExecutionCallbacks& Callbacks)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridClickExecutionService_ExecuteSlottedItemClick);
+
 	switch (ActionResult.Action)
 	{
 	case EINV_ClickAction::Pickup:
@@ -62,6 +65,8 @@ void FINV_GridClickExecutionService::ExecuteGridSlotClick(
 	const FINV_GridClickResult& ActionResult,
 	const FINV_GridClickExecutionCallbacks& Callbacks)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridClickExecutionService_ExecuteGridSlotClick);
+
 	switch (ActionResult.Action)
 	{
 	case EINV_ClickAction::SwapItems:

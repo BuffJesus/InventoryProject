@@ -6,19 +6,22 @@
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 FINV_StackDetails FINV_GridStackOperations::CalculateStackDetails(
 	const UINV_GridSlot* GridSlot,
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridStackOperations_CalculateStackDetails);
+
 	if (!IsValid(GridSlot) || !IsValid(HoverItem) || !IsValid(ClickedItem))
 	{
 		return FINV_StackDetails {};
 	}
 
 	const int32 ClickedStackCount = GridSlot->GetStackCount();
-	const FINV_StackableFragment* StackableFragment = ClickedItem->GetItemManifest().GetFragmentOfType<FINV_StackableFragment>();
+	const FINV_StackableFragment* StackableFragment = ClickedItem->GetCachedStackableFragment();
 	const int32 MaxStackSize = StackableFragment ? StackableFragment->GetMaxStackSize() : 0;
 	const int32 RoomInClickedSlot = MaxStackSize - ClickedStackCount;
 	const int32 HoveredStackCount = HoverItem->GetStackCount();
@@ -30,6 +33,8 @@ bool FINV_GridStackOperations::IsSameStackable(
 	const UINV_HoverItem* HoverItem,
 	const UINV_InventoryItem* ClickedItem)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridStackOperations_IsSameStackable);
+
 	if (!IsValid(HoverItem) || !IsValid(ClickedItem))
 	{
 		return false;
@@ -47,6 +52,8 @@ void FINV_GridStackOperations::SwapStackCounts(
 	int32 ClickedStackCount,
 	int32 HoveredStackCount)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridStackOperations_SwapStackCounts);
+
 	if (!IsValid(GridSlot) || !IsValid(SlottedItem) || !IsValid(HoverItem))
 	{
 		return;
@@ -63,6 +70,8 @@ void FINV_GridStackOperations::ConsumeHoverItemStacks(
 	int32 ClickedStackCount,
 	int32 HoveredStackCount)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridStackOperations_ConsumeHoverItemStacks);
+
 	if (!IsValid(GridSlot) || !IsValid(SlottedItem))
 	{
 		return;
@@ -82,6 +91,8 @@ void FINV_GridStackOperations::FillInStack(
 	int32 FillAmount,
 	int32 Remainder)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridStackOperations_FillInStack);
+
 	if (!IsValid(GridSlot) || !IsValid(SlottedItem) || !IsValid(HoverItem))
 	{
 		return;
