@@ -37,6 +37,9 @@ public:
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_ItemComponent* ItemComponent);
 	virtual void NativeOnInitialized() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual void NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) override;
+	virtual void NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent) override;
 
 	UFUNCTION()
 	// Adds a replicated item to the UI grid.
@@ -99,6 +102,15 @@ private:
 	void CreateItemPopup(const int32 GridIndex);
 	void CloseActiveItemPopup();
 	void ClosePopupIfClickedOutside();
+	bool HandleControllerConfirm();
+	bool HandleControllerBack();
+	bool HandleControllerContext();
+	bool MoveControllerSelection(const FIntPoint& Delta);
+	void ApplyControllerSelectionVisual();
+	void ClearControllerSelectionVisual();
+	void SetControllerSelectedIndex(int32 NewIndex);
+	bool IsControllerSelectedIndexValid() const;
+	int32 GetControllerSelectedIndex() const;
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
 	TSubclassOf<UINV_ItemPopUp> ItemPopUpClass;
@@ -197,6 +209,7 @@ private:
 	bool bHasLastTickInputs { false };
 	int32 LastHighlightedIndex { INDEX_NONE };
 	int32 LastHoveredSlottedIndex { INDEX_NONE };
+	int32 ControllerSelectedIndex { INDEX_NONE };
 	FIntPoint LastHighlightedDimensions;
 	TArray<int32> LastGrayedOutUpperLeftIndices;
 	FVector2D LastTickCanvasPos { FVector2D::ZeroVector };

@@ -32,6 +32,23 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
+
+namespace
+{
+FPointerEvent MakeSimulatedLeftMouseClickEvent()
+{
+	return FPointerEvent(
+		0u,
+		0u,
+		FVector2D::ZeroVector,
+		FVector2D::ZeroVector,
+		TSet<FKey> { EKeys::LeftMouseButton },
+		EKeys::LeftMouseButton,
+		0.0f,
+		FModifierKeysState());
+}
+}
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -63,6 +80,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_Invent
 void UINV_InventoryGrid::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
+	SetIsFocusable(true);
 	
 	// Build slots and wire up inventory events.
 	ConstructGrid();
@@ -289,6 +307,55 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 	}
 }
 
+FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	const FKey PressedKey = InKeyEvent.GetKey();
+
+	if (PressedKey == EKeys::Gamepad_DPad_Up || PressedKey == EKeys::Gamepad_LeftStick_Up)
+	{
+		return MoveControllerSelection(FIntPoint(0, -1)) ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (PressedKey == EKeys::Gamepad_DPad_Down || PressedKey == EKeys::Gamepad_LeftStick_Down)
+	{
+		return MoveControllerSelection(FIntPoint(0, 1)) ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (PressedKey == EKeys::Gamepad_DPad_Left || PressedKey == EKeys::Gamepad_LeftStick_Left)
+	{
+		return MoveControllerSelection(FIntPoint(-1, 0)) ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (PressedKey == EKeys::Gamepad_DPad_Right || PressedKey == EKeys::Gamepad_LeftStick_Right)
+	{
+		return MoveControllerSelection(FIntPoint(1, 0)) ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (PressedKey == EKeys::Gamepad_FaceButton_Bottom)
+	{
+		return HandleControllerConfirm() ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (PressedKey == EKeys::Gamepad_FaceButton_Right)
+	{
+		return HandleControllerBack() ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (PressedKey == EKeys::Gamepad_FaceButton_Left)
+	{
+		return HandleControllerContext() ? FReply::Handled() : FReply::Unhandled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void UINV_InventoryGrid::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)
+{
+	Super::NativeOnAddedToFocusPath(InFocusEvent);
+	ApplyControllerSelectionVisual();
+}
+
+void UINV_InventoryGrid::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent)
+{
+	Super::NativeOnRemovedFromFocusPath(InFocusEvent);
+	ClearControllerSelectionVisual();
+}
+
 FVector2D UINV_InventoryGrid::GetDrawSize(const FINV_GridFragment* GridFragment) const
 {
 	return FINV_GridWidgetFactory::CalculateDrawSize(GridFragment, TileSize);
@@ -448,6 +515,11 @@ void UINV_InventoryGrid::ConstructGrid()
 			GridSlot->GridSlotHovered.AddDynamic(this, &ThisClass::OnGridSlotHovered);
 			GridSlot->GridSlotUnhovered.AddDynamic(this, &ThisClass::OnGridSlotUnhovered);
 		}
+	}
+
+	if (GridSlots.Num() > 0)
+	{
+		ControllerSelectedIndex = 0;
 	}
 }
 
@@ -675,6 +747,7 @@ UUserWidget* UINV_InventoryGrid::GetHiddenCursorWidget()
 
 void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	ControllerSelectedIndex = GridIndex;
 	if (IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
@@ -778,6 +851,7 @@ void UINV_InventoryGrid::OnPopUpMenuInspect(int32 Index)
 
 void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	ControllerSelectedIndex = GridIndex;
 	if (IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	if (LastHoveredSlottedIndex == GridIndex) return;
@@ -909,6 +983,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 	LastHoveredSlottedIndex = INDEX_NONE;
 	CloseActiveItemPopup();
+	ControllerSelectedIndex = GridIndex;
 
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
 	UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
@@ -966,6 +1041,128 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		ClickedInventoryItem,
 		GridIndex,
 		Callbacks);
+}
+
+bool UINV_InventoryGrid::HandleControllerConfirm()
+{
+	if (!IsControllerSelectedIndexValid())
+	{
+		ApplyControllerSelectionVisual();
+	}
+	if (!IsControllerSelectedIndexValid()) return false;
+
+	if (GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid())
+	{
+		OnSlottedItemClicked(ControllerSelectedIndex, MakeSimulatedLeftMouseClickEvent());
+		ApplyControllerSelectionVisual();
+		return true;
+	}
+
+	if (!IsValid(HoverItem)) return false;
+
+	// Use selected slot as the drop anchor when using controller input.
+	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
+	const FIntPoint HoverDimensions = GetItemDimensionsOrDefault(HoverInventoryItem);
+	const FIntPoint SelectedCoordinates(
+		ControllerSelectedIndex % GridSize.X,
+		ControllerSelectedIndex / GridSize.X);
+	const FINV_SpaceQueryResult SpaceQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(
+		GridSlots,
+		GridSize,
+		SelectedCoordinates,
+		HoverDimensions);
+	if (!SpaceQueryResult.bHasSpace) return true;
+
+	ItemDropIndex = ControllerSelectedIndex;
+	PutDownOnIndex(ControllerSelectedIndex);
+	ApplyControllerSelectionVisual();
+	return true;
+}
+
+bool UINV_InventoryGrid::HandleControllerBack()
+{
+	if (IsValid(ItemPopUp) && ItemPopUp->GetVisibility() == ESlateVisibility::Visible)
+	{
+		CloseActiveItemPopup();
+		return true;
+	}
+
+	if (IsValid(HoverItem))
+	{
+		return ReturnHoverItemToPreviousSlot();
+	}
+
+	return false;
+}
+
+bool UINV_InventoryGrid::HandleControllerContext()
+{
+	if (!IsControllerSelectedIndexValid()) return false;
+	if (!GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid()) return false;
+	CreateItemPopup(ControllerSelectedIndex);
+	return true;
+}
+
+bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
+{
+	if (GridSlots.Num() == 0) return false;
+
+	if (!IsControllerSelectedIndexValid())
+	{
+		ControllerSelectedIndex = 0;
+	}
+
+	const int32 CurrentX = ControllerSelectedIndex % GridSize.X;
+	const int32 CurrentY = ControllerSelectedIndex / GridSize.X;
+	const int32 NewX = (CurrentX + Delta.X + GridSize.X) % GridSize.X;
+	const int32 NewY = (CurrentY + Delta.Y + GridSize.Y) % GridSize.Y;
+	SetControllerSelectedIndex(UINV_WidgetUtils::GetIndexFromPosition(FIntPoint(NewX, NewY), GridSize.X));
+	return true;
+}
+
+void UINV_InventoryGrid::ApplyControllerSelectionVisual()
+{
+	if (GridSlots.Num() == 0) return;
+	if (!IsControllerSelectedIndexValid())
+	{
+		ControllerSelectedIndex = 0;
+	}
+
+	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
+	GridSlots[ControllerSelectedIndex]->SetSelectedTexture();
+}
+
+void UINV_InventoryGrid::ClearControllerSelectionVisual()
+{
+	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
+	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
+	if (!IsValid(SelectedGridSlot)) return;
+	if (SelectedGridSlot->GetInventoryItem().IsValid()) SelectedGridSlot->SetOccupiedTexture();
+	else SelectedGridSlot->SetUnoccupiedTexture();
+}
+
+void UINV_InventoryGrid::SetControllerSelectedIndex(int32 NewIndex)
+{
+	if (!GridSlots.IsValidIndex(NewIndex)) return;
+	if (ControllerSelectedIndex == NewIndex)
+	{
+		ApplyControllerSelectionVisual();
+		return;
+	}
+
+	ClearControllerSelectionVisual();
+	ControllerSelectedIndex = NewIndex;
+	ApplyControllerSelectionVisual();
+}
+
+bool UINV_InventoryGrid::IsControllerSelectedIndexValid() const
+{
+	return GridSlots.IsValidIndex(ControllerSelectedIndex);
+}
+
+int32 UINV_InventoryGrid::GetControllerSelectedIndex() const
+{
+	return ControllerSelectedIndex;
 }
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)

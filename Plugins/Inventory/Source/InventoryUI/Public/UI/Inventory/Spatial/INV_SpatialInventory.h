@@ -9,6 +9,7 @@
 
 class UINV_EquippedGridSlot;
 class UINV_EquippedSlottedItem;
+class UTextBlock;
 struct FGameplayTag;
 class UINV_ItemDescription;
 class UCanvasPanel;
@@ -26,6 +27,7 @@ class INVENTORYUI_API UINV_SpatialInventory : public UINV_InventoryBase
 public:
 	virtual void NativeOnInitialized() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const override;
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) override;
 	virtual bool HasHoverItem() const override;
@@ -60,6 +62,8 @@ private:
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	void ForEachInventoryGrid(TFunctionRef<void(UINV_InventoryGrid* Grid)> Visitor) const;
 	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
+	void SwitchCategoryByDirection(int32 Direction);
+	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
 	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);
@@ -76,6 +80,10 @@ private:
 	TSubclassOf<UINV_ItemDescription> ItemDescriptionClass;
 	
 	UPROPERTY() TObjectPtr<UINV_ItemDescription> ItemDescription;
+	UPROPERTY() TObjectPtr<UTextBlock> ControllerHintsText;
+
+	UPROPERTY(EditAnywhere, Category="INV|Controller")
+	FText ControllerHintsLabel { FText::FromString(TEXT("A Select   B Back   X Options   LB/RB Category")) };
 
 	// Prevent immediate close on the same frame the description is opened.
 	bool bSkipDescriptionCloseThisTick { false };

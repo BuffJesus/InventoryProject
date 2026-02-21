@@ -9,6 +9,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/INV_InventoryComponent.h"
 #include "Components/WidgetSwitcher.h"
+#include "Components/TextBlock.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Items/INV_InventoryItem.h"
@@ -19,6 +20,7 @@
 #include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
+#include "InputCoreTypes.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
@@ -65,6 +67,21 @@ void UINV_SpatialInventory::ForEachCategoryButton(TFunctionRef<void(UButton* But
 	Visitor(Button_Craftable);
 }
 
+void UINV_SpatialInventory::SwitchCategoryByDirection(int32 Direction)
+{
+	if (Direction == 0) return;
+	TArray<UINV_InventoryGrid*> OrderedGrids { Grid_Equippable, Grid_Consumable, Grid_Craftable };
+	TArray<UButton*> OrderedButtons { Button_Equippable, Button_Consumable, Button_Craftable };
+
+	int32 CurrentIndex = OrderedGrids.Find(ActiveGrid.Get());
+	if (CurrentIndex == INDEX_NONE) CurrentIndex = 0;
+
+	const int32 GridCount = OrderedGrids.Num();
+	if (GridCount <= 0) return;
+	const int32 NewIndex = (CurrentIndex + (Direction > 0 ? 1 : -1) + GridCount) % GridCount;
+	SetActiveGrid(OrderedGrids[NewIndex], OrderedButtons[NewIndex]);
+}
+
 void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button)
 {
 	ReturnActiveHoverItemToSource();
@@ -73,6 +90,27 @@ void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* But
 	if (ActiveGrid.IsValid()) ActiveGrid->ShowCursor();
 	DisableButton(Button);
 	Switcher->SetActiveWidget(Grid);
+	if (ActiveGrid.IsValid())
+	{
+		ActiveGrid->SetKeyboardFocus();
+	}
+}
+
+FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	const FKey PressedKey = InKeyEvent.GetKey();
+	if (PressedKey == EKeys::Gamepad_LeftShoulder)
+	{
+		SwitchCategoryByDirection(-1);
+		return FReply::Handled();
+	}
+	if (PressedKey == EKeys::Gamepad_RightShoulder)
+	{
+		SwitchCategoryByDirection(1);
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 void UINV_SpatialInventory::NativeOnInitialized()
@@ -92,6 +130,7 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	});
 	
 	ShowEquippableGrid();
+	EnsureControllerHintWidget();
 	
 	WidgetTree->ForEachWidget([this](UWidget* Widget)
 	{
@@ -101,6 +140,29 @@ void UINV_SpatialInventory::NativeOnInitialized()
 			EquippedGridSlot->EquippedGridSlotClicked.AddDynamic(this, &ThisClass::EquippedGridSlotClicked);
 		}
 	});
+}
+
+void UINV_SpatialInventory::EnsureControllerHintWidget()
+{
+	if (!IsValid(CanvasPanel) || IsValid(ControllerHintsText)) return;
+
+	ControllerHintsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Text_ControllerHintsRuntime"));
+	if (!IsValid(ControllerHintsText)) return;
+
+	ControllerHintsText->SetText(ControllerHintsLabel);
+	ControllerHintsText->SetColorAndOpacity(FSlateColor(FLinearColor(0.9f, 0.9f, 0.9f, 0.9f)));
+	ControllerHintsText->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	ControllerHintsText->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.65f));
+
+	CanvasPanel->AddChild(ControllerHintsText);
+	if (UCanvasPanelSlot* HintSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ControllerHintsText))
+	{
+		HintSlot->SetAutoSize(true);
+		HintSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+		HintSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+		HintSlot->SetPosition(FVector2D(16.0f, -14.0f));
+		HintSlot->SetZOrder(900);
+	}
 }
 
 void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot,

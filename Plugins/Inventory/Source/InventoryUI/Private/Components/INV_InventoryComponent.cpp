@@ -388,6 +388,10 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	// Update visibility and input mode.
 	Inventory->SetVisibility(Visibility);
 	bInventoryMenuOpen = bIsOpen;
+	if (bIsOpen)
+	{
+		Inventory->SetKeyboardFocus();
+	}
 	
 	if (!OwningController.IsValid()) return;
 	
