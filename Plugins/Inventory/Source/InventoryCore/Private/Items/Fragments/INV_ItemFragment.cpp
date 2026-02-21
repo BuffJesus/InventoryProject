@@ -61,6 +61,17 @@ void FINV_AttributeModifier::OnUnequip(APlayerController* PC)
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Attribute modifier unequipped! Reverting attribute change by: %f"), GetValue()));
 }
 
+void FINV_EquipmentFragment::InitializeRuntimeState()
+{
+	FINV_InventoryItemFragment::InitializeRuntimeState();
+
+	for (auto& Modifier : EquipModifiers)
+	{
+		auto& ModRef { Modifier.GetMutable() };
+		ModRef.InitializeRuntimeState();
+	}
+}
+
 void FINV_EquipmentFragment::OnEquip(APlayerController* PC)
 {
 	if (bEquipped) return;

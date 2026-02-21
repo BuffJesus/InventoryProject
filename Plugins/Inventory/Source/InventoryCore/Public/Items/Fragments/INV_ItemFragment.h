@@ -222,6 +222,7 @@ struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragm
 {
 	GENERATED_BODY()
 	bool bEquipped { false };
+	virtual void InitializeRuntimeState() override;
 	void OnEquip(APlayerController* PC);
 	void OnUnequip(APlayerController* PC);
 	const TArray<TInstancedStruct<FINV_EquipModifier>>& GetEquipModifiers() const { return EquipModifiers; }

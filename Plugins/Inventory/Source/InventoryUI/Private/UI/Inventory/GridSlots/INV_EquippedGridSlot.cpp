@@ -19,14 +19,20 @@ void UINV_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, cons
 {
 	if (!CanUpdateHoverTexture()) return;
 	SetOccupiedTexture();
-	Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Collapsed);
+	if (IsValid(Image_GrayedOutIcon))
+	{
+		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UINV_EquippedGridSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	if (!CanUpdateHoverTexture()) return;
 	SetUnoccupiedTexture();
-	Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Visible);
+	if (IsValid(Image_GrayedOutIcon))
+	{
+		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 FReply UINV_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
