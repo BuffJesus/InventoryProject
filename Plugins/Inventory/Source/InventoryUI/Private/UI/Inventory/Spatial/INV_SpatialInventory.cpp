@@ -108,7 +108,7 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 	Grid_Equippable->ClearHoverItem();
 }
 
-void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem* SlottedItem)
+void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem* EquippedSlottedItem)
 {
 	// Remove the Item Description
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
@@ -118,7 +118,7 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 	UINV_InventoryItem* ItemToEquip { IsValid(GetHoverItem()) ? GetHoverItem()->GetInventoryItem() : nullptr };
 	
 	// Get the item to unequip
-	UINV_InventoryItem* ItemToUnequip { SlottedItem->GetInventoryItem() };
+	UINV_InventoryItem* ItemToUnequip { EquippedSlottedItem->GetInventoryItem() };
 	
 	// Get the Equipped Grid Slot holding this item
 	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(ItemToUnequip) };
@@ -130,9 +130,11 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 	Grid_Equippable->AssignHoverItem(ItemToUnequip);
 	
 	// Removal of the equipped slotted item from the equipped grid slot 
-	RemoveEquippedSlottedItem(SlottedItem);
+	RemoveEquippedSlottedItem(EquippedSlottedItem);
 	
 	// Make a new equipped slotted item (for the item we held in HoverItem)
+	MakeEquippedSlottedItem(EquippedSlottedItem, EquippedGridSlot, ItemToEquip);
+	
 	// Broadcast delegate for OnItemEquipped/OnItemUnequipped (from the IC)
 }
 
@@ -236,6 +238,21 @@ void UINV_SpatialInventory::RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* 
 		EquippedSlottedItem->OnEquippedSlottedItemClicked.RemoveDynamic(this, &ThisClass::EquippedSlottedItemClicked);
 	}
 	EquippedSlottedItem->RemoveFromParent();
+}
+
+void UINV_SpatialInventory::MakeEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem,
+	UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip)
+{
+	if (!IsValid(EquippedGridSlot)) return;
+	
+	UINV_EquippedSlottedItem* SlottedItem { EquippedGridSlot->OnItemEquipped(
+		ItemToEquip, 
+		EquippedSlottedItem->GetEquipmentTypeTag(), 
+		UINV_InventoryStatics::GetInventoryWidget(GetOwningPlayer())->GetTileSize()) };
+	
+	SlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
+	
+	EquippedGridSlot->SetEquippedSlottedItem(SlottedItem);
 }
 
 UINV_EquippedGridSlot* UINV_SpatialInventory::FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const
