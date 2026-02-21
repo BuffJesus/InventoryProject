@@ -197,3 +197,33 @@ struct INVENTORYCORE_API FINV_ManaPotionFragment : public FINV_ConsumeModifier
 	GENERATED_BODY()
 	virtual void OnConsume(APlayerController* PC) override;
 };
+
+// Equipment
+
+USTRUCT(BlueprintType)
+struct INVENTORYCORE_API FINV_EquipModifier : public FINV_LabeledNumberFragment
+{
+	GENERATED_BODY()
+	virtual void OnEquip(APlayerController* PC) {}
+	virtual void OnUnequip(APlayerController* PC) {}
+};
+
+USTRUCT(BlueprintType)
+struct FINV_AttributeModifier : public FINV_EquipModifier
+{
+	GENERATED_BODY()
+	virtual void OnEquip(APlayerController* PC) override;
+	virtual void OnUnequip(APlayerController* PC) override;
+};
+
+USTRUCT(BlueprintType)
+struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragment
+{
+	GENERATED_BODY()
+	void OnEquip(APlayerController* PC);
+	void OnUnequip(APlayerController* PC);
+	
+private:
+	UPROPERTY(EditAnywhere, Category = "INV|Equipment")
+	TArray<TInstancedStruct<FINV_EquipModifier>> EquipModifiers;
+};
