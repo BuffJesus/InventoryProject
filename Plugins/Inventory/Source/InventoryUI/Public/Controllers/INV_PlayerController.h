@@ -10,6 +10,7 @@ class UINV_InventoryComponent;
 class UINV_HUDWidget;
 class UInputAction;
 class UInputMappingContext;
+struct FInputKeyEventArgs;
 /**
  * 
  */
@@ -29,6 +30,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
+	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 
 private:
 	// Evaluate view-change thresholds and execute trace when conditions are met.
@@ -41,6 +43,7 @@ private:
 	void CreateHUDWidget();
 	// Trace forward to find highlightable items.
 	void TraceForItem();
+	FString BuildPickupPromptForCurrentInput(const FString& RawPickupMessage) const;
 	
 	// Cached inventory component.
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
@@ -53,6 +56,14 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input")
 	TObjectPtr<UInputAction> ToggleInventoryAction;
+
+	// Label shown for interact when using keyboard/mouse input.
+	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Prompts")
+	FText KeyboardInteractKeyLabel { FText::FromString(TEXT("E")) };
+
+	// Label shown for interact when using gamepad input.
+	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Prompts")
+	FText GamepadInteractKeyLabel { FText::FromString(TEXT("X")) };
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|HUD")
 	TSubclassOf<UINV_HUDWidget> HUDWidgetClass;
@@ -99,4 +110,5 @@ private:
 	FVector LastTraceViewLocation { FVector::ZeroVector };
 	FRotator LastTraceViewRotation { FRotator::ZeroRotator };
 	bool bHasLastTraceView { false };
+	bool bLastInputWasGamepad { false };
 };

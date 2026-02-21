@@ -4,6 +4,7 @@
 #include "Controllers/INV_PlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputKeyEventArgs.h"
 #include "Interaction/INV_Highlightable.h"
 #include "Components/INV_InventoryComponent.h"
 #include "Items/INV_ItemComponent.h"
@@ -137,6 +138,20 @@ void AINV_PlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &ThisClass::ToggleInventory);
 }
 
+bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+	if (Params.Key.IsGamepadKey())
+	{
+		bLastInputWasGamepad = true;
+	}
+	else
+	{
+		bLastInputWasGamepad = false;
+	}
+
+	return Super::InputKey(Params);
+}
+
 void AINV_PlayerController::PrimaryInteract()
 {
 	// Try to pick up the item we are looking at.
@@ -198,7 +213,10 @@ void AINV_PlayerController::TraceForItem()
 		UINV_ItemComponent* ItemComponent { ThisActor->FindComponentByClass<UINV_ItemComponent>() };
 		if (!IsValid(ItemComponent)) return;
 		
-		if (IsValid(HUDWidget)) HUDWidget->ShowPickupMessage(ItemComponent->GetPickupMessage());
+		if (IsValid(HUDWidget))
+		{
+			HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(ItemComponent->GetPickupMessage()));
+		}
 	}
 	
 	if (LastActor.IsValid())
@@ -208,4 +226,32 @@ void AINV_PlayerController::TraceForItem()
 			IINV_Highlightable::Execute_UnHighlight(HighlightableComponent);
 		}
 	}
+}
+
+FString AINV_PlayerController::BuildPickupPromptForCurrentInput(const FString& RawPickupMessage) const
+{
+	const FString InteractKeyLabel = bLastInputWasGamepad
+		? GamepadInteractKeyLabel.ToString()
+		: KeyboardInteractKeyLabel.ToString();
+
+	FString Prompt = RawPickupMessage;
+
+	// Preferred template token support in pickup message text.
+	if (Prompt.ReplaceInline(TEXT("{InteractKey}"), *InteractKeyLabel, ESearchCase::IgnoreCase) > 0)
+	{
+		return Prompt;
+	}
+
+	// Common legacy phrase support.
+	if (Prompt.ReplaceInline(TEXT("Press E"), *FString::Printf(TEXT("Press %s"), *InteractKeyLabel), ESearchCase::IgnoreCase) > 0)
+	{
+		return Prompt;
+	}
+	if (Prompt.ReplaceInline(TEXT("Press X"), *FString::Printf(TEXT("Press %s"), *InteractKeyLabel), ESearchCase::IgnoreCase) > 0)
+	{
+		return Prompt;
+	}
+
+	// Fallback when the message has no explicit key text.
+	return FString::Printf(TEXT("Press %s %s"), *InteractKeyLabel, *RawPickupMessage);
 }
