@@ -54,16 +54,16 @@ private:
 	UFUNCTION() void ShowCraftableGrid();
 	UFUNCTION() void EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
 	UFUNCTION() void EquippedSlottedItemClicked(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent);
-	UFUNCTION() void EquippedSlottedItemHovered(UINV_EquippedSlottedItem* EquippedSlottedItem);
-	UFUNCTION() void EquippedSlottedItemUnhovered(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	
 	void DisableButton(UButton* Button) const;
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
 	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);
-	void MakeEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem, UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip);
+	void MakeEquippedSlottedItem(UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip, const FGameplayTag& EquipmentTypeTag);
 	void BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
+	void BindEquippedSlottedItemDelegates(UINV_EquippedSlottedItem* EquippedSlottedItem);
+	void UnbindEquippedSlottedItemDelegates(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	UINV_EquippedGridSlot* FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const;
 	UINV_InventoryGrid* FindGridWithHoverItem() const;
 	

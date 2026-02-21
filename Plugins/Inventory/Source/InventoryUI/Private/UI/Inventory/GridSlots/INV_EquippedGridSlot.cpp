@@ -63,7 +63,7 @@ bool UINV_EquippedGridSlot::SetEquippedItemImageBrush(UINV_InventoryItem* Item, 
 	return true;
 }
 
-void UINV_EquippedGridSlot::AddEquippedItemToOverlay(const FVector2D DrawSize)
+void UINV_EquippedGridSlot::AddEquippedItemToOverlay()
 {
 	if (!IsValid(Overlay_Root) || !IsValid(EquippedSlottedItem)) return;
 	Overlay_Root->AddChildToOverlay(EquippedSlottedItem);
@@ -77,8 +77,10 @@ void UINV_EquippedGridSlot::AddEquippedItemToOverlay(const FVector2D DrawSize)
 }
 
 UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryItem* Item,
-                                                                const FGameplayTag& EquipmentTag, float TileSize)
+                                                                 const FGameplayTag& EquipmentTag, float TileSize)
 {
+	if (!IsValid(Item)) return nullptr;
+
 	// Check the equipment type tag
 	if (!EquipmentTag.MatchesTagExact(EquipmentTypeTag)) return nullptr;
 	
@@ -111,7 +113,7 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	if (!SetEquippedItemImageBrush(Item, DrawSize)) return nullptr;
 
 	// Add the slotted item as the child to this widget's overlay
-	AddEquippedItemToOverlay(DrawSize);
+	AddEquippedItemToOverlay();
 	
 	// Return the equipped slotted item widget
 	return EquippedSlottedItem;

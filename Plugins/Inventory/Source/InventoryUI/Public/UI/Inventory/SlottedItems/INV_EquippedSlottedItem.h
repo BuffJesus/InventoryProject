@@ -7,8 +7,6 @@
 #include "INV_EquippedSlottedItem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquippedSlottedItemClicked, class UINV_EquippedSlottedItem*, SlottedItem, const FPointerEvent&, MouseEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEquippedSlottedItemHovered, class UINV_EquippedSlottedItem*, SlottedItem);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEquippedSlottedItemUnhovered, class UINV_EquippedSlottedItem*, SlottedItem);
 
 /**
  * 
@@ -22,14 +20,12 @@ public:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& MouseEvent) override;
-	void SetHighlightEnabled(bool bEnabled) const;
+	void SetHighlightEnabled(bool bEnabled);
 	
 	void SetEquipmentTypeTag(FGameplayTag Tag) { EquipmentTypeTag = Tag; }
 	FGameplayTag GetEquipmentTypeTag() const { return EquipmentTypeTag; }
 	
 	FEquippedSlottedItemClicked OnEquippedSlottedItemClicked;
-	FEquippedSlottedItemHovered OnEquippedSlottedItemHovered;
-	FEquippedSlottedItemUnhovered OnEquippedSlottedItemUnhovered;
 	
 private:
 	UPROPERTY() FGameplayTag EquipmentTypeTag;

@@ -14,21 +14,19 @@ void UINV_EquippedSlottedItem::NativeOnMouseEnter(const FGeometry& MyGeometry, c
 {
 	Super::NativeOnMouseEnter(MyGeometry, MouseEvent);
 	SetHighlightEnabled(true);
-	OnEquippedSlottedItemHovered.Broadcast(this);
 }
 
 void UINV_EquippedSlottedItem::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	Super::NativeOnMouseLeave(MouseEvent);
 	SetHighlightEnabled(false);
-	OnEquippedSlottedItemUnhovered.Broadcast(this);
 }
 
-void UINV_EquippedSlottedItem::SetHighlightEnabled(bool bEnabled) const
+void UINV_EquippedSlottedItem::SetHighlightEnabled(bool bEnabled)
 {
 	// Primary effect: widget-level scale/opacity so highlight works even when Image_Icon is not bound in BP.
-	const_cast<UINV_EquippedSlottedItem*>(this)->SetRenderScale(bEnabled ? FVector2D(1.06f, 1.06f) : FVector2D(1.0f, 1.0f));
-	const_cast<UINV_EquippedSlottedItem*>(this)->SetRenderOpacity(bEnabled ? 1.0f : 0.95f);
+	SetRenderScale(bEnabled ? FVector2D(1.06f, 1.06f) : FVector2D(1.0f, 1.0f));
+	SetRenderOpacity(bEnabled ? 1.0f : 0.95f);
 
 	// Secondary effect: icon tint when the inherited image is available.
 	UImage* IconImage = GetImageIcon();
