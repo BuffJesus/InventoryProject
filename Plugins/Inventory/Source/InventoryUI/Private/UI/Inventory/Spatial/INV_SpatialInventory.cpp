@@ -136,6 +136,7 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 	MakeEquippedSlottedItem(EquippedSlottedItem, EquippedGridSlot, ItemToEquip);
 	
 	// Broadcast delegate for OnItemEquipped/OnItemUnequipped (from the IC)
+	BroadcastSlotClickedDelegates(ItemToEquip, ItemToUnequip);
 }
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -253,6 +254,20 @@ void UINV_SpatialInventory::MakeEquippedSlottedItem(UINV_EquippedSlottedItem* Eq
 	SlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
 	
 	EquippedGridSlot->SetEquippedSlottedItem(SlottedItem);
+}
+
+void UINV_SpatialInventory::BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip,
+	UINV_InventoryItem* ItemToUnequip)
+{
+	UINV_InventoryComponent* InventoryComponent { UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()) };
+	checkf(InventoryComponent, TEXT("Inventory component is invalid"));
+	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
+	
+	if (GetOwningPlayer()->GetNetMode() != NM_DedicatedServer)
+	{
+		InventoryComponent->OnItemEquipped.Broadcast(ItemToEquip);
+		InventoryComponent->OnItemUnequipped.Broadcast(ItemToUnequip);
+	}
 }
 
 UINV_EquippedGridSlot* UINV_SpatialInventory::FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const
