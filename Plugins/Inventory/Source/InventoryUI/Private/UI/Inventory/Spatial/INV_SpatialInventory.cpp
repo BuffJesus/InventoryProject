@@ -92,6 +92,8 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 		TileSize) };
 	
 	EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
+	EquippedSlottedItem->OnEquippedSlottedItemHovered.AddDynamic(this, &ThisClass::EquippedSlottedItemHovered);
+	EquippedSlottedItem->OnEquippedSlottedItemUnhovered.AddDynamic(this, &ThisClass::EquippedSlottedItemUnhovered);
 	
 	// Inform the server that we've equipped an item (potentially unequipping an item as well)
 	UINV_InventoryComponent* InventoryComponent { UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()) };
@@ -146,6 +148,29 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 	
 	// Broadcast delegate for OnItemEquipped/OnItemUnequipped (from the IC)
 	BroadcastSlotClickedDelegates(ItemToEquip, ItemToUnequip);
+}
+
+void UINV_SpatialInventory::EquippedSlottedItemHovered(UINV_EquippedSlottedItem* EquippedSlottedItem)
+{
+	if (!IsValid(EquippedSlottedItem)) return;
+	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(EquippedSlottedItem->GetInventoryItem()) };
+	if (!IsValid(EquippedGridSlot)) return;
+	EquippedGridSlot->SetSelectedTexture();
+}
+
+void UINV_SpatialInventory::EquippedSlottedItemUnhovered(UINV_EquippedSlottedItem* EquippedSlottedItem)
+{
+	if (!IsValid(EquippedSlottedItem)) return;
+	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(EquippedSlottedItem->GetInventoryItem()) };
+	if (!IsValid(EquippedGridSlot)) return;
+	if (EquippedGridSlot->GetInventoryItem().IsValid())
+	{
+		EquippedGridSlot->SetOccupiedTexture();
+	}
+	else
+	{
+		EquippedGridSlot->SetUnoccupiedTexture();
+	}
 }
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -247,6 +272,14 @@ void UINV_SpatialInventory::RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* 
 	{
 		EquippedSlottedItem->OnEquippedSlottedItemClicked.RemoveDynamic(this, &ThisClass::EquippedSlottedItemClicked);
 	}
+	if (EquippedSlottedItem->OnEquippedSlottedItemHovered.IsAlreadyBound(this, &ThisClass::EquippedSlottedItemHovered))
+	{
+		EquippedSlottedItem->OnEquippedSlottedItemHovered.RemoveDynamic(this, &ThisClass::EquippedSlottedItemHovered);
+	}
+	if (EquippedSlottedItem->OnEquippedSlottedItemUnhovered.IsAlreadyBound(this, &ThisClass::EquippedSlottedItemUnhovered))
+	{
+		EquippedSlottedItem->OnEquippedSlottedItemUnhovered.RemoveDynamic(this, &ThisClass::EquippedSlottedItemUnhovered);
+	}
 	EquippedSlottedItem->RemoveFromParent();
 }
 
@@ -261,6 +294,8 @@ void UINV_SpatialInventory::MakeEquippedSlottedItem(UINV_EquippedSlottedItem* Eq
 		UINV_InventoryStatics::GetInventoryWidget(GetOwningPlayer())->GetTileSize()) };
 	
 	if (IsValid(SlottedItem)) SlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
+	if (IsValid(SlottedItem)) SlottedItem->OnEquippedSlottedItemHovered.AddDynamic(this, &ThisClass::EquippedSlottedItemHovered);
+	if (IsValid(SlottedItem)) SlottedItem->OnEquippedSlottedItemUnhovered.AddDynamic(this, &ThisClass::EquippedSlottedItemUnhovered);
 	
 	EquippedGridSlot->SetEquippedSlottedItem(SlottedItem);
 }

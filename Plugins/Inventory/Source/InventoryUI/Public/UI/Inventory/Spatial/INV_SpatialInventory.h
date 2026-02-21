@@ -53,6 +53,8 @@ private:
 	UFUNCTION() void ShowCraftableGrid();
 	UFUNCTION() void EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
 	UFUNCTION() void EquippedSlottedItemClicked(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent);
+	UFUNCTION() void EquippedSlottedItemHovered(UINV_EquippedSlottedItem* EquippedSlottedItem);
+	UFUNCTION() void EquippedSlottedItemUnhovered(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	
 	void DisableButton(UButton* Button) const;
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
