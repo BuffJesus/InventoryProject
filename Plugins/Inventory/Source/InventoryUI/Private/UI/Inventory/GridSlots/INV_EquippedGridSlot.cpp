@@ -46,13 +46,12 @@ FReply UINV_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 	return FReply::Handled();
 }
 
-bool UINV_EquippedGridSlot::SetEquippedItemImageBrush(UINV_InventoryItem* Item, const FVector2D DrawSize, UINV_EquippedSlottedItem*& Value1)
+bool UINV_EquippedGridSlot::SetEquippedItemImageBrush(UINV_InventoryItem* Item, const FVector2D& DrawSize)
 {
 	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(Item, FragmentTags::IconFragment) };
 	if (!ImageFragment)
 	{
-		Value1 = nullptr;
-		return true;
+		return false;
 	}
 
 	FSlateBrush Brush;
@@ -61,28 +60,27 @@ bool UINV_EquippedGridSlot::SetEquippedItemImageBrush(UINV_InventoryItem* Item, 
 	Brush.ImageSize = DrawSize;
 	
 	EquippedSlottedItem->SetImageBrush(Brush);
-	return false;
+	return true;
 }
 
 void UINV_EquippedGridSlot::AddEquippedItemToOverlay(const FVector2D DrawSize)
 {
+	if (!IsValid(Overlay_Root) || !IsValid(EquippedSlottedItem)) return;
 	Overlay_Root->AddChildToOverlay(EquippedSlottedItem);
-	FGeometry OverlayGeometry = Overlay_Root->GetCachedGeometry();
-	auto OverlayPos = OverlayGeometry.Position;
-	auto OverlaySize = OverlayGeometry.Size;
-	
-	const float LeftPadding = OverlaySize.X / 2.f - DrawSize.X / 2.f;
-	const float TopPadding = OverlaySize.Y / 2.f - DrawSize.Y / 2.f;
-	
 	UOverlaySlot* OverlaySlot { UWidgetLayoutLibrary::SlotAsOverlaySlot(EquippedSlottedItem) };
-	OverlaySlot->SetPadding(FMargin(LeftPadding, TopPadding));
+	if (!IsValid(OverlaySlot)) return;
+
+	// Use slot alignment instead of cached geometry math; first-frame geometry can be zero.
+	OverlaySlot->SetHorizontalAlignment(HAlign_Center);
+	OverlaySlot->SetVerticalAlignment(VAlign_Center);
+	OverlaySlot->SetPadding(FMargin(0.f));
 }
 
 UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryItem* Item,
                                                                 const FGameplayTag& EquipmentTag, float TileSize)
 {
 	// Check the equipment type tag
-	if (!EquipmentTypeTag.MatchesTagExact(EquipmentTypeTag)) return nullptr;
+	if (!EquipmentTag.MatchesTagExact(EquipmentTypeTag)) return nullptr;
 	
 	// Get the grid dimensions
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment) };
@@ -90,11 +88,12 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	const FIntPoint GridDimensions = GridFragment->GetGridSize();
 	
 	// Calculate the draw size for the equipped slotted item
-	const float IconTileWidth = TileSize * GridFragment->GetGridPadding() * 2;
+	const float IconTileWidth = TileSize - GridFragment->GetGridPadding() * 2;
 	const FVector2D DrawSize = GridDimensions * IconTileWidth;
 	
 	// Create the equipped slotted item widget
 	EquippedSlottedItem = CreateWidget<UINV_EquippedSlottedItem>(GetOwningPlayer(), EquippedSlottedItemClass);
+	if (!IsValid(EquippedSlottedItem)) return nullptr;
 	
 	// Set the slotted item's inventory item
 	EquippedSlottedItem->SetInventoryItem(Item);
@@ -109,8 +108,7 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	SetInventoryItem(Item);
 
 	// Set the image brush on the equipped slotted item
-	UINV_EquippedSlottedItem* Value1;
-	if (SetEquippedItemImageBrush(Item, DrawSize, Value1)) return Value1;
+	if (!SetEquippedItemImageBrush(Item, DrawSize)) return nullptr;
 
 	// Add the slotted item as the child to this widget's overlay
 	AddEquippedItemToOverlay(DrawSize);

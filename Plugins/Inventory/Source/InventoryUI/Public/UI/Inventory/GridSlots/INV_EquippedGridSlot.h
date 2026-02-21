@@ -23,7 +23,7 @@ public:
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	bool SetEquippedItemImageBrush(UINV_InventoryItem* Item, FVector2D DrawSize, UINV_EquippedSlottedItem*& Value1);
+	bool SetEquippedItemImageBrush(UINV_InventoryItem* Item, const FVector2D& DrawSize);
 	void AddEquippedItemToOverlay(FVector2D DrawSize);
 
 	UINV_EquippedSlottedItem* OnItemEquipped(UINV_InventoryItem* Item, const FGameplayTag& EquipmentTag, float TileSize);
