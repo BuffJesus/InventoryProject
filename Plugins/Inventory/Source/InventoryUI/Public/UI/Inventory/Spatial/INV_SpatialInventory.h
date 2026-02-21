@@ -6,6 +6,8 @@
 #include "UI/Base/INV_InventoryBase.h"
 #include "INV_SpatialInventory.generated.h"
 
+struct FGameplayTag;
+class UINV_EquippedGridSlot;
 class UINV_ItemDescription;
 class UCanvasPanel;
 class UButton;
@@ -32,6 +34,8 @@ private:
 	void OpenItemDescription(UINV_InventoryItem* Item, const FVector2D& OpenPosition);
 	void CloseDescriptionIfCursorExited();
 	
+	UPROPERTY() TArray<TObjectPtr<UINV_EquippedGridSlot>> EquippedGridSlots;
+	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UWidgetSwitcher> Switcher;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UINV_InventoryGrid> Grid_Equippable;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UINV_InventoryGrid> Grid_Consumable;
@@ -44,6 +48,7 @@ private:
 	UFUNCTION() void ShowEquippableGrid();
 	UFUNCTION() void ShowConsumableGrid();
 	UFUNCTION() void ShowCraftableGrid();
+	UFUNCTION() void EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
 	
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);

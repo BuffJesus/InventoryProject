@@ -2,8 +2,8 @@
 
 
 #include "UI/Inventory/Spatial/INV_SpatialInventory.h"
-
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -15,6 +15,7 @@
 #include "UI/Description/INV_ItemDescription.h"
 #include "UI/Utils/INV_ItemPresentationUtils.h"
 #include "Framework/Application/SlateApplication.h"
+#include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
@@ -61,6 +62,21 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	Grid_Craftable->SetOwningCanvas(CanvasPanel);
 	
 	ShowEquippableGrid();
+	
+	WidgetTree->ForEachWidget([this](UWidget* Widget)
+	{
+		if (UINV_EquippedGridSlot* EquippedGridSlot { Cast<UINV_EquippedGridSlot>(Widget) }; IsValid(EquippedGridSlot))
+		{
+			EquippedGridSlots.Add(EquippedGridSlot);
+			EquippedGridSlot->EquippedGridSlotClicked.AddDynamic(this, &ThisClass::EquippedGridSlotClicked);
+		}
+	});
+}
+
+void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot,
+	const FGameplayTag& EquipmentTypeTag)
+{
+	
 }
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
