@@ -2,6 +2,7 @@
 
 
 #include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
+#include "Components/Image.h"
 
 FReply UINV_EquippedSlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -19,4 +20,11 @@ void UINV_EquippedSlottedItem::NativeOnMouseLeave(const FPointerEvent& MouseEven
 {
 	Super::NativeOnMouseLeave(MouseEvent);
 	OnEquippedSlottedItemUnhovered.Broadcast(this);
+}
+
+void UINV_EquippedSlottedItem::SetHighlightEnabled(bool bEnabled) const
+{
+	UImage* IconImage = GetImageIcon();
+	if (!IsValid(IconImage)) return;
+	IconImage->SetColorAndOpacity(bEnabled ? HighlightTint : FLinearColor::White);
 }

@@ -153,24 +153,13 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 void UINV_SpatialInventory::EquippedSlottedItemHovered(UINV_EquippedSlottedItem* EquippedSlottedItem)
 {
 	if (!IsValid(EquippedSlottedItem)) return;
-	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(EquippedSlottedItem->GetInventoryItem()) };
-	if (!IsValid(EquippedGridSlot)) return;
-	EquippedGridSlot->SetSelectedTexture();
+	EquippedSlottedItem->SetHighlightEnabled(true);
 }
 
 void UINV_SpatialInventory::EquippedSlottedItemUnhovered(UINV_EquippedSlottedItem* EquippedSlottedItem)
 {
 	if (!IsValid(EquippedSlottedItem)) return;
-	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(EquippedSlottedItem->GetInventoryItem()) };
-	if (!IsValid(EquippedGridSlot)) return;
-	if (EquippedGridSlot->GetInventoryItem().IsValid())
-	{
-		EquippedGridSlot->SetOccupiedTexture();
-	}
-	else
-	{
-		EquippedGridSlot->SetUnoccupiedTexture();
-	}
+	EquippedSlottedItem->SetHighlightEnabled(false);
 }
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -267,6 +256,7 @@ void UINV_SpatialInventory::ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridS
 void UINV_SpatialInventory::RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem)
 {
 	if (!IsValid(EquippedSlottedItem)) return;
+	EquippedSlottedItem->SetHighlightEnabled(false);
 	
 	if (EquippedSlottedItem->OnEquippedSlottedItemClicked.IsAlreadyBound(this, &ThisClass::EquippedSlottedItemClicked))
 	{

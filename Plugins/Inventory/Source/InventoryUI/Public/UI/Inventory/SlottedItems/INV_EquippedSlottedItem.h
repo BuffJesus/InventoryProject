@@ -22,6 +22,7 @@ public:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& MouseEvent) override;
+	void SetHighlightEnabled(bool bEnabled) const;
 	
 	void SetEquipmentTypeTag(FGameplayTag Tag) { EquipmentTypeTag = Tag; }
 	FGameplayTag GetEquipmentTypeTag() const { return EquipmentTypeTag; }
@@ -32,4 +33,8 @@ public:
 	
 private:
 	UPROPERTY() FGameplayTag EquipmentTypeTag;
+
+	// Tint used while hovering an equipped item.
+	UPROPERTY(EditAnywhere, Category="INV|Visual")
+	FLinearColor HighlightTint { 1.15f, 1.15f, 1.15f, 1.0f };
 };
