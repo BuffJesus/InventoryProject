@@ -12,6 +12,67 @@
 #include "Net/UnrealNetwork.h"
 #include "UI/Base/INV_InventoryBase.h"
 
+FVector UINV_InventoryComponent::ResolveVisualDropSeparation(const FVector& ProposedLocation)
+{
+	if (DropVisualSeparationDistance <= 0.f)
+	{
+		return ProposedLocation;
+	}
+
+	// Keep only a bounded history to avoid unbounded growth.
+	if (MaxRememberedDropLocations >= 0 && RecentDropLocations.Num() > MaxRememberedDropLocations)
+	{
+		const int32 NumToRemove = RecentDropLocations.Num() - MaxRememberedDropLocations;
+		RecentDropLocations.RemoveAt(0, NumToRemove, EAllowShrinking::No);
+	}
+
+	auto IsFarEnoughFromAllRecentDrops = [this](const FVector& Candidate)
+	{
+		for (const FVector& ExistingLocation : RecentDropLocations)
+		{
+			const FVector Delta2D(Candidate.X - ExistingLocation.X, Candidate.Y - ExistingLocation.Y, 0.f);
+			if (Delta2D.SizeSquared() < FMath::Square(DropVisualSeparationDistance))
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	if (IsFarEnoughFromAllRecentDrops(ProposedLocation))
+	{
+		return ProposedLocation;
+	}
+
+	// Spiral-like 2D search around the proposed point.
+	constexpr int32 MaxAttempts = 16;
+	const float StepDistance = FMath::Max(10.f, DropVisualSeparationDistance);
+	for (int32 Attempt = 0; Attempt < MaxAttempts; ++Attempt)
+	{
+		const float Ring = 1.f + Attempt / 6.f;
+		const float AngleDeg = 360.f * (Attempt / static_cast<float>(MaxAttempts));
+		const FVector OffsetDir = FVector::ForwardVector.RotateAngleAxis(AngleDeg, FVector::UpVector);
+		const FVector Candidate = ProposedLocation + FVector(OffsetDir.X, OffsetDir.Y, 0.f) * StepDistance * Ring;
+		if (IsFarEnoughFromAllRecentDrops(Candidate))
+		{
+			return Candidate;
+		}
+	}
+
+	// Fallback: return original location if we could not find a better one.
+	return ProposedLocation;
+}
+
+void UINV_InventoryComponent::RememberSuccessfulDropLocation(const FVector& DropLocation)
+{
+	RecentDropLocations.Add(DropLocation);
+	if (MaxRememberedDropLocations >= 0 && RecentDropLocations.Num() > MaxRememberedDropLocations)
+	{
+		const int32 NumToRemove = RecentDropLocations.Num() - MaxRememberedDropLocations;
+		RecentDropLocations.RemoveAt(0, NumToRemove, EAllowShrinking::No);
+	}
+}
+
 UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -140,6 +201,21 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 	UWorld* World = GetWorld();
 	if (!IsValid(World)) return;
 
+	const auto RestoreDroppedItemToInventory = [this, Item, StackCount]()
+	{
+		if (UINV_InventoryItem* ExistingItem = InventoryFastArray.FindFirstItemByType(
+			Item->GetItemManifest().GetItemType(),
+			Item->IsItemRarityEnabled(),
+			Item->GetItemRarityTag()))
+		{
+			ExistingItem->SetTotalStackCount(ExistingItem->GetTotalStackCount() + StackCount);
+		}
+		else
+		{
+			InventoryFastArray.AddEntry(Item);
+		}
+	};
+
 	// Calculate safe drop location using utility
 	const FINV_DropLocationResult DropResult = UINV_DropLocationCalculator::CalculateDropLocation(
 		World,
@@ -160,10 +236,11 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 	if (!DropResult.bIsValid)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to calculate valid drop location. Item not spawned."));
+		RestoreDroppedItemToInventory();
 		return;
 	}
 
-	const FVector SpawnLocation = DropResult.Location;
+	const FVector SpawnLocation = ResolveVisualDropSeparation(DropResult.Location);
 	const FRotator SpawnRotation = DropResult.Rotation;
 	
 	FINV_ItemManifest& ItemManifest { Item->GetItemManifestMutable() };
@@ -178,29 +255,27 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		SpawnLocation,
 		SpawnRotation,
 		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+	// Some larger pickup actors (commonly equippables) can fail this strict mode near the player.
+	// Retry with AlwaysSpawn to ensure drop action is reliable.
+	if (!SpawnedItemComponent)
+	{
+		SpawnedItemComponent = FINV_ItemManifestRuntimeOps::SpawnPickupActorFromManifest(
+			ItemManifest,
+			this,
+			SpawnLocation,
+			SpawnRotation,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	}
 	if (SpawnedItemComponent)
 	{
+		RememberSuccessfulDropLocation(SpawnLocation);
 		SpawnedItemComponent->SetItemRarityOptions(Item->IsItemRarityEnabled(), Item->GetItemRarityTag());
 	}
 	else
 	{
 		// Failed to spawn pickup - restore item to inventory to prevent item loss
 		UE_LOG(LogTemp, Warning, TEXT("Failed to spawn dropped item pickup at location %s. Restoring item to inventory."), *SpawnLocation.ToString());
-
-		// Re-add the item to inventory if it was removed
-		if (UINV_InventoryItem* ExistingItem = InventoryFastArray.FindFirstItemByType(
-			Item->GetItemManifest().GetItemType(),
-			Item->IsItemRarityEnabled(),
-			Item->GetItemRarityTag()))
-		{
-			// Item still exists, restore stack count
-			ExistingItem->SetTotalStackCount(ExistingItem->GetTotalStackCount() + StackCount);
-		}
-		else
-		{
-			// Item was removed, re-add it
-			InventoryFastArray.AddEntry(Item);
-		}
+		RestoreDroppedItemToInventory();
 	}
 }
 
@@ -295,6 +370,12 @@ void UINV_InventoryComponent::ConstructInventory()
 void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, bool bIsOpen)
 {
 	if (!IsValid(Inventory)) return;
+
+	// If closing the menu while holding an item, put it back into its source slot.
+	if (!bIsOpen)
+	{
+		Inventory->ReturnActiveHoverItemToSource();
+	}
 	
 	// Update visibility and input mode.
 	Inventory->SetVisibility(Visibility);

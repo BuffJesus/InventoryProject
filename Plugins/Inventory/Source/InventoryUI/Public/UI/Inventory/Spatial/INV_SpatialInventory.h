@@ -31,6 +31,7 @@ public:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual UINV_HoverItem* GetHoverItem() const override;
 	virtual float GetTileSize() const override;
+	virtual void ReturnActiveHoverItemToSource() override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
@@ -64,6 +65,7 @@ private:
 	void MakeEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem, UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip);
 	void BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
 	UINV_EquippedGridSlot* FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const;
+	UINV_InventoryGrid* FindGridWithHoverItem() const;
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
 	

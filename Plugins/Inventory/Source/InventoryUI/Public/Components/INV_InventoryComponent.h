@@ -51,6 +51,8 @@ public:
 	void TryAddItem(UINV_ItemComponent* ItemComponent);
 	// Server-side helper that computes safe drop location and spawns pickup actor.
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
+	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
+	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	
 	UFUNCTION(Server, Reliable) void Server_EquipSlotClicked(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
@@ -130,4 +132,16 @@ private:
 	// Extra horizontal clearance to keep dropped items out of the player's capsule.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory|DropValidation")
 	float DropPlayerClearance { 10.f };
+
+	// Collision-independent separation so dropped pickups do not visually overlap when actors have no collision.
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|DropValidation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float DropVisualSeparationDistance { 55.f };
+
+	// Maximum number of recent drop locations remembered for separation checks.
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|DropValidation", meta = (ClampMin = "0", UIMin = "0"))
+	int32 MaxRememberedDropLocations { 32 };
+
+	// Recent successful drop locations used for collision-independent visual separation.
+	UPROPERTY()
+	TArray<FVector> RecentDropLocations;
 };

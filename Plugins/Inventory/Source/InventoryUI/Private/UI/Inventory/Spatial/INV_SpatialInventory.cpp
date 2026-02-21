@@ -45,6 +45,7 @@ void UINV_SpatialInventory::DisableButton(UButton* Button) const
 
 void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button)
 {
+	ReturnActiveHoverItemToSource();
 	if (ActiveGrid.IsValid()) ActiveGrid->HideCursor();
 	ActiveGrid = Grid;
 	if (ActiveGrid.IsValid()) ActiveGrid->ShowCursor();
@@ -211,6 +212,13 @@ float UINV_SpatialInventory::GetTileSize() const
 	return Grid_Equippable->GetTileSize();
 }
 
+void UINV_SpatialInventory::ReturnActiveHoverItemToSource()
+{
+	UINV_InventoryGrid* HoverSourceGrid = FindGridWithHoverItem();
+	if (!IsValid(HoverSourceGrid)) return;
+	HoverSourceGrid->ReturnHoverItemToPreviousSlot();
+}
+
 void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,
                                                               UCanvasPanel* Canvas, const FVector2D& OpenPosition) const
 {
@@ -312,6 +320,14 @@ UINV_EquippedGridSlot* UINV_SpatialInventory::FindSlotWithEquippedItem(UINV_Inve
 	}) };
 	
 	return FoundEquippedGridSlot ? *FoundEquippedGridSlot : nullptr;
+}
+
+UINV_InventoryGrid* UINV_SpatialInventory::FindGridWithHoverItem() const
+{
+	if (IsValid(Grid_Equippable) && Grid_Equippable->HasHoverItem()) return Grid_Equippable;
+	if (IsValid(Grid_Consumable) && Grid_Consumable->HasHoverItem()) return Grid_Consumable;
+	if (IsValid(Grid_Craftable) && Grid_Craftable->HasHoverItem()) return Grid_Craftable;
+	return nullptr;
 }
 
 bool UINV_SpatialInventory::CanEquipHoverItem(UINV_EquippedGridSlot* EquippedGridSlot,

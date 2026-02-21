@@ -29,6 +29,7 @@ public:
 	virtual void OnItemHovered(UINV_InventoryItem* Item) {}
 	virtual void OnItemUnhovered() {}
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) {}
+	virtual void ReturnActiveHoverItemToSource() {}
 	virtual bool HasHoverItem() const { return false; }
 	virtual UINV_HoverItem* GetHoverItem() const { return nullptr; }
 	virtual float GetTileSize() const { return 0.0f; }

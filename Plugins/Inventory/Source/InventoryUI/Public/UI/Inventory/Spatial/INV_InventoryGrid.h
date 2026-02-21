@@ -47,6 +47,7 @@ public:
 	void DropItem();
 	void ClearHoverItem();
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
+	bool ReturnHoverItemToPreviousSlot();
 	
 	UINV_HoverItem* GetHoverItem() const { return HoverItem; } 
 	

@@ -2,6 +2,7 @@
 
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 
@@ -104,6 +105,41 @@ FINV_DropLocationResult UINV_DropLocationCalculator::CalculateDropLocation(
 	// Final pawn clearance enforcement
 	SpawnLocation = EnforcePawnClearance(OwningPawn, SpawnLocation, Forward2D, DropValidationRadius, DropPlayerClearance);
 
+	// If still intersecting (including non-blocking overlaps), search nearby offsets for a free spot.
+	if (!IsDropLocationClear(World, SpawnLocation, OwningPawn, OwnerActor, DropValidationRadius, DropValidationHalfHeight))
+	{
+		constexpr int32 MaxNudgeAttempts = 12;
+		const float BaseNudgeDistance = FMath::Max(DropValidationRadius * 2.0f, 10.0f);
+		bool bFoundClearLocation = false;
+
+		for (int32 Attempt = 0; Attempt < MaxNudgeAttempts; ++Attempt)
+		{
+			const float AngleDeg = (360.0f / MaxNudgeAttempts) * Attempt;
+			const FVector NudgeDir = Forward2D.RotateAngleAxis(AngleDeg, FVector::UpVector).GetSafeNormal();
+			if (NudgeDir.IsNearlyZero())
+			{
+				continue;
+			}
+
+			const float RingMultiplier = 1.0f + (Attempt / 6);
+			FVector CandidateLocation = SpawnLocation + NudgeDir * BaseNudgeDistance * RingMultiplier;
+			CandidateLocation = EnforcePawnClearance(OwningPawn, CandidateLocation, NudgeDir, DropValidationRadius, DropPlayerClearance);
+
+			if (IsDropLocationClear(World, CandidateLocation, OwningPawn, OwnerActor, DropValidationRadius, DropValidationHalfHeight))
+			{
+				SpawnLocation = CandidateLocation;
+				bFoundClearLocation = true;
+				break;
+			}
+		}
+
+		if (!bFoundClearLocation)
+		{
+			Result.bIsValid = false;
+			return Result;
+		}
+	}
+
 	Result.Location = SpawnLocation;
 	Result.bIsValid = true;
 
@@ -134,9 +170,39 @@ bool UINV_DropLocationCalculator::IsDropLocationClear(
 	}
 
 	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_PhysicsBody);
 
-	return !World->OverlapBlockingTestByChannel(Location, FQuat::Identity, ECC_WorldStatic, CollisionShape, QueryParams)
-		&& !World->OverlapBlockingTestByChannel(Location, FQuat::Identity, ECC_WorldDynamic, CollisionShape, QueryParams);
+	TArray<FOverlapResult> Overlaps;
+	const bool bHasOverlap = World->OverlapMultiByObjectType(
+		Overlaps,
+		Location,
+		FQuat::Identity,
+		ObjectQueryParams,
+		CollisionShape,
+		QueryParams);
+	if (!bHasOverlap)
+	{
+		return true;
+	}
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		const AActor* HitActor = Overlap.GetActor();
+		if (!IsValid(HitActor))
+		{
+			continue;
+		}
+		if (HitActor == OwningPawn || HitActor == OwnerActor)
+		{
+			continue;
+		}
+		return false;
+	}
+
+	return true;
 }
 
 FVector UINV_DropLocationCalculator::EnforcePawnClearance(

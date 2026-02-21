@@ -502,6 +502,30 @@ void UINV_InventoryGrid::ClearHoverItem()
 	ShowCursor();
 }
 
+bool UINV_InventoryGrid::ReturnHoverItemToPreviousSlot()
+{
+	if (!IsValid(HoverItem)) return false;
+	UINV_InventoryItem* HoveredInventoryItem = HoverItem->GetInventoryItem();
+	if (!IsValid(HoveredInventoryItem)) return false;
+
+	const int32 PreviousGridIndex = HoverItem->GetPreviousGridIndex();
+	if (GridSlots.IsValidIndex(PreviousGridIndex) && !GridSlots[PreviousGridIndex]->GetInventoryItem().IsValid())
+	{
+		PutDownOnIndex(PreviousGridIndex);
+		return true;
+	}
+
+	const FINV_SlotAvailabilityResult Result = HasRoomForItem(HoveredInventoryItem);
+	if (Result.SlotAvailabilities.Num() > 0)
+	{
+		AddItemToIndices(Result, HoveredInventoryItem);
+		ClearHoverItem();
+		return true;
+	}
+
+	return false;
+}
+
 void UINV_InventoryGrid::ShowCursor()
 {
 	SetCursorWidget(GetVisibleCursorWidget());
