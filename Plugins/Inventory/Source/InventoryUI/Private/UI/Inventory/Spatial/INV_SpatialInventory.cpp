@@ -35,7 +35,7 @@ void UINV_SpatialInventory::ShowCraftableGrid()
 	SetActiveGrid(Grid_Craftable, Button_Craftable);
 }
 
-void UINV_SpatialInventory::DisableButton(UButton* Button)
+void UINV_SpatialInventory::DisableButton(UButton* Button) const
 {
 	Button_Equippable->SetIsEnabled(true);
 	Button_Consumable->SetIsEnabled(true);
@@ -178,7 +178,7 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 	UCanvasPanelSlot* ItemDescriptionCPS { UWidgetLayoutLibrary::SlotAsCanvasSlot(Description) };
 	if (!IsValid(ItemDescriptionCPS)) return;
 
-	// Ensure first-open layout is valid before querying desired size.
+	// Ensure the first-open layout is valid before querying the desired size.
 	Description->ForceLayoutPrepass();
 	Canvas->ForceLayoutPrepass();
 
@@ -194,7 +194,7 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 	}
 	ItemDescriptionCPS->SetSize(ItemDescriptionSize);
 
-	// Canvas slot positions are canvas-local, so convert mouse viewport position to canvas-local space first.
+	// Canvas slot positions are canvas-local, so convert the mouse viewport position to canvas-local space first.
 	const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(Canvas);
 	const FVector2D LocalOpenPosition = OpenPosition - CanvasViewportPos;
 	FVector2D ClampedPos { UINV_WidgetUtils::GetCenteredClampedWidgetPosition(

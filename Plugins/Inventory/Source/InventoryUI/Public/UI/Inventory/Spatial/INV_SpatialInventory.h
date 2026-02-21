@@ -53,7 +53,7 @@ private:
 	UFUNCTION() void EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
 	UFUNCTION() void EquippedSlottedItemClicked(UINV_EquippedSlottedItem* SlottedItem);
 	
-	void DisableButton(UButton* Button);
+	void DisableButton(UButton* Button) const;
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	
