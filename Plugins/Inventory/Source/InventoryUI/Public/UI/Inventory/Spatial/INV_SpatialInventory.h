@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Templates/Function.h"
 #include "UI/Base/INV_InventoryBase.h"
 #include "INV_SpatialInventory.generated.h"
 
@@ -57,6 +58,8 @@ private:
 	
 	void DisableButton(UButton* Button) const;
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
+	void ForEachInventoryGrid(TFunctionRef<void(UINV_InventoryGrid* Grid)> Visitor) const;
+	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
 	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);

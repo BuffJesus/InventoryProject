@@ -37,10 +37,32 @@ void UINV_SpatialInventory::ShowCraftableGrid()
 
 void UINV_SpatialInventory::DisableButton(UButton* Button) const
 {
-	Button_Equippable->SetIsEnabled(true);
-	Button_Consumable->SetIsEnabled(true);
-	Button_Craftable->SetIsEnabled(true);
-	Button->SetIsEnabled(false);
+	ForEachCategoryButton([](UButton* CategoryButton)
+	{
+		if (IsValid(CategoryButton))
+		{
+			CategoryButton->SetIsEnabled(true);
+		}
+	});
+
+	if (IsValid(Button))
+	{
+		Button->SetIsEnabled(false);
+	}
+}
+
+void UINV_SpatialInventory::ForEachInventoryGrid(TFunctionRef<void(UINV_InventoryGrid* Grid)> Visitor) const
+{
+	Visitor(Grid_Equippable);
+	Visitor(Grid_Consumable);
+	Visitor(Grid_Craftable);
+}
+
+void UINV_SpatialInventory::ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const
+{
+	Visitor(Button_Equippable);
+	Visitor(Button_Consumable);
+	Visitor(Button_Craftable);
 }
 
 void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button)
@@ -61,9 +83,13 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	Button_Consumable->OnClicked.AddDynamic(this, &ThisClass::ShowConsumableGrid);
 	Button_Craftable->OnClicked.AddDynamic(this, &ThisClass::ShowCraftableGrid);
 	
-	Grid_Equippable->SetOwningCanvas(CanvasPanel);
-	Grid_Consumable->SetOwningCanvas(CanvasPanel);
-	Grid_Craftable->SetOwningCanvas(CanvasPanel);
+	ForEachInventoryGrid([this](UINV_InventoryGrid* Grid)
+	{
+		if (IsValid(Grid))
+		{
+			Grid->SetOwningCanvas(CanvasPanel);
+		}
+	});
 	
 	ShowEquippableGrid();
 	
@@ -180,9 +206,13 @@ void UINV_SpatialInventory::OnItemInspected(UINV_InventoryItem* Item, const FVec
 
 bool UINV_SpatialInventory::HasHoverItem() const
 {
-	if (Grid_Equippable->HasHoverItem()) return true;
-	if (Grid_Consumable->HasHoverItem()) return true;
-	if (Grid_Craftable->HasHoverItem()) return true;
+	bool bHasHoverItem = false;
+	ForEachInventoryGrid([&bHasHoverItem](UINV_InventoryGrid* Grid)
+	{
+		if (bHasHoverItem || !IsValid(Grid)) return;
+		bHasHoverItem = Grid->HasHoverItem();
+	});
+	if (bHasHoverItem) return true;
 	return false;
 }
 
@@ -325,10 +355,16 @@ UINV_EquippedGridSlot* UINV_SpatialInventory::FindSlotWithEquippedItem(UINV_Inve
 
 UINV_InventoryGrid* UINV_SpatialInventory::FindGridWithHoverItem() const
 {
-	if (IsValid(Grid_Equippable) && Grid_Equippable->HasHoverItem()) return Grid_Equippable;
-	if (IsValid(Grid_Consumable) && Grid_Consumable->HasHoverItem()) return Grid_Consumable;
-	if (IsValid(Grid_Craftable) && Grid_Craftable->HasHoverItem()) return Grid_Craftable;
-	return nullptr;
+	UINV_InventoryGrid* GridWithHoverItem = nullptr;
+	ForEachInventoryGrid([&GridWithHoverItem](UINV_InventoryGrid* Grid)
+	{
+		if (IsValid(GridWithHoverItem) || !IsValid(Grid)) return;
+		if (Grid->HasHoverItem())
+		{
+			GridWithHoverItem = Grid;
+		}
+	});
+	return GridWithHoverItem;
 }
 
 bool UINV_SpatialInventory::CanEquipHoverItem(UINV_EquippedGridSlot* EquippedGridSlot,

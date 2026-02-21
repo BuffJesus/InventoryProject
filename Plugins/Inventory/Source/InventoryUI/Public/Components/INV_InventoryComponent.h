@@ -69,6 +69,7 @@ protected:
 
 private:
 	void ConfigureFastArrayCallbacks();
+	bool HasAuthorityOnOwner() const;
 	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
 	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	void TrimRecentDropLocations();

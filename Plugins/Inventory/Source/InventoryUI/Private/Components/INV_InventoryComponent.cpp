@@ -11,6 +11,12 @@
 #include "Net/UnrealNetwork.h"
 #include "UI/Base/INV_InventoryBase.h"
 
+bool UINV_InventoryComponent::HasAuthorityOnOwner() const
+{
+	const AActor* OwnerActor = GetOwner();
+	return IsValid(OwnerActor) && OwnerActor->HasAuthority();
+}
+
 void UINV_InventoryComponent::TrimRecentDropLocations()
 {
 	if (MaxRememberedDropLocations >= 0 && RecentDropLocations.Num() > MaxRememberedDropLocations)
@@ -169,7 +175,7 @@ void UINV_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem* Item, int32 StackCount)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!HasAuthorityOnOwner()) return;
 	if (!IsValid(Item)) return;
 
 	const bool bIsStackable = Item->IsStackable();
@@ -191,7 +197,7 @@ void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem*
 
 void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!HasAuthorityOnOwner()) return;
 	if (!IsValid(Item)) return;
 	if (!OwningController.IsValid()) return;
 
@@ -298,7 +304,7 @@ void UINV_InventoryComponent::Multicast_EquipSlotClicked_Implementation(UINV_Inv
 void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item)) return;
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!HasAuthorityOnOwner()) return;
 
 	const int32 NewStackCount = Item->GetTotalStackCount() - 1;
 	if (NewStackCount <= 0)
@@ -394,7 +400,7 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
 {
 	if (!IsValid(ItemComponent)) return;
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!HasAuthorityOnOwner()) return;
 	
 	// Create and replicate a new item.
 	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
@@ -412,7 +418,7 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 	int32 Remainder)
 {
 	if (!IsValid(ItemComponent)) return;
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!HasAuthorityOnOwner()) return;
 
 	// Update existing stack count and handle remainder.
 	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
