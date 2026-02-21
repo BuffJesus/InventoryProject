@@ -86,9 +86,11 @@ private:
 	void BindSlottedItemDelegates(UINV_SlottedItem* SlottedItem);
 	
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
+	void PlaceItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment, UINV_SlottedItem* SlottedItem);
 	void UpdateGridSlots(UINV_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount);
 	void PutDownOnIndex(const int32 Index);
+	UINV_InventoryItem* GetHoverInventoryItem() const;
 	void SetCursorWidget(UUserWidget* CursorWidget);
 	void SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 	void SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index);

@@ -285,8 +285,7 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 {
 	for (const auto& Availability : Result.SlotAvailabilities)
 	{
-		AddItemAtIndex(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
-		UpdateGridSlots(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
+		PlaceItemAtIndex(NewItem, Availability.Index, Result.bStackable, Availability.AmountToFill);
 	}
 }
 
@@ -397,6 +396,13 @@ void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 In
 	SlottedItems.Add(Index, SlottedItem);
 }
 
+void UINV_InventoryGrid::PlaceItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable,
+	const int32 StackAmount)
+{
+	AddItemAtIndex(Item, Index, bStackable, StackAmount);
+	UpdateGridSlots(Item, Index, bStackable, StackAmount);
+}
+
 void UINV_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment,
 	UINV_SlottedItem* SlottedItem)
 {
@@ -489,8 +495,9 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
 {
 	// Convert a hover item into a slotted item.
-	AddItemAtIndex(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
-	UpdateGridSlots(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
+	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
+	if (!IsValid(HoverInventoryItem)) return;
+	PlaceItemAtIndex(HoverInventoryItem, Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	ClearHoverItem();
 }
 
@@ -505,7 +512,7 @@ void UINV_InventoryGrid::ClearHoverItem()
 bool UINV_InventoryGrid::ReturnHoverItemToPreviousSlot()
 {
 	if (!IsValid(HoverItem)) return false;
-	UINV_InventoryItem* HoveredInventoryItem = HoverItem->GetInventoryItem();
+	UINV_InventoryItem* HoveredInventoryItem = GetHoverInventoryItem();
 	if (!IsValid(HoveredInventoryItem)) return false;
 
 	const int32 PreviousGridIndex = HoverItem->GetPreviousGridIndex();
@@ -634,7 +641,6 @@ void UINV_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, c
 		HoveredStackCount);
 
 	ClearHoverItem();
-	ShowCursor();
 
 	const FINV_GridFragment* GridFragment { GridSlots[Index]->GetInventoryItem()->GetCachedGridFragment() };
 	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
@@ -821,13 +827,18 @@ void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const 
 
 void UINV_InventoryGrid::DropItem()
 {
-	if (!IsValid(HoverItem)) return;
-	if (!IsValid(HoverItem->GetInventoryItem())) return;
+	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
+	if (!IsValid(HoverInventoryItem)) return;
 	
-	InventoryComponent->Server_DropItem(HoverItem->GetInventoryItem(), HoverItem->GetStackCount());
+	InventoryComponent->Server_DropItem(HoverInventoryItem, HoverItem->GetStackCount());
 	
 	ClearHoverItem();
-	ShowCursor();
+}
+
+UINV_InventoryItem* UINV_InventoryGrid::GetHoverInventoryItem() const
+{
+	if (!IsValid(HoverItem)) return nullptr;
+	return HoverItem->GetInventoryItem();
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
@@ -879,8 +890,7 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 	{
 		if (!Availability.bItemAtIndex)
 		{
-			AddItemAtIndex(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
-			UpdateGridSlots(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
+			PlaceItemAtIndex(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
 		}
 	}
 }
