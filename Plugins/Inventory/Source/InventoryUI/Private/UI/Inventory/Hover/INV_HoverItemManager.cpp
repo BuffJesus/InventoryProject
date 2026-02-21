@@ -7,6 +7,7 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "GameFramework/PlayerController.h"
+#include "UI/Utils/INV_WidgetUtils.h"
 
 UINV_HoverItem* FINV_HoverItemManager::AssignHoverItem(
 	UINV_HoverItem* HoverItem,
@@ -56,6 +57,13 @@ UINV_HoverItem* FINV_HoverItemManager::AssignHoverItem(
 	HoverItem->SetDesiredSizeInViewport(IconBrush.ImageSize);
 	HoverItem->SetCachedSize(IconBrush.ImageSize);
 	HoverItem->AddToViewport();
+	// Prevent first-frame flash at (0,0): place hover item at mouse immediately.
+	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(ContextWidget);
+	const FVector2D InitialPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
+		UWidgetLayoutLibrary::GetViewportSize(ContextWidget),
+		IconBrush.ImageSize,
+		MousePosition);
+	HoverItem->SetPositionInViewport(InitialPosition, false);
 
 	return HoverItem;
 }
