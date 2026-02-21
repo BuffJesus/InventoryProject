@@ -216,10 +216,11 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 
 UINV_EquippedGridSlot* UINV_SpatialInventory::FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const
 {
-	auto* FoundEquippedGridSlot { EquippedGridSlots.FindByPredicate([EquippedItem](auto* GridSlot)
+	auto* FoundEquippedGridSlot { EquippedGridSlots.FindByPredicate([EquippedItem](const auto* GridSlot)
 	{
 		return GridSlot->GetInventoryItem() == EquippedItem;
 	}) };
+	
 	return FoundEquippedGridSlot ? *FoundEquippedGridSlot : nullptr;
 }
 
