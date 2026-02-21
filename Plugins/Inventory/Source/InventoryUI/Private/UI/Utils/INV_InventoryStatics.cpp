@@ -57,3 +57,11 @@ void UINV_InventoryStatics::ItemInspected(APlayerController* PC, UINV_InventoryI
 
 	InventoryBase->OnItemInspected(Item, OpenPosition);
 }
+
+UINV_HoverItem* UINV_InventoryStatics::GetHoverItem(APlayerController* PC)
+{
+	UINV_InventoryBase* InventoryBase;
+	if (!TryGetInventoryBase(PC, InventoryBase)) return nullptr;
+	
+	return InventoryBase->GetHoverItem();
+}

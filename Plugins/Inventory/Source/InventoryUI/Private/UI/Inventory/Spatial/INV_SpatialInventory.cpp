@@ -117,8 +117,14 @@ void UINV_SpatialInventory::NativeTick(const FGeometry& MyGeometry, float InDelt
 	CloseDescriptionIfCursorExited();
 }
 
+UINV_HoverItem* UINV_SpatialInventory::GetHoverItem() const
+{
+	if (!ActiveGrid.IsValid()) return nullptr;
+	return ActiveGrid->GetHoverItem();
+}
+
 void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,
-	UCanvasPanel* Canvas, const FVector2D& OpenPosition) const
+                                                              UCanvasPanel* Canvas, const FVector2D& OpenPosition) const
 {
 	UCanvasPanelSlot* ItemDescriptionCPS { UWidgetLayoutLibrary::SlotAsCanvasSlot(Description) };
 	if (!IsValid(ItemDescriptionCPS)) return;

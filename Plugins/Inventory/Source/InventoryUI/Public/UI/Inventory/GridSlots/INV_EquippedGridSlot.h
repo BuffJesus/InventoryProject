@@ -24,6 +24,8 @@ public:
 	FEquippedGridSlotClicked EquippedGridSlotClicked;
 	
 private:
-	UPROPERTY(EditAnywhere, Category="INV|Tags")
+	bool CanUpdateHoverTexture() const;
+	
+	UPROPERTY(EditAnywhere, Category="INV|Tags", meta = (Categories = "GameItems.Equipment"))
 	FGameplayTag EquipmentTypeTag;
 };

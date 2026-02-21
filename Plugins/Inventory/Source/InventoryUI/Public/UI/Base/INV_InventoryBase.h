@@ -7,6 +7,7 @@
 #include "Types/INV_GridTypes.h"
 #include "INV_InventoryBase.generated.h"
 
+class UINV_HoverItem;
 class UINV_ItemComponent;
 class UINV_InventoryItem;
 struct FINV_SlotAvailabilityResult;
@@ -29,4 +30,5 @@ public:
 	virtual void OnItemUnhovered() {}
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) {}
 	virtual bool HasHoverItem() const { return false; }
+	virtual UINV_HoverItem* GetHoverItem() const { return nullptr; }
 };

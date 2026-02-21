@@ -46,6 +46,8 @@ public:
 	void HideCursor();
 	void DropItem();
 	
+	UINV_HoverItem* GetHoverItem() const { return HoverItem; } 
+	
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
 	
 	FORCEINLINE bool HasHoverItem() const { return HoverItem.Get() != nullptr; }

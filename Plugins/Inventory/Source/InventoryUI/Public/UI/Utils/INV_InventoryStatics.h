@@ -6,6 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "INV_InventoryStatics.generated.h"
 
+class UINV_HoverItem;
 class UINV_InventoryItem;
 class UINV_ItemComponent;
 class UINV_InventoryBase;
@@ -37,4 +38,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static void ItemInspected(APlayerController* PC, UINV_InventoryItem* Item, const FVector2D& OpenPosition);
+	
+	static UINV_HoverItem* GetHoverItem(APlayerController* PC); 
 };

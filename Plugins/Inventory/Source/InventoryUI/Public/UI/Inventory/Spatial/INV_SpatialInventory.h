@@ -28,6 +28,7 @@ public:
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) override;
 	virtual bool HasHoverItem() const override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual UINV_HoverItem* GetHoverItem() const override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
