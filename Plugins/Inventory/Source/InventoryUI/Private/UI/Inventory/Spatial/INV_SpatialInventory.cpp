@@ -92,8 +92,10 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 	
 	EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
 	
-	// Clear the hover item
 	// Inform the server that we've equipped an item (potentially unequipping an item as well)
+	
+	// Clear the hover item
+	Grid_Equippable->ClearHoverItem();
 }
 
 void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem* SlottedItem)
