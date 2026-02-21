@@ -2,7 +2,7 @@
 
 
 #include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
-
+#include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
 #include "Components/Image.h"
 #include "Items/Fragments/INV_FragmentTags.h"
 #include "Items/Fragments/INV_ItemFragment.h"
@@ -50,22 +50,29 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	if (!EquipmentTypeTag.MatchesTagExact(EquipmentTypeTag)) return nullptr;
 	
 	// Get the grid dimensions
-	
-	
-	// Calculate the draw size for the equipped slotted item
 	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment) };
 	if (!GridFragment) return nullptr;
-	
 	const FIntPoint GridDimensions = GridFragment->GetGridSize();
 	
+	// Calculate the draw size for the equipped slotted item
 	const float IconTileWidth = TileSize * GridFragment->GetGridPadding() * 2;
 	const FVector2D DrawSize = GridDimensions * IconTileWidth;
 	
 	// Create the equipped slotted item widget
+	EquippedSlottedItem = CreateWidget<UINV_EquippedSlottedItem>(GetOwningPlayer(), EquippedSlottedItemClass);
+	
 	// Set the slotted item's inventory item
+	EquippedSlottedItem->SetInventoryItem(Item);
+	
 	// Set the slotted item's equipment type tag
+	EquippedSlottedItem->SetEquipmentTypeTag(EquipmentTag);
+	
 	// Hide the stack count widget on the slotted item
-	// Set inventory item on this class (the equipped grid slot)
+	EquippedSlottedItem->UpdateStackCount(0);
+	
+	// Set the inventory item on this class (the equipped grid slot)
+	SetInventoryItem(Item);
+	
 	// Set the image brush on the equipped slotted item
 	// Add the slotted item as the child to this widget's overlay
 	// Return the equipped slotted item widget

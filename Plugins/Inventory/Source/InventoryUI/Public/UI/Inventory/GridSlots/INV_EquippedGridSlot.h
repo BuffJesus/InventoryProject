@@ -34,4 +34,8 @@ private:
 	FGameplayTag EquipmentTypeTag;
 	
 	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UImage> Image_GrayedOutIcon;
+	UPROPERTY() TObjectPtr<UINV_EquippedSlottedItem> EquippedSlottedItem;
+	
+	UPROPERTY(EditAnywhere, Category="INV|Grid")
+	TSubclassOf<UINV_EquippedSlottedItem> EquippedSlottedItemClass;
 };
