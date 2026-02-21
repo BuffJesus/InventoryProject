@@ -4,6 +4,8 @@
 #include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 
 #include "Components/Image.h"
+#include "Items/Fragments/INV_FragmentTags.h"
+#include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
@@ -45,8 +47,20 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	const FGameplayTag& EquipmentTag, float TileSize)
 {
 	// Check the equipment type tag
+	if (!EquipmentTypeTag.MatchesTagExact(EquipmentTypeTag)) return nullptr;
+	
 	// Get the grid dimensions
+	
+	
 	// Calculate the draw size for the equipped slotted item
+	const FINV_GridFragment* GridFragment { GetFragment<FINV_GridFragment>(Item, FragmentTags::GridFragment) };
+	if (!GridFragment) return nullptr;
+	
+	const FIntPoint GridDimensions = GridFragment->GetGridSize();
+	
+	const float IconTileWidth = TileSize * GridFragment->GetGridPadding() * 2;
+	const FVector2D DrawSize = GridDimensions * IconTileWidth;
+	
 	// Create the equipped slotted item widget
 	// Set the slotted item's inventory item
 	// Set the slotted item's equipment type tag
