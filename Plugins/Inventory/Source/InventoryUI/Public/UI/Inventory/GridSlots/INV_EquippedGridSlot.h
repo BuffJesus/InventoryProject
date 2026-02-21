@@ -42,4 +42,8 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category="INV|Grid")
 	TSubclassOf<UINV_EquippedSlottedItem> EquippedSlottedItemClass;
+
+	// Extra inset (in pixels) applied to the equipped icon to better match slot art padding.
+	UPROPERTY(EditAnywhere, Category="INV|Grid", meta=(ClampMin="0.0", UIMin="0.0"))
+	float EquippedIconPadding { 8.f };
 };

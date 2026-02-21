@@ -88,7 +88,7 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	const FIntPoint GridDimensions = GridFragment->GetGridSize();
 	
 	// Calculate the draw size for the equipped slotted item
-	const float IconTileWidth = TileSize - GridFragment->GetGridPadding() * 2;
+	const float IconTileWidth = FMath::Max(1.0f, TileSize - GridFragment->GetGridPadding() * 2 - EquippedIconPadding * 2);
 	const FVector2D DrawSize = GridDimensions * IconTileWidth;
 	
 	// Create the equipped slotted item widget
