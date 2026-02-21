@@ -36,5 +36,5 @@ private:
 
 	// Tint used while hovering an equipped item.
 	UPROPERTY(EditAnywhere, Category="INV|Visual")
-	FLinearColor HighlightTint { 1.15f, 1.15f, 1.15f, 1.0f };
+	FLinearColor HighlightTint { 1.0f, 0.85f, 0.55f, 1.0f };
 };
