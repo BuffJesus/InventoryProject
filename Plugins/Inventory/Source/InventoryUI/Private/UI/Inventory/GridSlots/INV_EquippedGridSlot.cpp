@@ -40,3 +40,20 @@ FReply UINV_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 	EquippedGridSlotClicked.Broadcast(this, EquipmentTypeTag);
 	return FReply::Handled();
 }
+
+UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryItem* Item,
+	const FGameplayTag& EquipmentTag, float TileSize)
+{
+	// Check the equipment type tag
+	// Get the grid dimensions
+	// Calculate the draw size for the equipped slotted item
+	// Create the equipped slotted item widget
+	// Set the slotted item's inventory item
+	// Set the slotted item's equipment type tag
+	// Hide the stack count widget on the slotted item
+	// Set inventory item on this class (the equipped grid slot)
+	// Set the image brush on the equipped slotted item
+	// Add the slotted item as the child to this widget's overlay
+	// Return the equipped slotted item widget
+	return nullptr;
+}

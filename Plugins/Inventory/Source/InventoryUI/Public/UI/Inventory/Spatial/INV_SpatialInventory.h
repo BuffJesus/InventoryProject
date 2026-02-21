@@ -64,6 +64,8 @@ private:
 
 	// Prevent immediate close on the same frame the description is opened.
 	bool bSkipDescriptionCloseThisTick { false };
+	
+	bool CanEquipHoverItem(UINV_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag) const;
 };
 
 
