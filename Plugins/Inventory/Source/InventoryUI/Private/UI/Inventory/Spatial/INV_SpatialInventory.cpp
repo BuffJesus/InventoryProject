@@ -124,10 +124,14 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(ItemToUnequip) };
 	
 	// Clear the equipped grid slot of this item (set its inventory item to nullptr)
+	ClearSlotOfItem(EquippedGridSlot);
+	
+	// Assign the previously equipped item as the hover item
+	Grid_Equippable->AssignHoverItem(ItemToUnequip);
+	
 	// Removal of the equipped slotted item from the equipped grid slot 
-		// (unbind from the OnOnEquippedSlottedItemClicked)
-		// Removing the equipped slotted item from its parent
-		// Assign previously equipped item as the hover item
+	RemoveEquippedSlottedItem(SlottedItem);
+	
 	// Make a new equipped slotted item (for the item we held in HoverItem)
 	// Broadcast delegate for OnItemEquipped/OnItemUnequipped (from the IC)
 }
@@ -214,11 +218,31 @@ void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescripti
 	ItemDescriptionCPS->SetPosition(ClampedPos);
 }
 
+void UINV_SpatialInventory::ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot)
+{
+	if (IsValid(EquippedGridSlot))
+	{
+		EquippedGridSlot->SetEquippedSlottedItem(nullptr);
+		EquippedGridSlot->SetInventoryItem(nullptr);
+	}
+}
+
+void UINV_SpatialInventory::RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem)
+{
+	if (!IsValid(EquippedSlottedItem)) return;
+	
+	if (EquippedSlottedItem->OnEquippedSlottedItemClicked.IsAlreadyBound(this, &ThisClass::EquippedSlottedItemClicked))
+	{
+		EquippedSlottedItem->OnEquippedSlottedItemClicked.RemoveDynamic(this, &ThisClass::EquippedSlottedItemClicked);
+	}
+	EquippedSlottedItem->RemoveFromParent();
+}
+
 UINV_EquippedGridSlot* UINV_SpatialInventory::FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const
 {
-	auto* FoundEquippedGridSlot { EquippedGridSlots.FindByPredicate([EquippedItem](const auto* GridSlot)
+	auto* FoundEquippedGridSlot { EquippedGridSlots.FindByPredicate([EquippedItem](const TObjectPtr<UINV_EquippedGridSlot>& GridSlotPtr)
 	{
-		return GridSlot->GetInventoryItem() == EquippedItem;
+		return IsValid(GridSlotPtr) && GridSlotPtr->GetInventoryItem() == EquippedItem;
 	}) };
 	
 	return FoundEquippedGridSlot ? *FoundEquippedGridSlot : nullptr;

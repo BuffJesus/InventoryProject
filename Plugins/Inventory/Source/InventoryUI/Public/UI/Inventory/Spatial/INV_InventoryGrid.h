@@ -46,6 +46,7 @@ public:
 	void HideCursor();
 	void DropItem();
 	void ClearHoverItem();
+	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	
 	UINV_HoverItem* GetHoverItem() const { return HoverItem; } 
 	
@@ -126,7 +127,6 @@ private:
 
 	void ConstructGrid();
 	void Pickup(UINV_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
-	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex, const int32 PreviousGridIndex);
 	void RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex);
 	void UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos);

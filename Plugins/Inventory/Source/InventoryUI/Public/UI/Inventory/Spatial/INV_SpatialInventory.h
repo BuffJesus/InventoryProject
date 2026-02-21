@@ -57,6 +57,8 @@ private:
 	void DisableButton(UButton* Button) const;
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
+	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
+	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	UINV_EquippedGridSlot* FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const;
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
