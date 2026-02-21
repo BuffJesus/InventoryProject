@@ -6,8 +6,9 @@
 #include "UI/Base/INV_InventoryBase.h"
 #include "INV_SpatialInventory.generated.h"
 
-struct FGameplayTag;
 class UINV_EquippedGridSlot;
+class UINV_EquippedSlottedItem;
+struct FGameplayTag;
 class UINV_ItemDescription;
 class UCanvasPanel;
 class UButton;
@@ -56,6 +57,7 @@ private:
 	void DisableButton(UButton* Button) const;
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
+	UINV_EquippedGridSlot* FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const;
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
 	
