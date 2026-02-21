@@ -81,4 +81,14 @@ void FINV_ItemPresentationUtils::AssimilateInventoryFragments(const FINV_ItemMan
 			ApplyLabeledNumberFragment(Modifier.Get(), Composite);
 		}
 	}
+
+	for (const FINV_EquipmentFragment* Fragment : Manifest.GetFragmentsOfType<FINV_EquipmentFragment>())
+	{
+		if (!Fragment) continue;
+		for (const TInstancedStruct<FINV_EquipModifier>& Modifier : Fragment->GetEquipModifiers())
+		{
+			ApplyLabeledNumberFragment(Modifier.Get(), Composite);
+		}
+	}
+	
 }

@@ -63,6 +63,8 @@ void FINV_AttributeModifier::OnUnequip(APlayerController* PC)
 
 void FINV_EquipmentFragment::OnEquip(APlayerController* PC)
 {
+	if (bEquipped) return;
+	bEquipped = true;
 	for (auto& Modifier : EquipModifiers)
 	{
 		auto& ModRef { Modifier.GetMutable() };
@@ -72,6 +74,8 @@ void FINV_EquipmentFragment::OnEquip(APlayerController* PC)
 
 void FINV_EquipmentFragment::OnUnequip(APlayerController* PC)
 {
+	if (!bEquipped) return;
+	bEquipped = false;
 	for (auto& Modifier : EquipModifiers)
 	{
 		auto& ModRef { Modifier.GetMutable() };

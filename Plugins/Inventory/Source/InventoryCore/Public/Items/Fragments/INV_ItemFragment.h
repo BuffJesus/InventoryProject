@@ -7,6 +7,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "INV_ItemFragment.generated.h"
 
+struct FINV_EquipModifier;
 class APlayerController;
 
 USTRUCT(BlueprintType)
@@ -220,8 +221,10 @@ USTRUCT(BlueprintType)
 struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragment
 {
 	GENERATED_BODY()
+	bool bEquipped { false };
 	void OnEquip(APlayerController* PC);
 	void OnUnequip(APlayerController* PC);
+	const TArray<TInstancedStruct<FINV_EquipModifier>>& GetEquipModifiers() const { return EquipModifiers; }
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Equipment")
