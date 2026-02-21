@@ -51,8 +51,6 @@ public:
 	void TryAddItem(UINV_ItemComponent* ItemComponent);
 	// Server-side helper that computes safe drop location and spawns pickup actor.
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
-	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
-	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	
 	UFUNCTION(Server, Reliable) void Server_EquipSlotClicked(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
@@ -71,6 +69,10 @@ protected:
 
 private:
 	void ConfigureFastArrayCallbacks();
+	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
+	void RememberSuccessfulDropLocation(const FVector& DropLocation);
+	void TrimRecentDropLocations();
+
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
 	
@@ -94,12 +96,14 @@ private:
 	// Tracks menu state for toggle logic.
 	bool bInventoryMenuOpen = false;
 	
+	// Min/max angular offset (degrees) used for randomized drop direction from pawn forward.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	float DropSpawnAngleMin { -85.f };
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	float DropSpawnAngleMax { 85.f };
 	
+	// Min/max horizontal distance (cm) from pawn for initial drop candidate.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	float DropSpawnDistanceMin { 10.f };
 	

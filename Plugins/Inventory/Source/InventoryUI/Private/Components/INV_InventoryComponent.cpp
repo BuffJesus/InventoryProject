@@ -8,9 +8,17 @@
 #include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
 #include "Engine/World.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Base/INV_InventoryBase.h"
+
+void UINV_InventoryComponent::TrimRecentDropLocations()
+{
+	if (MaxRememberedDropLocations >= 0 && RecentDropLocations.Num() > MaxRememberedDropLocations)
+	{
+		const int32 NumToRemove = RecentDropLocations.Num() - MaxRememberedDropLocations;
+		RecentDropLocations.RemoveAt(0, NumToRemove, EAllowShrinking::No);
+	}
+}
 
 FVector UINV_InventoryComponent::ResolveVisualDropSeparation(const FVector& ProposedLocation)
 {
@@ -20,11 +28,7 @@ FVector UINV_InventoryComponent::ResolveVisualDropSeparation(const FVector& Prop
 	}
 
 	// Keep only a bounded history to avoid unbounded growth.
-	if (MaxRememberedDropLocations >= 0 && RecentDropLocations.Num() > MaxRememberedDropLocations)
-	{
-		const int32 NumToRemove = RecentDropLocations.Num() - MaxRememberedDropLocations;
-		RecentDropLocations.RemoveAt(0, NumToRemove, EAllowShrinking::No);
-	}
+	TrimRecentDropLocations();
 
 	auto IsFarEnoughFromAllRecentDrops = [this](const FVector& Candidate)
 	{
@@ -66,11 +70,7 @@ FVector UINV_InventoryComponent::ResolveVisualDropSeparation(const FVector& Prop
 void UINV_InventoryComponent::RememberSuccessfulDropLocation(const FVector& DropLocation)
 {
 	RecentDropLocations.Add(DropLocation);
-	if (MaxRememberedDropLocations >= 0 && RecentDropLocations.Num() > MaxRememberedDropLocations)
-	{
-		const int32 NumToRemove = RecentDropLocations.Num() - MaxRememberedDropLocations;
-		RecentDropLocations.RemoveAt(0, NumToRemove, EAllowShrinking::No);
-	}
+	TrimRecentDropLocations();
 }
 
 UINV_InventoryComponent::UINV_InventoryComponent() : InventoryFastArray(this)
@@ -203,6 +203,7 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 
 	const auto RestoreDroppedItemToInventory = [this, Item, StackCount]()
 	{
+		// Restore by type/rarity to preserve stacking behavior and avoid item loss on failed spawn.
 		if (UINV_InventoryItem* ExistingItem = InventoryFastArray.FindFirstItemByType(
 			Item->GetItemManifest().GetItemType(),
 			Item->IsItemRarityEnabled(),
@@ -216,7 +217,7 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		}
 	};
 
-	// Calculate safe drop location using utility
+	// Compute a validated drop transform (surface + clearance + overlap checks).
 	const FINV_DropLocationResult DropResult = UINV_DropLocationCalculator::CalculateDropLocation(
 		World,
 		OwningPawn,
@@ -240,6 +241,7 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		return;
 	}
 
+	// Apply collision-independent separation so non-colliding pickups still spread out visually.
 	const FVector SpawnLocation = ResolveVisualDropSeparation(DropResult.Location);
 	const FRotator SpawnRotation = DropResult.Rotation;
 	
