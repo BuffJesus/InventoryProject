@@ -29,6 +29,7 @@ public:
 	virtual bool HasHoverItem() const override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual UINV_HoverItem* GetHoverItem() const override;
+	virtual float GetTileSize() const override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
@@ -50,6 +51,7 @@ private:
 	UFUNCTION() void ShowConsumableGrid();
 	UFUNCTION() void ShowCraftableGrid();
 	UFUNCTION() void EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
+	UFUNCTION() void EquippedSlottedItemClicked(UINV_EquippedSlottedItem* SlottedItem);
 	
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);

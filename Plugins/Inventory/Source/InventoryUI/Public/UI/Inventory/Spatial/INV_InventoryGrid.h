@@ -51,6 +51,8 @@ public:
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
 	
 	FORCEINLINE bool HasHoverItem() const { return HoverItem.Get() != nullptr; }
+	
+	float GetTileSize() const { return TileSize; }
 
 private:
 	// Owning inventory component for events.

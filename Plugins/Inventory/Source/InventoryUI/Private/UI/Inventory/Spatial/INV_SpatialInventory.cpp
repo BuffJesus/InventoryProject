@@ -17,6 +17,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
+#include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
 
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
@@ -80,11 +81,24 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 	// Check if the hover item is equippable
 	if (!CanEquipHoverItem(EquippedGridSlot, EquipmentTypeTag)) return;
 	
-	// Create the equipped slotted item and add it to the equipped grid slot (call EquippedGridSlot->OnItemEquipped)
+	UINV_HoverItem& HoverItem { *GetHoverItem() };
 	
+	// Create the equipped slotted item and add it to the equipped grid slot (call EquippedGridSlot->OnItemEquipped)
+	const float TileSize = UINV_InventoryStatics::GetInventoryWidget(GetOwningPlayer())->GetTileSize();
+	UINV_EquippedSlottedItem* EquippedSlottedItem { EquippedGridSlot->OnItemEquipped(
+		HoverItem.GetInventoryItem(), 
+		EquipmentTypeTag, 
+		TileSize) };
+	
+	EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
 	
 	// Clear the hover item
 	// Inform the server that we've equipped an item (potentially unequipping an item as well)
+}
+
+void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem* SlottedItem)
+{
+	
 }
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -129,6 +143,11 @@ UINV_HoverItem* UINV_SpatialInventory::GetHoverItem() const
 {
 	if (!ActiveGrid.IsValid()) return nullptr;
 	return ActiveGrid->GetHoverItem();
+}
+
+float UINV_SpatialInventory::GetTileSize() const
+{
+	return Grid_Equippable->GetTileSize();
 }
 
 void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,

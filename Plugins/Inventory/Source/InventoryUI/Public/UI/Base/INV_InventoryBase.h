@@ -31,4 +31,5 @@ public:
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) {}
 	virtual bool HasHoverItem() const { return false; }
 	virtual UINV_HoverItem* GetHoverItem() const { return nullptr; }
+	virtual float GetTileSize() const { return 0.0f; }
 };

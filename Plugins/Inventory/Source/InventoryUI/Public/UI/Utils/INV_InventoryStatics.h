@@ -39,5 +39,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="INV|Statics")
 	static void ItemInspected(APlayerController* PC, UINV_InventoryItem* Item, const FVector2D& OpenPosition);
 	
-	static UINV_HoverItem* GetHoverItem(APlayerController* PC); 
+	UFUNCTION(BlueprintCallable, Category="INV|Statics")
+	static UINV_HoverItem* GetHoverItem(APlayerController* PC);
+	
+	static UINV_InventoryBase* GetInventoryWidget(APlayerController* PC);
+	
 };
