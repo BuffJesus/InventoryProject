@@ -204,6 +204,20 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 	}
 }
 
+void UINV_InventoryComponent::Server_EquipSlotClicked_Implementation(UINV_InventoryItem* ItemToEquip,
+	UINV_InventoryItem* ItemToUnequip)
+{
+	Multicast_EquipSlotClicked(ItemToEquip, ItemToUnequip);
+}
+
+void UINV_InventoryComponent::Multicast_EquipSlotClicked_Implementation(UINV_InventoryItem* ItemToEquip,
+	UINV_InventoryItem* ItemToUnequip)
+{
+	// Equipment component will listen to these delegates
+	OnItemEquipped.Broadcast(ItemToEquip);
+	OnItemUnequipped.Broadcast(ItemToUnequip);
+}
+
 void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item)) return;

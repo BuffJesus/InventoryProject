@@ -8,7 +8,6 @@
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "INV_ItemComponent.generated.h"
 
-
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class INVENTORYCORE_API UINV_ItemComponent : public UActorComponent
 {
@@ -35,6 +34,7 @@ public:
 	void PickedUp();
 	// Copy-initialize pickup manifest data (usually from dropped/runtime items).
 	void InitItemManifest(const FINV_ItemManifest& InManifest);
+
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category="INV|Inventory")
 	void OnPickedUp();

@@ -7,6 +7,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/INV_InventoryComponent.h"
 #include "Components/WidgetSwitcher.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 #include "UI/Utils/INV_WidgetUtils.h"
@@ -93,6 +94,15 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 	EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
 	
 	// Inform the server that we've equipped an item (potentially unequipping an item as well)
+	UINV_InventoryComponent* InventoryComponent { UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()) };
+	checkf(InventoryComponent, TEXT("Inventory component is invalid"));
+	
+	InventoryComponent->Server_EquipSlotClicked(HoverItem.GetInventoryItem(), nullptr);
+	
+	if (GetOwningPlayer()->GetNetMode() != NM_DedicatedServer)
+	{
+		InventoryComponent->OnItemEquipped.Broadcast(HoverItem.GetInventoryItem());
+	}
 	
 	// Clear the hover item
 	Grid_Equippable->ClearHoverItem();
