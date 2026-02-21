@@ -6,7 +6,7 @@
 #include "INV_SlottedItem.h"
 #include "INV_EquippedSlottedItem.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEquippedSlottedItemClicked, class UINV_EquippedSlottedItem*, SlottedItem);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquippedSlottedItemClicked, class UINV_EquippedSlottedItem*, SlottedItem, const FPointerEvent&, MouseEvent);
 
 /**
  * 

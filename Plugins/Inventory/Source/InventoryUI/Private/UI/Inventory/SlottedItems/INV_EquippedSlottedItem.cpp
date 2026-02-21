@@ -5,6 +5,6 @@
 
 FReply UINV_EquippedSlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	OnEquippedSlottedItemClicked.Broadcast(this);
+	OnEquippedSlottedItemClicked.Broadcast(this, MouseEvent);
 	return FReply::Handled();
 }
