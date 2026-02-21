@@ -390,6 +390,7 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	bInventoryMenuOpen = bIsOpen;
 	if (bIsOpen)
 	{
+		Inventory->SetIsFocusable(true);
 		Inventory->SetKeyboardFocus();
 	}
 	

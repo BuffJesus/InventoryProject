@@ -116,6 +116,7 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 void UINV_SpatialInventory::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
+	SetIsFocusable(true);
 	
 	Button_Equippable->OnClicked.AddDynamic(this, &ThisClass::ShowEquippableGrid);
 	Button_Consumable->OnClicked.AddDynamic(this, &ThisClass::ShowConsumableGrid);
