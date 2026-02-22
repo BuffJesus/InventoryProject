@@ -69,6 +69,9 @@ private:
 	bool IsGridNavigationInput(const FKey& PressedKey) const;
 	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
+	float ResolveInventoryTileSize() const;
+	bool TryHandleEquippedItemInspect(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent);
+	void SwapEquippedItemWithHover(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
 	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	void MakeEquippedSlottedItem(UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip, const FGameplayTag& EquipmentTypeTag);
