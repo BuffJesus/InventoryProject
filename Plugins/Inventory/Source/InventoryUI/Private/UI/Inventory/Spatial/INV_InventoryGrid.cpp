@@ -556,28 +556,7 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		GridIndex,
 		ItemDropIndex);
 
-	const FINV_GridClickExecutionCallbacks Callbacks
-	{
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		[this, MouseEvent](const int32 TargetIndex)
-		{
-			if (GridSlots.IsValidIndex(TargetIndex))
-			{
-				OnSlottedItemClicked(TargetIndex, MouseEvent);
-			}
-		},
-		[this](const int32 TargetIndex)
-		{
-			PutDownOnIndex(TargetIndex);
-		}
-	};
-
-	FINV_GridClickExecutionService::ExecuteGridSlotClick(ActionResult, Callbacks);
+	FINV_GridClickExecutionService::ExecuteGridSlotClick(ActionResult, BuildGridSlotClickCallbacks(MouseEvent));
 }
 
 void UINV_InventoryGrid::PutDownOnIndex(const int32 Index)
@@ -673,29 +652,6 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 	const bool bTempIsStackable { HoverItem->IsStackable() };
 	const int32 HoverPreviousIndex = HoverItem->GetPreviousGridIndex();
 
-	const FINV_GridSwapCallbacks Callbacks{
-		[this](UINV_InventoryItem* Item, const int32 NewGridIndex, const int32 PreviousGridIndex)
-		{
-			AssignHoverItem(Item, NewGridIndex, PreviousGridIndex);
-		},
-		[this](UINV_InventoryItem* Item, const int32 RemoveIndex)
-		{
-			RemoveItemFromGrid(Item, RemoveIndex);
-		},
-		[this](UINV_InventoryItem* Item, const int32 AddIndex, const bool bStackable, const int32 StackCount)
-		{
-			AddItemAtIndex(Item, AddIndex, bStackable, StackCount);
-		},
-		[this](UINV_InventoryItem* Item, const int32 UpdateIndex, const bool bStackable, const int32 StackCount)
-		{
-			UpdateGridSlots(Item, UpdateIndex, bStackable, StackCount);
-		},
-		[this]()
-		{
-			RefreshGridSlotVisualsFromAvailability();
-		}
-	};
-
 	const bool bSwapExecuted = FINV_GridSwapService::ExecuteSwapWithHoverItem(
 		GridSlots,
 		GridSize,
@@ -707,7 +663,7 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 		TempStackCount,
 		bTempIsStackable,
 		HoverPreviousIndex,
-		Callbacks);
+		BuildGridSwapCallbacks());
 	if (!bSwapExecuted) return;
 }
 
@@ -1008,10 +964,88 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 
 FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem)
 {
+	if (!GridSlots.IsValidIndex(GridIndex))
+	{
+		return FINV_StackDetails{};
+	}
+
 	return FINV_GridStackOperations::CalculateStackDetails(
 		GridSlots[GridIndex],
 		HoverItem,
 		ClickedInventoryItem);
+}
+
+FINV_GridClickExecutionCallbacks UINV_InventoryGrid::BuildGridSlotClickCallbacks(const FPointerEvent& MouseEvent)
+{
+	FINV_GridClickExecutionCallbacks Callbacks;
+	Callbacks.RouteToSlottedClick = [this, MouseEvent](const int32 TargetIndex)
+	{
+		if (GridSlots.IsValidIndex(TargetIndex))
+		{
+			OnSlottedItemClicked(TargetIndex, MouseEvent);
+		}
+	};
+	Callbacks.PlaceItem = [this](const int32 TargetIndex)
+	{
+		PutDownOnIndex(TargetIndex);
+	};
+	return Callbacks;
+}
+
+FINV_GridClickExecutionCallbacks UINV_InventoryGrid::BuildSlottedItemClickCallbacks()
+{
+	FINV_GridClickExecutionCallbacks Callbacks;
+	Callbacks.Pickup = [this](UINV_InventoryItem* Item, const int32 Index)
+	{
+		Pickup(Item, Index);
+	};
+	Callbacks.CreatePopup = [this](const int32 Index)
+	{
+		CreateItemPopup(Index);
+	};
+	Callbacks.SwapStackCounts = [this](const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
+	{
+		SwapStackCounts(ClickedStackCount, HoveredStackCount, Index);
+	};
+	Callbacks.ConsumeHoverStacks = [this](const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
+	{
+		ConsumeHoverItemStacks(ClickedStackCount, HoveredStackCount, Index);
+	};
+	Callbacks.FillStack = [this](const int32 FillAmount, const int32 Remainder, const int32 Index)
+	{
+		FillInStack(FillAmount, Remainder, Index);
+	};
+	Callbacks.SwapItems = [this](UINV_InventoryItem* Item, const int32 Index)
+	{
+		SwapWithHoverItem(Item, Index);
+	};
+	return Callbacks;
+}
+
+FINV_GridSwapCallbacks UINV_InventoryGrid::BuildGridSwapCallbacks()
+{
+	FINV_GridSwapCallbacks Callbacks;
+	Callbacks.AssignHoverItem = [this](UINV_InventoryItem* Item, const int32 NewGridIndex, const int32 PreviousGridIndex)
+	{
+		AssignHoverItem(Item, NewGridIndex, PreviousGridIndex);
+	};
+	Callbacks.RemoveItemFromGrid = [this](UINV_InventoryItem* Item, const int32 RemoveIndex)
+	{
+		RemoveItemFromGrid(Item, RemoveIndex);
+	};
+	Callbacks.AddItemAtIndex = [this](UINV_InventoryItem* Item, const int32 AddIndex, const bool bStackable, const int32 StackCount)
+	{
+		AddItemAtIndex(Item, AddIndex, bStackable, StackCount);
+	};
+	Callbacks.UpdateGridSlots = [this](UINV_InventoryItem* Item, const int32 UpdateIndex, const bool bStackable, const int32 StackCount)
+	{
+		UpdateGridSlots(Item, UpdateIndex, bStackable, StackCount);
+	};
+	Callbacks.RefreshGridSlotVisuals = [this]()
+	{
+		RefreshGridSlotVisualsFromAvailability();
+	};
+	return Callbacks;
 }
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
@@ -1022,6 +1056,10 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	CloseActiveItemPopup();
 	ControllerSelectedIndex = GridIndex;
 
+	if (!GridSlots.IsValidIndex(GridIndex))
+	{
+		return;
+	}
 	checkf(GridSlots.IsValidIndex(GridIndex), TEXT("Index out of bounds!"));
 	UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
 
@@ -1042,42 +1080,12 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		StackDetails,
 		ItemDropIndex);
 
-	const FINV_GridClickExecutionCallbacks Callbacks
-	{
-		[this](UINV_InventoryItem* Item, const int32 Index)
-		{
-			Pickup(Item, Index);
-		},
-		[this](const int32 Index)
-		{
-			CreateItemPopup(Index);
-		},
-		[this](const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
-		{
-			SwapStackCounts(ClickedStackCount, HoveredStackCount, Index);
-		},
-		[this](const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
-		{
-			ConsumeHoverItemStacks(ClickedStackCount, HoveredStackCount, Index);
-		},
-		[this](const int32 FillAmount, const int32 Remainder, const int32 Index)
-		{
-			FillInStack(FillAmount, Remainder, Index);
-		},
-		[this](UINV_InventoryItem* Item, const int32 Index)
-		{
-			SwapWithHoverItem(Item, Index);
-		},
-		nullptr,
-		nullptr
-	};
-
 	FINV_GridClickExecutionService::ExecuteSlottedItemClick(
 		ActionResult,
 		StackDetails,
 		ClickedInventoryItem,
 		GridIndex,
-		Callbacks);
+		BuildSlottedItemClickCallbacks());
 }
 
 bool UINV_InventoryGrid::HandleControllerConfirm()

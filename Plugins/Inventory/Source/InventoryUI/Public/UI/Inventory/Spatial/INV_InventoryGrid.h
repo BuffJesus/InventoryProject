@@ -17,6 +17,8 @@ struct FINV_GridFragment;
 struct FINV_ImageFragment;
 struct FINV_GridWidgetFactoryConfig;
 class UINV_ItemComponent;
+struct FINV_GridClickExecutionCallbacks;
+struct FINV_GridSwapCallbacks;
 
 #include "INV_InventoryGrid.generated.h"
 class UINV_InventoryComponent;
@@ -168,6 +170,9 @@ private:
 	
 	UFUNCTION() void AddStacks(const FINV_SlotAvailabilityResult& Result);
 	FINV_StackDetails CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem);
+	FINV_GridClickExecutionCallbacks BuildGridSlotClickCallbacks(const FPointerEvent& MouseEvent);
+	FINV_GridClickExecutionCallbacks BuildSlottedItemClickCallbacks();
+	FINV_GridSwapCallbacks BuildGridSwapCallbacks();
 
 	UFUNCTION() void OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
 	UFUNCTION() void OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent);
