@@ -29,28 +29,10 @@
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/Popup/INV_ItemPopUp.h"
-#include "Controllers/INV_PlayerController.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
-#include "InputCoreTypes.h"
 #include "HAL/PlatformTime.h"
-
-namespace
-{
-FPointerEvent MakeSimulatedLeftMouseClickEvent()
-{
-	return FPointerEvent(
-		0u,
-		0u,
-		FVector2D::ZeroVector,
-		FVector2D::ZeroVector,
-		TSet<FKey> { EKeys::LeftMouseButton },
-		EKeys::LeftMouseButton,
-		0.0f,
-		FModifierKeysState());
-}
-}
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -342,13 +324,11 @@ FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 void UINV_InventoryGrid::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)
 {
 	Super::NativeOnAddedToFocusPath(InFocusEvent);
-	ApplyControllerSelectionVisual();
 }
 
 void UINV_InventoryGrid::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent)
 {
 	Super::NativeOnRemovedFromFocusPath(InFocusEvent);
-	ClearControllerSelectionVisual();
 }
 
 FVector2D UINV_InventoryGrid::GetDrawSize(const FINV_GridFragment* GridFragment) const
@@ -512,10 +492,6 @@ void UINV_InventoryGrid::ConstructGrid()
 		}
 	}
 
-	if (GridSlots.Num() > 0)
-	{
-		ControllerSelectedIndex = 0;
-	}
 }
 
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
@@ -705,7 +681,6 @@ UUserWidget* UINV_InventoryGrid::GetHiddenCursorWidget()
 
 void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	ControllerSelectedIndex = GridIndex;
 	if (IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
@@ -809,7 +784,6 @@ void UINV_InventoryGrid::OnPopUpMenuInspect(int32 Index)
 
 void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	ControllerSelectedIndex = GridIndex;
 	if (IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	if (LastHoveredSlottedIndex == GridIndex) return;
@@ -1026,7 +1000,6 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 	LastHoveredSlottedIndex = INDEX_NONE;
 	CloseActiveItemPopup();
-	ControllerSelectedIndex = GridIndex;
 
 	if (!GridSlots.IsValidIndex(GridIndex))
 	{
@@ -1060,320 +1033,11 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		BuildSlottedItemClickCallbacks());
 }
 
-bool UINV_InventoryGrid::HandleControllerConfirm()
-{
-	if (!EnsureControllerSelectionInitialized()) return false;
-	if (TryHandleControllerConfirmOnOccupiedSelection()) return true;
-	return TryHandleControllerConfirmHoverPlacement();
-}
-
-bool UINV_InventoryGrid::HandleControllerBack()
-{
-	if (HasOpenItemPopup())
-	{
-		CloseItemPopup();
-		return true;
-	}
-
-	if (IsValid(HoverItem))
-	{
-		return ReturnHoverItemToPreviousSlot();
-	}
-
-	return false;
-}
-
-bool UINV_InventoryGrid::HandleControllerContext()
-{
-	if (!EnsureControllerSelectionInitialized()) return false;
-	if (!GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid()) return false;
-
-	CreateItemPopup(ResolveControllerActionIndex(ControllerSelectedIndex));
-	return true;
-}
-
-bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
-{
-	if (GridSlots.Num() == 0) return false;
-
-	EnsureControllerSelectionInitialized();
-
-	int32 CurrentX = ControllerSelectedIndex % GridSize.X;
-	int32 CurrentY = ControllerSelectedIndex / GridSize.X;
-
-	int32 MaxX = GridSize.X - 1;
-	int32 MaxY = GridSize.Y - 1;
-	GetControllerSelectionLimits(MaxX, MaxY);
-
-	CurrentX = FMath::Clamp(CurrentX, 0, MaxX);
-	CurrentY = FMath::Clamp(CurrentY, 0, MaxY);
-
-	const int32 SpanX = MaxX + 1;
-	const int32 SpanY = MaxY + 1;
-	int32 TargetX = CurrentX + Delta.X;
-	int32 TargetY = CurrentY + Delta.Y;
-
-	// When navigating with the controller and not holding an item, step over entire occupied footprints.
-	if (!IsValid(HoverItem) && GridSlots.IsValidIndex(ControllerSelectedIndex) && GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid())
-	{
-		const int32 AnchorIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
-		const int32 AnchorX = AnchorIndex % GridSize.X;
-		const int32 AnchorY = AnchorIndex / GridSize.X;
-		const UINV_InventoryItem* SelectedItem = GridSlots[AnchorIndex]->GetInventoryItem().Get();
-		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedItem);
-		const int32 CurrentOffsetX = FMath::Clamp(CurrentX - AnchorX, 0, FMath::Max(0, Dimensions.X - 1));
-		const int32 CurrentOffsetY = FMath::Clamp(CurrentY - AnchorY, 0, FMath::Max(0, Dimensions.Y - 1));
-
-		if (Delta.X > 0)
-		{
-			TargetX = AnchorX + Dimensions.X;
-			TargetY = AnchorY + CurrentOffsetY;
-		}
-		else if (Delta.X < 0)
-		{
-			TargetX = AnchorX - 1;
-			TargetY = AnchorY + CurrentOffsetY;
-		}
-		else if (Delta.Y > 0)
-		{
-			TargetY = AnchorY + Dimensions.Y;
-			TargetX = AnchorX + CurrentOffsetX;
-		}
-		else if (Delta.Y < 0)
-		{
-			TargetY = AnchorY - 1;
-			TargetX = AnchorX + CurrentOffsetX;
-		}
-	}
-
-	int32 NewX = SpanX > 0 ? (TargetX % SpanX + SpanX) % SpanX : 0;
-	int32 NewY = SpanY > 0 ? (TargetY % SpanY + SpanY) % SpanY : 0;
-
-	// While dragging with the controller, skip across blocking footprints so lateral navigation
-	// does not require repeated presses through large occupied regions.
-	if (IsValid(HoverItem))
-	{
-		const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-		for (int32 Attempt = 0; Attempt < 6; ++Attempt)
-		{
-			const FINV_SpaceQueryResult Query = FINV_GridPlacementEngine::CheckHoverPosition(
-				GridSlots,
-				GridSize,
-				FIntPoint(NewX, NewY),
-				HoverDimensions);
-			if (Query.bHasSpace || Query.BlockingUpperLeftIndices.Num() == 0)
-			{
-				break;
-			}
-
-			int32 BlockerIndex = Query.BlockingUpperLeftIndices[0];
-			for (const int32 CandidateIndex : Query.BlockingUpperLeftIndices)
-			{
-				if (!GridSlots.IsValidIndex(CandidateIndex) || !GridSlots.IsValidIndex(BlockerIndex))
-				{
-					continue;
-				}
-
-				if (Delta.X > 0 && CandidateIndex % GridSize.X > BlockerIndex % GridSize.X)
-				{
-					BlockerIndex = CandidateIndex;
-				}
-				else if (Delta.X < 0 && CandidateIndex % GridSize.X < BlockerIndex % GridSize.X)
-				{
-					BlockerIndex = CandidateIndex;
-				}
-				else if (Delta.Y > 0 && CandidateIndex / GridSize.X > BlockerIndex / GridSize.X)
-				{
-					BlockerIndex = CandidateIndex;
-				}
-				else if (Delta.Y < 0 && CandidateIndex / GridSize.X < BlockerIndex / GridSize.X)
-				{
-					BlockerIndex = CandidateIndex;
-				}
-			}
-			if (!GridSlots.IsValidIndex(BlockerIndex))
-			{
-				break;
-			}
-
-			const int32 PrevX = NewX;
-			const int32 PrevY = NewY;
-			const int32 BlockerX = BlockerIndex % GridSize.X;
-			const int32 BlockerY = BlockerIndex / GridSize.X;
-			const UINV_InventoryItem* BlockingItem = GridSlots[BlockerIndex]->GetInventoryItem().Get();
-			const FIntPoint BlockerDimensions = GetItemDimensionsOrDefault(BlockingItem);
-
-			if (Delta.X > 0)
-			{
-				NewX = FMath::Clamp(BlockerX + BlockerDimensions.X, 0, MaxX);
-			}
-			else if (Delta.X < 0)
-			{
-				NewX = FMath::Clamp(BlockerX - HoverDimensions.X, 0, MaxX);
-			}
-			else if (Delta.Y > 0)
-			{
-				NewY = FMath::Clamp(BlockerY + BlockerDimensions.Y, 0, MaxY);
-			}
-			else if (Delta.Y < 0)
-			{
-				NewY = FMath::Clamp(BlockerY - HoverDimensions.Y, 0, MaxY);
-			}
-
-			if (PrevX == NewX && PrevY == NewY)
-			{
-				break;
-			}
-		}
-	}
-
-	SetControllerSelectedIndex(UINV_WidgetUtils::GetIndexFromPosition(FIntPoint(NewX, NewY), GridSize.X));
-	return true;
-}
-
-void UINV_InventoryGrid::ApplyControllerSelectionVisual()
-{
-	if (IsValid(HoverItem))
-	{
-		RefreshControllerHoverPlacementVisual();
-		return;
-	}
-
-	if (GridSlots.Num() == 0) return;
-	if (!IsControllerSelectedIndexValid())
-	{
-		ControllerSelectedIndex = 0;
-	}
-
-	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
-	ApplyControllerVisualForSelectedIndex(true);
-}
-
-void UINV_InventoryGrid::ClearControllerSelectionVisual()
-{
-	if (IsValid(HoverItem))
-	{
-		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-		UnHighlightBlockingItems();
-		return;
-	}
-
-	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
-	ApplyControllerVisualForSelectedIndex(false);
-}
-
-void UINV_InventoryGrid::SetControllerSelectedIndex(int32 NewIndex)
-{
-	if (!GridSlots.IsValidIndex(NewIndex)) return;
-	NewIndex = ClampControllerAnchorIndexForHover(NewIndex);
-	if (ControllerSelectedIndex == NewIndex)
-	{
-		ApplyControllerSelectionVisual();
-		return;
-	}
-
-	ClearControllerSelectionVisual();
-	ControllerSelectedIndex = NewIndex;
-	ApplyControllerSelectionVisual();
-	PositionHoverItemAtGridIndex(ControllerSelectedIndex);
-}
-
-bool UINV_InventoryGrid::IsControllerSelectedIndexValid() const
-{
-	return GridSlots.IsValidIndex(ControllerSelectedIndex);
-}
-
-int32 UINV_InventoryGrid::GetControllerSelectedIndex() const
-{
-	return ControllerSelectedIndex;
-}
-
-bool UINV_InventoryGrid::EnsureControllerSelectionInitialized()
-{
-	if (GridSlots.Num() == 0)
-	{
-		return false;
-	}
-
-	if (!IsControllerSelectedIndexValid())
-	{
-		ControllerSelectedIndex = 0;
-		ApplyControllerSelectionVisual();
-	}
-
-	return IsControllerSelectedIndexValid();
-}
-
-void UINV_InventoryGrid::GetControllerSelectionLimits(int32& OutMaxX, int32& OutMaxY) const
-{
-	OutMaxX = GridSize.X - 1;
-	OutMaxY = GridSize.Y - 1;
-
-	if (!IsValid(HoverItem))
-	{
-		return;
-	}
-
-	const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-	OutMaxX = FMath::Max(0, GridSize.X - HoverDimensions.X);
-	OutMaxY = FMath::Max(0, GridSize.Y - HoverDimensions.Y);
-}
-
-bool UINV_InventoryGrid::TryHandleControllerConfirmOnOccupiedSelection()
-{
-	if (!IsControllerSelectedIndexValid()) return false;
-	if (!GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid()) return false;
-
-	const int32 ActionGridIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
-	OnSlottedItemClicked(ActionGridIndex, MakeSimulatedLeftMouseClickEvent());
-	ApplyControllerSelectionVisual();
-	return true;
-}
-
-bool UINV_InventoryGrid::TryHandleControllerConfirmHoverPlacement()
-{
-	if (!IsValid(HoverItem)) return false;
-	if (!IsControllerSelectedIndexValid()) return false;
-
-	ControllerSelectedIndex = ClampControllerAnchorIndexForHover(ControllerSelectedIndex);
-
-	// Use the selected slot as the drop anchor when using controller input.
-	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
-	const FIntPoint HoverDimensions = GetItemDimensionsOrDefault(HoverInventoryItem);
-	const FIntPoint SelectedCoordinates(
-		ControllerSelectedIndex % GridSize.X,
-		ControllerSelectedIndex / GridSize.X);
-	const FINV_SpaceQueryResult SpaceQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(
-		GridSlots,
-		GridSize,
-		SelectedCoordinates,
-		HoverDimensions);
-	if (!SpaceQueryResult.bHasSpace) return true;
-
-	ItemDropIndex = ControllerSelectedIndex;
-	PutDownOnIndex(ControllerSelectedIndex);
-	ApplyControllerSelectionVisual();
-	return true;
-}
-
 void UINV_InventoryGrid::FinalizeHoverItemAssignment()
 {
 	LastHoverAssignedRealtimeSeconds = FPlatformTime::Seconds();
 	bHasLastTickInputs = false;
 	LastHoveredSlottedIndex = INDEX_NONE;
-
-	if (IsControllerSelectedIndexValid())
-	{
-		PositionHoverItemAtGridIndex(ControllerSelectedIndex);
-	}
-
-	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer()))
-	{
-		if (INVPC->WasLastInputGamepad())
-		{
-			RefreshControllerHoverPlacementVisual();
-		}
-	}
 }
 
 TOptional<FVector2D> UINV_InventoryGrid::ComputeSourceViewportCenterForGridIndex(const int32 GridIndex) const
@@ -1403,11 +1067,6 @@ int32 UINV_InventoryGrid::ResolveControllerActionIndex(const int32 GridIndex) co
 
 	const int32 UpperLeftIndex = GridSlots[GridIndex]->GetUpperLeftIndex();
 	return GridSlots.IsValidIndex(UpperLeftIndex) ? UpperLeftIndex : GridIndex;
-}
-
-void UINV_InventoryGrid::ApplyControllerVisualForSelectedIndex(const bool bSelectedVisual)
-{
-	ApplyItemFootprintVisualAtIndex(ControllerSelectedIndex, bSelectedVisual);
 }
 
 void UINV_InventoryGrid::ApplyItemFootprintVisualAtIndex(const int32 GridIndex, const bool bSelectedVisual)
@@ -1444,71 +1103,6 @@ void UINV_InventoryGrid::ApplyItemFootprintVisualAtIndex(const int32 GridIndex, 
 	{
 		SelectedGridSlot->SetUnoccupiedTexture();
 	}
-}
-
-void UINV_InventoryGrid::PositionHoverItemAtGridIndex(int32 GridIndex)
-{
-	if (!IsValid(HoverItem)) return;
-	if (!GridSlots.IsValidIndex(GridIndex)) return;
-	if (!IsValid(CanvasPanel)) return;
-
-	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
-	if (!IsValid(GridSlotCanvasSlot)) return;
-
-	const FVector2D CanvasViewportPosition = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
-	const FVector2D SlotCenterLocal = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
-	const FVector2D SlotCenterViewport = CanvasViewportPosition + SlotCenterLocal;
-	const FVector2D HoverSize = HoverItem->GetCachedSize();
-	const FVector2D GridBoundsViewportPos = CanvasViewportPosition;
-	const FVector2D GridBoundsSize = FVector2D(GridSize.X * TileSize, GridSize.Y * TileSize);
-	const FVector2D DesiredPos = SlotCenterViewport - (HoverSize / 2.0f);
-	const FVector2D ClampedRelativePos = UINV_WidgetUtils::GetClampedWidgetPosition(
-		GridBoundsSize,
-		HoverSize,
-		DesiredPos - GridBoundsViewportPos);
-	const FVector2D InitialPosition = GridBoundsViewportPos + ClampedRelativePos;
-	HoverItem->SetPositionInViewport(InitialPosition, false);
-}
-
-void UINV_InventoryGrid::RefreshControllerHoverPlacementVisual()
-{
-	if (!IsValid(HoverItem)) return;
-	if (!IsControllerSelectedIndexValid()) return;
-
-	const int32 ClampedAnchorIndex = ClampControllerAnchorIndexForHover(ControllerSelectedIndex);
-	if (ClampedAnchorIndex != ControllerSelectedIndex)
-	{
-		ControllerSelectedIndex = ClampedAnchorIndex;
-	}
-
-	const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-	const FIntPoint AnchorCoordinates(
-		ControllerSelectedIndex % GridSize.X,
-		ControllerSelectedIndex / GridSize.X);
-	ItemDropIndex = ControllerSelectedIndex;
-	CurrentQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(
-		GridSlots,
-		GridSize,
-		AnchorCoordinates,
-		HoverDimensions);
-	ApplyHoverPlacementVisuals(HoverDimensions);
-
-	PositionHoverItemAtGridIndex(ControllerSelectedIndex);
-}
-
-int32 UINV_InventoryGrid::ClampControllerAnchorIndexForHover(int32 CandidateIndex) const
-{
-	if (!GridSlots.IsValidIndex(CandidateIndex)) return CandidateIndex;
-	if (!IsValid(HoverItem)) return CandidateIndex;
-
-	const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
-	const int32 MaxX = FMath::Max(0, GridSize.X - HoverDimensions.X);
-	const int32 MaxY = FMath::Max(0, GridSize.Y - HoverDimensions.Y);
-	const int32 CandidateX = CandidateIndex % GridSize.X;
-	const int32 CandidateY = CandidateIndex / GridSize.X;
-	const int32 ClampedX = FMath::Clamp(CandidateX, 0, MaxX);
-	const int32 ClampedY = FMath::Clamp(CandidateY, 0, MaxY);
-	return UINV_WidgetUtils::GetIndexFromPosition(FIntPoint(ClampedX, ClampedY), GridSize.X);
 }
 
 bool UINV_InventoryGrid::HasOpenItemPopup() const
