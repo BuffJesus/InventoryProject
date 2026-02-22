@@ -35,6 +35,7 @@ public:
 	virtual UINV_HoverItem* GetHoverItem() const override;
 	virtual float GetTileSize() const override;
 	virtual void ReturnActiveHoverItemToSource() override;
+	bool TryEquipHoveredItemFromController();
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();

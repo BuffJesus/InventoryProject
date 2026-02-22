@@ -26,6 +26,7 @@
 #include "UI/Inventory/Items/INV_GridItemOperations.h"
 #include "UI/Inventory/Actions/INV_GridPopupActions.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
+#include "UI/Inventory/Spatial/INV_SpatialInventory.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/Popup/INV_ItemPopUp.h"
@@ -314,6 +315,20 @@ FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 
 	if (PressedKey == EKeys::Gamepad_DPad_Up || PressedKey == EKeys::Gamepad_LeftStick_Up)
 	{
+		if (IsControllerSelectedIndexValid() && IsValid(HoverItem))
+		{
+			const int32 CurrentY = ControllerSelectedIndex / GridSize.X;
+			if (CurrentY == 0)
+			{
+				if (UINV_SpatialInventory* SpatialInventory = GetTypedOuter<UINV_SpatialInventory>())
+				{
+					if (SpatialInventory->TryEquipHoveredItemFromController())
+					{
+						return FReply::Handled();
+					}
+				}
+			}
+		}
 		return MoveControllerSelection(FIntPoint(0, -1)) ? FReply::Handled() : FReply::Unhandled();
 	}
 	if (PressedKey == EKeys::Gamepad_DPad_Down || PressedKey == EKeys::Gamepad_LeftStick_Down)
@@ -1051,9 +1066,15 @@ bool UINV_InventoryGrid::HandleControllerConfirm()
 	}
 	if (!IsControllerSelectedIndexValid()) return false;
 
+	int32 ActionGridIndex = ControllerSelectedIndex;
 	if (GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid())
 	{
-		OnSlottedItemClicked(ControllerSelectedIndex, MakeSimulatedLeftMouseClickEvent());
+		const int32 UpperLeftIndex = GridSlots[ControllerSelectedIndex]->GetUpperLeftIndex();
+		if (GridSlots.IsValidIndex(UpperLeftIndex))
+		{
+			ActionGridIndex = UpperLeftIndex;
+		}
+		OnSlottedItemClicked(ActionGridIndex, MakeSimulatedLeftMouseClickEvent());
 		ApplyControllerSelectionVisual();
 		return true;
 	}
@@ -1099,7 +1120,14 @@ bool UINV_InventoryGrid::HandleControllerContext()
 {
 	if (!IsControllerSelectedIndexValid()) return false;
 	if (!GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid()) return false;
-	CreateItemPopup(ControllerSelectedIndex);
+
+	int32 ActionGridIndex = ControllerSelectedIndex;
+	const int32 UpperLeftIndex = GridSlots[ControllerSelectedIndex]->GetUpperLeftIndex();
+	if (GridSlots.IsValidIndex(UpperLeftIndex))
+	{
+		ActionGridIndex = UpperLeftIndex;
+	}
+	CreateItemPopup(ActionGridIndex);
 	return true;
 }
 

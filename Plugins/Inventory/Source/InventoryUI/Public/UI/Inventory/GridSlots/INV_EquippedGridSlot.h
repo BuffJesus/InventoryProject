@@ -26,6 +26,7 @@ public:
 	bool SetEquippedItemImageBrush(UINV_InventoryItem* Item, const FVector2D& DrawSize);
 	void AddEquippedItemToOverlay();
 	void SetEquippedSlottedItem(UINV_EquippedSlottedItem* Item) { EquippedSlottedItem = Item; };
+	FGameplayTag GetEquipmentTypeTag() const { return EquipmentTypeTag; }
 
 	UINV_EquippedSlottedItem* OnItemEquipped(UINV_InventoryItem* Item, const FGameplayTag& EquipmentTag, float TileSize);
 	

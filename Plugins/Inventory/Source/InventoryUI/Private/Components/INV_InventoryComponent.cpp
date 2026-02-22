@@ -398,6 +398,8 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	
 	bIsOpen ? OwningController->SetInputMode(FInputModeGameAndUI()) 
 			: OwningController->SetInputMode(FInputModeGameOnly());
+	OwningController->SetIgnoreMoveInput(bIsOpen);
+	OwningController->SetIgnoreLookInput(bIsOpen);
 	
 	OwningController->SetShowMouseCursor(bIsOpen);
 }

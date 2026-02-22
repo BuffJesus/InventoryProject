@@ -113,6 +113,23 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 	return FReply::Unhandled();
 }
 
+bool UINV_SpatialInventory::TryEquipHoveredItemFromController()
+{
+	if (ActiveGrid.Get() != Grid_Equippable) return false;
+	if (!IsValid(Grid_Equippable) || !Grid_Equippable->HasHoverItem()) return false;
+
+	for (UINV_EquippedGridSlot* EquippedGridSlot : EquippedGridSlots)
+	{
+		if (!IsValid(EquippedGridSlot)) continue;
+		const FGameplayTag EquipmentTypeTag = EquippedGridSlot->GetEquipmentTypeTag();
+		if (!CanEquipHoverItem(EquippedGridSlot, EquipmentTypeTag)) continue;
+		EquippedGridSlotClicked(EquippedGridSlot, EquipmentTypeTag);
+		return true;
+	}
+
+	return false;
+}
+
 void UINV_SpatialInventory::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
