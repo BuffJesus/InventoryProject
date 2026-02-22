@@ -114,6 +114,10 @@ private:
 	void SetControllerSelectedIndex(int32 NewIndex);
 	bool IsControllerSelectedIndexValid() const;
 	int32 GetControllerSelectedIndex() const;
+	bool EnsureControllerSelectionInitialized();
+	void GetControllerSelectionLimits(int32& OutMaxX, int32& OutMaxY) const;
+	bool TryHandleControllerConfirmOnOccupiedSelection();
+	bool TryHandleControllerConfirmHoverPlacement();
 	void FinalizeHoverItemAssignment();
 	TOptional<FVector2D> ComputeSourceViewportCenterForGridIndex(int32 GridIndex) const;
 	int32 ResolveControllerActionIndex(int32 GridIndex) const;
