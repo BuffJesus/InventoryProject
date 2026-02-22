@@ -27,6 +27,7 @@ public:
 	UINV_InventoryComponent();
 	// Shows or hides the inventory UI widget.
 	void ToggleInventoryMenu();
+	bool IsInventoryMenuOpen() const { return bInventoryMenuOpen; }
 	// Refresh cursor/UI behavior when active input source changes.
 	void OnInputMethodChanged(bool bIsGamepadInput);
 	// Registers a UObject for replication when using the subobject list.
@@ -76,7 +77,7 @@ private:
 	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
 	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	void TrimRecentDropLocations();
-	void ApplyPointerInputMode(bool bIsOpen, bool bUseGamepadInput) const;
+	void ApplyPointerInputMode(bool bIsOpen) const;
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };

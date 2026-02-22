@@ -34,6 +34,7 @@ protected:
 	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 
 private:
+	void UpdateVirtualCursor(float DeltaTime);
 	// Evaluate view-change thresholds and execute trace when conditions are met.
 	void AttemptTrace(float ElapsedSinceLastCheck);
 	// Timer callback for interval-based tracing.
@@ -57,6 +58,14 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input")
 	TObjectPtr<UInputAction> ToggleInventoryAction;
+
+	// Pixels per second used to move the mouse cursor from left-stick input while inventory is open.
+	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Cursor", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float VirtualCursorSpeed { 1400.f };
+
+	// Deadzone applied to left-stick input when driving virtual cursor.
+	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Cursor", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float VirtualCursorDeadzone { 0.18f };
 
 	// Label shown for interact when using keyboard/mouse input.
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Prompts")

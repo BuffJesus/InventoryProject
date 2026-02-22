@@ -12,7 +12,6 @@
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Base/INV_InventoryBase.h"
-#include "Controllers/INV_PlayerController.h"
 
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
 {
@@ -160,18 +159,18 @@ void UINV_InventoryComponent::OnInputMethodChanged(const bool bIsGamepadInput)
 	if (!bInventoryMenuOpen) return;
 	if (!OwningController.IsValid()) return;
 
-	ApplyPointerInputMode(true, bIsGamepadInput);
+	ApplyPointerInputMode(true);
 	if (bIsGamepadInput && IsValid(Inventory))
 	{
 		Inventory->SetKeyboardFocus();
 	}
 }
 
-void UINV_InventoryComponent::ApplyPointerInputMode(const bool bIsOpen, const bool bUseGamepadInput) const
+void UINV_InventoryComponent::ApplyPointerInputMode(const bool bIsOpen) const
 {
 	if (!OwningController.IsValid()) return;
 
-	const bool bUseMousePointerUI = bIsOpen && !bUseGamepadInput;
+	const bool bUseMousePointerUI = bIsOpen;
 	OwningController->SetShowMouseCursor(bUseMousePointerUI);
 	OwningController->bEnableClickEvents = bUseMousePointerUI;
 	OwningController->bEnableMouseOverEvents = bUseMousePointerUI;
@@ -454,12 +453,7 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 		InputSuppressedPawn = nullptr;
 	}
 	
-	bool bUseGamepadInput = false;
-	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(OwningController.Get()))
-	{
-		bUseGamepadInput = INVPC->WasLastInputGamepad();
-	}
-	ApplyPointerInputMode(bIsOpen, bUseGamepadInput);
+	ApplyPointerInputMode(bIsOpen);
 }
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)

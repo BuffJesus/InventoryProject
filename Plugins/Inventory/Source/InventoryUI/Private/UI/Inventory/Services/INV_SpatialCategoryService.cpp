@@ -8,14 +8,7 @@ bool FINV_SpatialCategoryService::IsGridNavigationInput(const FKey& PressedKey)
 		PressedKey == EKeys::Gamepad_DPad_Up ||
 		PressedKey == EKeys::Gamepad_DPad_Down ||
 		PressedKey == EKeys::Gamepad_DPad_Left ||
-		PressedKey == EKeys::Gamepad_DPad_Right ||
-		PressedKey == EKeys::Gamepad_LeftStick_Up ||
-		PressedKey == EKeys::Gamepad_LeftStick_Down ||
-		PressedKey == EKeys::Gamepad_LeftStick_Left ||
-		PressedKey == EKeys::Gamepad_LeftStick_Right ||
-		PressedKey == EKeys::Gamepad_FaceButton_Bottom ||
-		PressedKey == EKeys::Gamepad_FaceButton_Left ||
-		PressedKey == EKeys::Gamepad_FaceButton_Right;
+		PressedKey == EKeys::Gamepad_DPad_Right;
 }
 
 int32 FINV_SpatialCategoryService::ResolveNextCategoryIndex(

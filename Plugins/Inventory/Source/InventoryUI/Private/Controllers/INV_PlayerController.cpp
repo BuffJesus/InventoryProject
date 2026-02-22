@@ -25,6 +25,7 @@ void AINV_PlayerController::Tick(float DeltaTime)
 
 	// Interaction highlight/prompt is local-only UI behavior.
 	if (!IsLocalController()) return;
+	UpdateVirtualCursor(DeltaTime);
 
 	// Interval-based tracing is handled by timer callback.
 	if (TraceIntervalSeconds > 0.f) return;
@@ -141,7 +142,12 @@ void AINV_PlayerController::SetupInputComponent()
 bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 {
 	const bool bIsGamepadInput = Params.Key.IsGamepadKey();
-	const bool bIsMouseOrKeyboardInput = !bIsGamepadInput;
+	const bool bIsKeyboardInput =
+		Params.Key.IsDigital() &&
+		!Params.Key.IsGamepadKey() &&
+		!Params.Key.IsMouseButton() &&
+		!Params.Key.IsTouch();
+	const bool bIsMouseOrKeyboardInput = Params.Key.IsMouseButton() || bIsKeyboardInput;
 	const bool bPreviousInputWasGamepad = bLastInputWasGamepad;
 
 	if (bIsGamepadInput || bIsMouseOrKeyboardInput)
@@ -162,7 +168,70 @@ bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 		InventoryComponent->OnInputMethodChanged(bLastInputWasGamepad);
 	}
 
+	// While inventory is open, map gamepad face buttons to mouse clicks.
+	if (InventoryComponent.IsValid() && InventoryComponent->IsInventoryMenuOpen())
+	{
+		if (Params.Key == EKeys::Gamepad_FaceButton_Bottom || Params.Key == EKeys::Gamepad_FaceButton_Left)
+		{
+			if (Params.Event == IE_Pressed || Params.Event == IE_Released || Params.Event == IE_Repeat || Params.Event == IE_DoubleClick)
+			{
+				const FKey MappedMouseKey = Params.Key == EKeys::Gamepad_FaceButton_Bottom
+					? EKeys::LeftMouseButton
+					: EKeys::RightMouseButton;
+				const FInputKeyEventArgs SimulatedMouseArgs = FInputKeyEventArgs::CreateSimulated(
+					MappedMouseKey,
+					Params.Event,
+					Params.AmountDepressed,
+					Params.NumSamples,
+					Params.InputDevice,
+					false,
+					Params.Viewport);
+				return Super::InputKey(SimulatedMouseArgs);
+			}
+
+			return true;
+		}
+	}
+
 	return Super::InputKey(Params);
+}
+
+void AINV_PlayerController::UpdateVirtualCursor(const float DeltaTime)
+{
+	if (!InventoryComponent.IsValid()) return;
+	if (!InventoryComponent->IsInventoryMenuOpen()) return;
+	if (!bLastInputWasGamepad) return;
+	if (VirtualCursorSpeed <= 0.f) return;
+
+	const float LeftX = GetInputAnalogKeyState(EKeys::Gamepad_LeftX);
+	const float LeftY = GetInputAnalogKeyState(EKeys::Gamepad_LeftY);
+	const FVector2D StickInput(LeftX, LeftY);
+	if (StickInput.SizeSquared() < FMath::Square(VirtualCursorDeadzone))
+	{
+		return;
+	}
+
+	float MouseX = 0.f;
+	float MouseY = 0.f;
+	int32 ViewportWidth = 0;
+	int32 ViewportHeight = 0;
+	GetViewportSize(ViewportWidth, ViewportHeight);
+	if (ViewportWidth <= 0 || ViewportHeight <= 0)
+	{
+		return;
+	}
+
+	if (!GetMousePosition(MouseX, MouseY))
+	{
+		MouseX = static_cast<float>(ViewportWidth) * 0.5f;
+		MouseY = static_cast<float>(ViewportHeight) * 0.5f;
+	}
+
+	const float DeltaX = StickInput.X * VirtualCursorSpeed * DeltaTime;
+	const float DeltaY = -StickInput.Y * VirtualCursorSpeed * DeltaTime;
+	const int32 NextX = FMath::Clamp(FMath::RoundToInt(MouseX + DeltaX), 0, ViewportWidth - 1);
+	const int32 NextY = FMath::Clamp(FMath::RoundToInt(MouseY + DeltaY), 0, ViewportHeight - 1);
+	SetMouseLocation(NextX, NextY);
 }
 
 void AINV_PlayerController::PrimaryInteract()

@@ -10,7 +10,6 @@
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
-#include "Controllers/INV_PlayerController.h"
 
 UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	TObjectPtr<UINV_ItemPopUp>& ItemPopUp,
@@ -61,25 +60,15 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	CanvasSlot->SetSize(PopUpSize);
 
 	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
-	const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(PlayerController);
-	const bool bUseGamepadAnchor = IsValid(INVPC) && INVPC->WasLastInputGamepad();
-
 	FVector2D AnchorPosition = FVector2D::ZeroVector;
-	if (bUseGamepadAnchor && IsValid(GridSlotCanvasSlot))
+	const FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+	const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(OwningCanvasPanel);
+	AnchorPosition = MouseViewportPos - CanvasViewportPos;
+
+	// Fallback to slot center if mouse position is unavailable.
+	if ((!FMath::IsFinite(AnchorPosition.X) || !FMath::IsFinite(AnchorPosition.Y)) && IsValid(GridSlotCanvasSlot))
 	{
 		AnchorPosition = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
-	}
-	else
-	{
-		const FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
-		const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(OwningCanvasPanel);
-		AnchorPosition = MouseViewportPos - CanvasViewportPos;
-
-		// Fallback to slot center if mouse position is unavailable.
-		if ((!FMath::IsFinite(AnchorPosition.X) || !FMath::IsFinite(AnchorPosition.Y)) && IsValid(GridSlotCanvasSlot))
-		{
-			AnchorPosition = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
-		}
 	}
 
 	FVector2D GridMin(FLT_MAX, FLT_MAX);

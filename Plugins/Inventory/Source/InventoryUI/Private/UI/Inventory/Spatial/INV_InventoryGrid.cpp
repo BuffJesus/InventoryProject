@@ -26,7 +26,6 @@
 #include "UI/Inventory/Items/INV_GridItemOperations.h"
 #include "UI/Inventory/Actions/INV_GridPopupActions.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
-#include "UI/Inventory/Spatial/INV_SpatialInventory.h"
 #include "UI/Inventory/SlottedItems/INV_SlottedItem.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
 #include "UI/Popup/INV_ItemPopUp.h"
@@ -49,26 +48,6 @@ FPointerEvent MakeSimulatedLeftMouseClickEvent()
 		EKeys::LeftMouseButton,
 		0.0f,
 		FModifierKeysState());
-}
-
-bool IsControllerMoveUpKey(const FKey& Key)
-{
-	return Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up;
-}
-
-bool IsControllerMoveDownKey(const FKey& Key)
-{
-	return Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down;
-}
-
-bool IsControllerMoveLeftKey(const FKey& Key)
-{
-	return Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left;
-}
-
-bool IsControllerMoveRightKey(const FKey& Key)
-{
-	return Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right;
 }
 }
 
@@ -122,8 +101,6 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 
 	const bool bHasHoverItem = IsValid(HoverItem);
 	const bool bHasOpenPopup = HasOpenItemPopup();
-	const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer());
-	const bool bUsingGamepadInput = IsValid(INVPC) && INVPC->WasLastInputGamepad();
 
 	// Idle fast-path: no drag interaction and no active popup to manage.
 	if (!bHasHoverItem && !bHasOpenPopup)
@@ -134,18 +111,6 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	if (bHasOpenPopup)
 	{
 		ClosePopupIfClickedOutside();
-	}
-
-	// While using gamepad, ignore mouse-driven hover updates.
-	if (bUsingGamepadInput)
-	{
-		if (!IsValid(HoverItem) && LastHoveredSlottedIndex != INDEX_NONE && GridSlots.IsValidIndex(LastHoveredSlottedIndex))
-		{
-			LastHoveredSlottedIndex = INDEX_NONE;
-			UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
-		}
-		bHasLastTickInputs = false;
-		return;
 	}
 
 	// No hover item means no placement/highlight updates are required this frame.
@@ -363,50 +328,6 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
 	FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
-	const FKey PressedKey = InKeyEvent.GetKey();
-
-	if (IsControllerMoveUpKey(PressedKey))
-	{
-		if (IsControllerSelectedIndexValid() && IsValid(HoverItem))
-		{
-			const int32 CurrentY = ControllerSelectedIndex / GridSize.X;
-			if (CurrentY == 0)
-			{
-				if (UINV_SpatialInventory* SpatialInventory = GetTypedOuter<UINV_SpatialInventory>())
-				{
-					if (SpatialInventory->TryEquipHoveredItemFromController())
-					{
-						return FReply::Handled();
-					}
-				}
-			}
-		}
-		return MoveControllerSelection(FIntPoint(0, -1)) ? FReply::Handled() : FReply::Unhandled();
-	}
-	if (IsControllerMoveDownKey(PressedKey))
-	{
-		return MoveControllerSelection(FIntPoint(0, 1)) ? FReply::Handled() : FReply::Unhandled();
-	}
-	if (IsControllerMoveLeftKey(PressedKey))
-	{
-		return MoveControllerSelection(FIntPoint(-1, 0)) ? FReply::Handled() : FReply::Unhandled();
-	}
-	if (IsControllerMoveRightKey(PressedKey))
-	{
-		return MoveControllerSelection(FIntPoint(1, 0)) ? FReply::Handled() : FReply::Unhandled();
-	}
-	if (PressedKey == EKeys::Gamepad_FaceButton_Bottom)
-	{
-		return HandleControllerConfirm() ? FReply::Handled() : FReply::Unhandled();
-	}
-	if (PressedKey == EKeys::Gamepad_FaceButton_Right)
-	{
-		return HandleControllerBack() ? FReply::Handled() : FReply::Unhandled();
-	}
-	if (PressedKey == EKeys::Gamepad_FaceButton_Left)
-	{
-		return HandleControllerContext() ? FReply::Handled() : FReply::Unhandled();
-	}
 
 	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
 }

@@ -43,8 +43,8 @@ FReply UINV_ItemPopUp::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEv
 	}
 
 	const FKey Key = InKeyEvent.GetKey();
-	const bool bDecrease = Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left || Key == EKeys::Left;
-	const bool bIncrease = Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right || Key == EKeys::Right;
+	const bool bDecrease = Key == EKeys::Left;
+	const bool bIncrease = Key == EKeys::Right;
 	if (!bDecrease && !bIncrease)
 	{
 		return FReply::Unhandled();

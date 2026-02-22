@@ -152,69 +152,10 @@ void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* But
 	}
 }
 
-bool UINV_SpatialInventory::IsGridNavigationInput(const FKey& PressedKey) const
-{
-	return FINV_SpatialCategoryService::IsGridNavigationInput(PressedKey);
-}
-
-bool UINV_SpatialInventory::TryFocusActiveGridForNavigation(const FKey& PressedKey)
-{
-	if (!IsGridNavigationInput(PressedKey)) return false;
-	if (!ActiveGrid.IsValid()) return false;
-	if (ActiveGrid->HasKeyboardFocus()) return false;
-	if (ActiveGrid->HasOpenItemPopup()) return false;
-
-	ActiveGrid->SetKeyboardFocus();
-	return true;
-}
-
 FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
 	FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
-	const FKey PressedKey = InKeyEvent.GetKey();
-
-	if (TryFocusActiveGridForNavigation(PressedKey))
-	{
-		return FReply::Handled();
-	}
-
-	if (PressedKey == EKeys::Gamepad_FaceButton_Right)
-	{
-		if (ActiveGrid.IsValid() && ActiveGrid->HasOpenItemPopup())
-		{
-			ActiveGrid->CloseItemPopup();
-			return FReply::Handled();
-		}
-	}
-
-	if (PressedKey == EKeys::Gamepad_LeftShoulder)
-	{
-		SwitchCategoryByDirection(-1);
-		return FReply::Handled();
-	}
-	if (PressedKey == EKeys::Gamepad_RightShoulder)
-	{
-		SwitchCategoryByDirection(1);
-		return FReply::Handled();
-	}
 	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
-}
-
-bool UINV_SpatialInventory::TryEquipHoveredItemFromController()
-{
-	if (ActiveGrid.Get() != Grid_Equippable) return false;
-	if (!IsValid(Grid_Equippable) || !Grid_Equippable->HasHoverItem()) return false;
-
-	for (UINV_EquippedGridSlot* EquippedGridSlot : EquippedGridSlots)
-	{
-		if (!IsValid(EquippedGridSlot)) continue;
-		const FGameplayTag EquipmentTypeTag = EquippedGridSlot->GetEquipmentTypeTag();
-		if (!CanEquipHoverItem(EquippedGridSlot, EquipmentTypeTag)) continue;
-		EquippedGridSlotClicked(EquippedGridSlot, EquipmentTypeTag);
-		return true;
-	}
-
-	return false;
 }
 
 void UINV_SpatialInventory::NativeOnInitialized()

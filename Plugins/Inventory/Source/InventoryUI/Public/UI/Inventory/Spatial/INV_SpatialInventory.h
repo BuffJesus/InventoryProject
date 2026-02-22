@@ -38,7 +38,6 @@ public:
 	virtual UINV_HoverItem* GetHoverItem() const override;
 	virtual float GetTileSize() const override;
 	virtual void ReturnActiveHoverItemToSource() override;
-	bool TryEquipHoveredItemFromController();
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
@@ -69,8 +68,6 @@ private:
 	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
 	void BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutGrids, TArray<UButton*>& OutButtons) const;
 	void SwitchCategoryByDirection(int32 Direction);
-	bool TryFocusActiveGridForNavigation(const FKey& PressedKey);
-	bool IsGridNavigationInput(const FKey& PressedKey) const;
 	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	float ResolveInventoryTileSize() const;
