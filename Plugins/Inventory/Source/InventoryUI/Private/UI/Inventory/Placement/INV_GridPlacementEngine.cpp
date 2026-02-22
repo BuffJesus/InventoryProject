@@ -77,6 +77,7 @@ FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 	{
 	    // if no more to fill, break from loop
 	    if (AmountToFill == 0) break;
+		if (!IsValid(GridSlot)) continue;
 
 	    // is index claimed?
 		if (IsIndexClaimed(CheckedIndices, GridSlot->GetTileIndex())) continue;
@@ -149,8 +150,11 @@ FINV_SpaceQueryResult FINV_GridPlacementEngine::CheckHoverPosition(
 	if (OccupiedUpperLeftIndices.Num() == 1) // single item at position, valid for swapping/combining
 	{
 		const int32 Index = *OccupiedUpperLeftIndices.CreateIterator();
-		Result.ValidItem = GridSlots[Index]->GetInventoryItem();
-		Result.UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
+		if (GridSlots.IsValidIndex(Index) && IsValid(GridSlots[Index]))
+		{
+			Result.ValidItem = GridSlots[Index]->GetInventoryItem();
+			Result.UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
+		}
 	}
 
 	Result.BlockingUpperLeftIndices = OccupiedUpperLeftIndices.Array();
@@ -208,11 +212,7 @@ bool FINV_GridPlacementEngine::IsStackCompatible(
 	const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag)
 {
-	if (!IsValid(ExistingItem)) return false;
-	if (!ExistingItem->GetCachedItemType().MatchesTagExact(ItemType)) return false;
-	if (ExistingItem->IsItemRarityEnabled() != bUseItemRarity) return false;
-	if (!bUseItemRarity) return true;
-	return ExistingItem->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
+	return UINV_InventoryItem::MatchesTypeAndRarity(ExistingItem, ItemType, bUseItemRarity, ItemRarityTag);
 }
 
 FIntPoint FINV_GridPlacementEngine::GetItemDimensions(const FINV_ItemManifest& Manifest)
@@ -272,6 +272,11 @@ bool FINV_GridPlacementEngine::HasRoomAtIndex(
 	FINV_GridIteration::ForEach2D(GridSlots, GridSlot->GetTileIndex(), Dimensions, GridSize.X,
 		[&](const UINV_GridSlot* SubGridSlot)
 		{
+			if (!IsValid(SubGridSlot))
+			{
+				bHasRoomAtIndex = false;
+				return;
+			}
 			if (CheckSlotConstraints(GridSlots, GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed,
 				ItemType, bUseItemRarity, ItemRarityTag, MaxStackSize))
 			{

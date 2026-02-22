@@ -949,19 +949,8 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 		GetOwningPlayer(),
 		this,
 		TOptional<FVector2D>());
-	bHasLastTickInputs = false;
-	LastHoveredSlottedIndex = INDEX_NONE;
-	if (IsControllerSelectedIndexValid())
-	{
-		PositionHoverItemAtGridIndex(ControllerSelectedIndex);
-	}
-	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer()))
-	{
-		if (INVPC->WasLastInputGamepad())
-		{
-			RefreshControllerHoverPlacementVisual();
-		}
-	}
+
+	FinalizeHoverItemAssignment();
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex,
@@ -970,17 +959,6 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, cons
 	const FINV_GridFragment* GridFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedGridFragment() : nullptr };
 	const FINV_ImageFragment* ImageFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedImageFragment() : nullptr };
 	if (!GridFragment || !ImageFragment) return;
-
-	TOptional<FVector2D> SourceViewportCenter;
-	if (GridSlots.IsValidIndex(GridIndex) && IsValid(CanvasPanel))
-	{
-		if (const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]))
-		{
-			const FVector2D CanvasViewportPosition = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
-			const FVector2D SlotCenterLocal = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
-			SourceViewportCenter = CanvasViewportPosition + SlotCenterLocal;
-		}
-	}
 
 	HoverItem = FINV_HoverItemManager::AssignHoverItem(
 		HoverItem,
@@ -991,17 +969,12 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, cons
 		TileSize,
 		GetOwningPlayer(),
 		this,
-		SourceViewportCenter);
-	bHasLastTickInputs = false;
-	LastHoveredSlottedIndex = INDEX_NONE;
+		ComputeSourceViewportCenterForGridIndex(GridIndex));
+	FinalizeHoverItemAssignment();
 
-	FINV_HoverItemManager::ConfigureHoverItemProperties(HoverItem, GridSlots[GridIndex], InventoryItem, PreviousGridIndex);
-	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer()))
+	if (GridSlots.IsValidIndex(GridIndex) && IsValid(GridSlots[GridIndex]))
 	{
-		if (INVPC->WasLastInputGamepad())
-		{
-			RefreshControllerHoverPlacementVisual();
-		}
+		FINV_HoverItemManager::ConfigureHoverItemProperties(HoverItem, GridSlots[GridIndex], InventoryItem, PreviousGridIndex);
 	}
 }
 
@@ -1115,14 +1088,9 @@ bool UINV_InventoryGrid::HandleControllerConfirm()
 	}
 	if (!IsControllerSelectedIndexValid()) return false;
 
-	int32 ActionGridIndex = ControllerSelectedIndex;
+	const int32 ActionGridIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
 	if (GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid())
 	{
-		const int32 UpperLeftIndex = GridSlots[ControllerSelectedIndex]->GetUpperLeftIndex();
-		if (GridSlots.IsValidIndex(UpperLeftIndex))
-		{
-			ActionGridIndex = UpperLeftIndex;
-		}
 		OnSlottedItemClicked(ActionGridIndex, MakeSimulatedLeftMouseClickEvent());
 		ApplyControllerSelectionVisual();
 		return true;
@@ -1171,13 +1139,7 @@ bool UINV_InventoryGrid::HandleControllerContext()
 	if (!IsControllerSelectedIndexValid()) return false;
 	if (!GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid()) return false;
 
-	int32 ActionGridIndex = ControllerSelectedIndex;
-	const int32 UpperLeftIndex = GridSlots[ControllerSelectedIndex]->GetUpperLeftIndex();
-	if (GridSlots.IsValidIndex(UpperLeftIndex))
-	{
-		ActionGridIndex = UpperLeftIndex;
-	}
-	CreateItemPopup(ActionGridIndex);
+	CreateItemPopup(ResolveControllerActionIndex(ControllerSelectedIndex));
 	return true;
 }
 
@@ -1228,26 +1190,7 @@ void UINV_InventoryGrid::ApplyControllerSelectionVisual()
 	}
 
 	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
-	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
-	if (!IsValid(SelectedGridSlot)) return;
-
-	if (SelectedGridSlot->GetInventoryItem().IsValid())
-	{
-		int32 UpperLeftIndex = SelectedGridSlot->GetUpperLeftIndex();
-		if (!GridSlots.IsValidIndex(UpperLeftIndex))
-		{
-			UpperLeftIndex = ControllerSelectedIndex;
-		}
-		const UINV_InventoryItem* SelectedInventoryItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
-		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedInventoryItem);
-		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
-		{
-			GridSlot->SetSelectedTexture();
-		});
-		return;
-	}
-
-	SelectedGridSlot->SetSelectedTexture();
+	ApplyControllerVisualForSelectedIndex(true);
 }
 
 void UINV_InventoryGrid::ClearControllerSelectionVisual()
@@ -1260,26 +1203,7 @@ void UINV_InventoryGrid::ClearControllerSelectionVisual()
 	}
 
 	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
-	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
-	if (!IsValid(SelectedGridSlot)) return;
-
-	if (SelectedGridSlot->GetInventoryItem().IsValid())
-	{
-		int32 UpperLeftIndex = SelectedGridSlot->GetUpperLeftIndex();
-		if (!GridSlots.IsValidIndex(UpperLeftIndex))
-		{
-			UpperLeftIndex = ControllerSelectedIndex;
-		}
-		const UINV_InventoryItem* SelectedInventoryItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
-		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedInventoryItem);
-		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
-		{
-			GridSlot->SetOccupiedTexture();
-		});
-		return;
-	}
-
-	SelectedGridSlot->SetUnoccupiedTexture();
+	ApplyControllerVisualForSelectedIndex(false);
 }
 
 void UINV_InventoryGrid::SetControllerSelectedIndex(int32 NewIndex)
@@ -1306,6 +1230,90 @@ bool UINV_InventoryGrid::IsControllerSelectedIndexValid() const
 int32 UINV_InventoryGrid::GetControllerSelectedIndex() const
 {
 	return ControllerSelectedIndex;
+}
+
+void UINV_InventoryGrid::FinalizeHoverItemAssignment()
+{
+	bHasLastTickInputs = false;
+	LastHoveredSlottedIndex = INDEX_NONE;
+
+	if (IsControllerSelectedIndexValid())
+	{
+		PositionHoverItemAtGridIndex(ControllerSelectedIndex);
+	}
+
+	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer()))
+	{
+		if (INVPC->WasLastInputGamepad())
+		{
+			RefreshControllerHoverPlacementVisual();
+		}
+	}
+}
+
+TOptional<FVector2D> UINV_InventoryGrid::ComputeSourceViewportCenterForGridIndex(const int32 GridIndex) const
+{
+	if (!GridSlots.IsValidIndex(GridIndex) || !IsValid(CanvasPanel))
+	{
+		return TOptional<FVector2D>();
+	}
+
+	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
+	if (!IsValid(GridSlotCanvasSlot))
+	{
+		return TOptional<FVector2D>();
+	}
+
+	const FVector2D CanvasViewportPosition = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
+	const FVector2D SlotCenterLocal = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
+	return CanvasViewportPosition + SlotCenterLocal;
+}
+
+int32 UINV_InventoryGrid::ResolveControllerActionIndex(const int32 GridIndex) const
+{
+	if (!GridSlots.IsValidIndex(GridIndex) || !IsValid(GridSlots[GridIndex]))
+	{
+		return GridIndex;
+	}
+
+	const int32 UpperLeftIndex = GridSlots[GridIndex]->GetUpperLeftIndex();
+	return GridSlots.IsValidIndex(UpperLeftIndex) ? UpperLeftIndex : GridIndex;
+}
+
+void UINV_InventoryGrid::ApplyControllerVisualForSelectedIndex(const bool bSelectedVisual)
+{
+	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
+	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
+	if (!IsValid(SelectedGridSlot)) return;
+
+	if (SelectedGridSlot->GetInventoryItem().IsValid())
+	{
+		const int32 UpperLeftIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
+		const UINV_InventoryItem* SelectedInventoryItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
+		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedInventoryItem);
+		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X,
+			[bSelectedVisual](UINV_GridSlot* GridSlot)
+		{
+			if (bSelectedVisual)
+			{
+				GridSlot->SetSelectedTexture();
+			}
+			else
+			{
+				GridSlot->SetOccupiedTexture();
+			}
+		});
+		return;
+	}
+
+	if (bSelectedVisual)
+	{
+		SelectedGridSlot->SetSelectedTexture();
+	}
+	else
+	{
+		SelectedGridSlot->SetUnoccupiedTexture();
+	}
 }
 
 void UINV_InventoryGrid::PositionHoverItemAtGridIndex(int32 GridIndex)
@@ -1425,6 +1433,7 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 {
+	if (!IsValid(Item)) return false;
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }
 

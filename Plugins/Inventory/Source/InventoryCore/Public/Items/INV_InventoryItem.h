@@ -45,6 +45,16 @@ public:
 	const FGameplayTag& GetCachedItemType() const;
 	// Sets item rarity style data.
 	void SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag);
+	// True when item matches the provided type/rarity criteria.
+	static bool MatchesTypeAndRarity(
+		const UINV_InventoryItem* Item,
+		const FGameplayTag& ItemType,
+		bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag);
+	// True when both items can be stacked together.
+	static bool AreItemsStackCompatible(
+		const UINV_InventoryItem* SourceItem,
+		const UINV_InventoryItem* TargetItem);
 
 	// Cached fragment accessors for performance (commonly accessed fragments)
 	const FINV_GridFragment* GetCachedGridFragment() const;

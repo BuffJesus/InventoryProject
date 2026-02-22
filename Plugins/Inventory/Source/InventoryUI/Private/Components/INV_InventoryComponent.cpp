@@ -119,11 +119,7 @@ void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
 	};
 	Callbacks.MatchesItemByTypeAndRarity = [](const UINV_InventoryItem* Item, const FGameplayTag& ItemType, const bool bUseItemRarity, const FGameplayTag& ItemRarityTag)
 	{
-		if (!IsValid(Item)) return false;
-		if (!Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType)) return false;
-		if (Item->IsItemRarityEnabled() != bUseItemRarity) return false;
-		if (!bUseItemRarity) return true;
-		return Item->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
+		return UINV_InventoryItem::MatchesTypeAndRarity(Item, ItemType, bUseItemRarity, ItemRarityTag);
 	};
 	Callbacks.OnItemAdded = [this](UINV_InventoryItem* Item)
 	{

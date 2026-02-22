@@ -2,8 +2,6 @@
 
 #include "UI/Inventory/EventHandling/INV_GridEventHandler.h"
 #include "Items/INV_InventoryItem.h"
-#include "Items/Manifest/INV_ItemManifest.h"
-#include "Items/Fragments/INV_ItemFragment.h"
 #include "Framework/Application/SlateApplication.h"
 
 bool FINV_GridEventHandler::IsLeftClick(const FPointerEvent& MouseEvent)
@@ -54,35 +52,7 @@ bool FINV_GridEventHandler::CanMergeStacks(
 	const UINV_InventoryItem* Item1,
 	const UINV_InventoryItem* Item2)
 {
-	if (!IsValid(Item1) || !IsValid(Item2))
-	{
-		return false;
-	}
-
-	if (!Item1->IsStackable() || !Item2->IsStackable())
-	{
-		return false;
-	}
-
-	// Items must have same type
-	const FINV_ItemManifest& Manifest1 = Item1->GetItemManifest();
-	const FINV_ItemManifest& Manifest2 = Item2->GetItemManifest();
-
-	if (Manifest1.GetItemType() != Manifest2.GetItemType())
-	{
-		return false;
-	}
-
-	// If rarity is enabled, items must have same rarity
-	if (Item1->IsItemRarityEnabled() && Item2->IsItemRarityEnabled())
-	{
-		if (Item1->GetItemRarityTag() != Item2->GetItemRarityTag())
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return UINV_InventoryItem::AreItemsStackCompatible(Item1, Item2);
 }
 
 void FINV_GridEventHandler::CalculateStackMerge(

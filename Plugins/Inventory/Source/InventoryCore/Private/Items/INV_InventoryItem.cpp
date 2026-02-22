@@ -30,6 +30,40 @@ void UINV_InventoryItem::SetItemRarityOptions(bool bEnabled, const FGameplayTag&
 	ItemRarityTag = bUseItemRarity ? InItemRarityTag : FGameplayTag::EmptyTag;
 }
 
+bool UINV_InventoryItem::MatchesTypeAndRarity(
+	const UINV_InventoryItem* Item,
+	const FGameplayTag& ItemType,
+	const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag)
+{
+	if (!IsValid(Item)) return false;
+	if (!Item->GetCachedItemType().MatchesTagExact(ItemType)) return false;
+	if (Item->IsItemRarityEnabled() != bUseItemRarity) return false;
+	if (!bUseItemRarity) return true;
+	return Item->GetItemRarityTag().MatchesTagExact(ItemRarityTag);
+}
+
+bool UINV_InventoryItem::AreItemsStackCompatible(
+	const UINV_InventoryItem* SourceItem,
+	const UINV_InventoryItem* TargetItem)
+{
+	if (!IsValid(SourceItem) || !IsValid(TargetItem))
+	{
+		return false;
+	}
+
+	if (!SourceItem->IsStackable() || !TargetItem->IsStackable())
+	{
+		return false;
+	}
+
+	return MatchesTypeAndRarity(
+		TargetItem,
+		SourceItem->GetCachedItemType(),
+		SourceItem->IsItemRarityEnabled(),
+		SourceItem->GetItemRarityTag());
+}
+
 bool UINV_InventoryItem::IsStackable() const
 {
 	return GetCachedStackableFragment() != nullptr;

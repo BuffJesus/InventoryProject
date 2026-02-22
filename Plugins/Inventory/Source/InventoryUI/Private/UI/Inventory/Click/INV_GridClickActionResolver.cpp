@@ -113,6 +113,10 @@ FINV_GridClickResult FINV_GridClickActionResolver::ResolveEmptySlotClick(
 	{
 		return Result;
 	}
+	if (!GridSlots.IsValidIndex(GridIndex))
+	{
+		return Result;
+	}
 
 	// If clicking on an item that overlaps with hover placement, route to that item
 	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
@@ -179,33 +183,24 @@ int32 FINV_GridClickActionResolver::FindBestMultiBlockerAnchor(
 	const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 	const FGameplayTag& HoverItemType)
 {
-	int32 BestAnchorIndex = INDEX_NONE;
-	int32 BestScore = TNumericLimits<int32>::Lowest();
-
-	for (const int32 BlockingUpperLeftIndex : BlockingIndices)
-	{
-		if (!GridSlots.IsValidIndex(BlockingUpperLeftIndex)) continue;
-
-		const UINV_InventoryItem* BlockingItem = GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().Get();
-		if (!IsValid(BlockingItem)) continue;
-
-		const FINV_GridFragment* BlockingGridFragment = BlockingItem->GetCachedGridFragment();
-		const FIntPoint BlockingDimensions = BlockingGridFragment ? BlockingGridFragment->GetGridSize() : FIntPoint(1, 1);
-		const int32 BlockingArea = BlockingDimensions.X * BlockingDimensions.Y;
-
-		// Prefer larger anchors; bias toward same-type
-		const bool bSameTypeAsHover = HoverItemType.IsValid() &&
-			BlockingItem->GetCachedItemType().MatchesTagExact(HoverItemType);
-		const int32 Score = BlockingArea + (bSameTypeAsHover ? 1000 : 0);
-
-		if (Score > BestScore)
+	return FINV_GridEventHandler::FindBestAnchorForMultiBlocker(
+		BlockingIndices,
+		[&GridSlots](const int32 BlockingUpperLeftIndex) -> FIntPoint
 		{
-			BestScore = Score;
-			BestAnchorIndex = BlockingUpperLeftIndex;
-		}
-	}
-
-	return BestAnchorIndex;
+			if (!GridSlots.IsValidIndex(BlockingUpperLeftIndex)) return FIntPoint(1, 1);
+			const UINV_InventoryItem* BlockingItem = GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().Get();
+			if (!IsValid(BlockingItem)) return FIntPoint(1, 1);
+			const FINV_GridFragment* BlockingGridFragment = BlockingItem->GetCachedGridFragment();
+			return BlockingGridFragment ? BlockingGridFragment->GetGridSize() : FIntPoint(1, 1);
+		},
+		[&GridSlots](const int32 BlockingUpperLeftIndex) -> FGameplayTag
+		{
+			if (!GridSlots.IsValidIndex(BlockingUpperLeftIndex)) return FGameplayTag::EmptyTag;
+			const UINV_InventoryItem* BlockingItem = GridSlots[BlockingUpperLeftIndex]->GetInventoryItem().Get();
+			if (!IsValid(BlockingItem)) return FGameplayTag::EmptyTag;
+			return BlockingItem->GetCachedItemType();
+		},
+		HoverItemType);
 }
 
 bool FINV_GridClickActionResolver::IsSameStackable(

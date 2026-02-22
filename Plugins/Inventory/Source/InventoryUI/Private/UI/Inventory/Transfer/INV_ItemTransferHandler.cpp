@@ -3,7 +3,6 @@
 #include "UI/Inventory/Transfer/INV_ItemTransferHandler.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "Items/Manifest/INV_ItemManifest.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
@@ -66,6 +65,7 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 		if (!GridSlots.IsValidIndex(OverlappedIndex)) return Result;
 
 		UINV_GridSlot* SourceSlot = GridSlots[OverlappedIndex];
+		if (!IsValid(SourceSlot)) return Result;
 		UINV_InventoryItem* SourceItem = SourceSlot->GetInventoryItem().Get();
 		if (!IsValid(SourceItem)) return Result;
 
@@ -89,7 +89,9 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 	for (const int32 OverlappedIndex : OverlappedUpperLeftIndices)
 	{
 		if (!GridSlots.IsValidIndex(OverlappedIndex)) return Result;
-		UINV_InventoryItem* SourceItem = GridSlots[OverlappedIndex]->GetInventoryItem().Get();
+		const UINV_GridSlot* SourceSlot = GridSlots[OverlappedIndex];
+		if (!IsValid(SourceSlot)) return Result;
+		UINV_InventoryItem* SourceItem = SourceSlot->GetInventoryItem().Get();
 		if (!IsValid(SourceItem)) return Result;
 
 		const FINV_GridFragment* SourceGridFragment = SourceItem->GetCachedGridFragment();
@@ -99,37 +101,16 @@ FINV_SwapResult FINV_ItemTransferHandler::PlanSwapOperation(
 	}
 	MarkFootprint(SimulatedOccupied, GridSlots, GridSize, TargetDropIndex, HoverItemDimensions, true);
 
-	// Plan destinations for all displaced blockers using first-fit
-	const int32 MaxSearchIterations = GridSlots.Num();
+	// Plan destinations for all displaced blockers using first-fit.
 	for (FDisplacedItemPlan& Plan : DisplacedItems)
 	{
-		int32 IterationCount = 0;
-		bool bFoundPlacement = false;
-
-		for (int32 CandidateIndex = 0; CandidateIndex < GridSlots.Num(); ++CandidateIndex)
-		{
-			if (++IterationCount > MaxSearchIterations)
-			{
-				// Safety limit reached
-				return Result;
-			}
-
-			if (!CanFitAtIndex(SimulatedOccupied, GridSlots, GridSize, CandidateIndex, Plan.Dimensions))
-			{
-				continue;
-			}
-
-			Plan.TargetIndex = CandidateIndex;
-			MarkFootprint(SimulatedOccupied, GridSlots, GridSize, CandidateIndex, Plan.Dimensions, true);
-			bFoundPlacement = true;
-			break;
-		}
-
-		if (!bFoundPlacement)
+		if (!FindFirstFitPlacement(SimulatedOccupied, GridSlots, GridSize, Plan.Dimensions, Plan.TargetIndex))
 		{
 			// Not enough room to relocate all blockers
 			return Result;
 		}
+
+		MarkFootprint(SimulatedOccupied, GridSlots, GridSize, Plan.TargetIndex, Plan.Dimensions, true);
 	}
 
 	// Build successful result
@@ -176,35 +157,7 @@ bool FINV_ItemTransferHandler::AreItemsStackCompatible(
 	const UINV_InventoryItem* SourceItem,
 	const UINV_InventoryItem* TargetItem)
 {
-	if (!IsValid(SourceItem) || !IsValid(TargetItem))
-	{
-		return false;
-	}
-
-	if (!SourceItem->IsStackable() || !TargetItem->IsStackable())
-	{
-		return false;
-	}
-
-	// Items must have same type
-	const FINV_ItemManifest& SourceManifest = SourceItem->GetItemManifest();
-	const FINV_ItemManifest& TargetManifest = TargetItem->GetItemManifest();
-
-	if (SourceManifest.GetItemType() != TargetManifest.GetItemType())
-	{
-		return false;
-	}
-
-	// If rarity is enabled, items must have same rarity
-	if (SourceItem->IsItemRarityEnabled() && TargetItem->IsItemRarityEnabled())
-	{
-		if (SourceItem->GetItemRarityTag() != TargetItem->GetItemRarityTag())
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return UINV_InventoryItem::AreItemsStackCompatible(SourceItem, TargetItem);
 }
 
 TArray<bool> FINV_ItemTransferHandler::BuildOccupancyMap(const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots)
@@ -214,7 +167,8 @@ TArray<bool> FINV_ItemTransferHandler::BuildOccupancyMap(const TArray<TObjectPtr
 
 	for (int32 Index = 0; Index < GridSlots.Num(); ++Index)
 	{
-		OccupancyMap[Index] = GridSlots[Index]->GetInventoryItem().IsValid();
+		const UINV_GridSlot* GridSlot = GridSlots[Index];
+		OccupancyMap[Index] = IsValid(GridSlot) && GridSlot->GetInventoryItem().IsValid();
 	}
 
 	return OccupancyMap;
