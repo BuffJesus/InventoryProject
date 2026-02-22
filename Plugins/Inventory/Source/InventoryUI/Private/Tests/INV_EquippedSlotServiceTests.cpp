@@ -1,6 +1,7 @@
 #include "UI/Inventory/Services/INV_EquippedSlotService.h"
 #include "InputCoreTypes.h"
 #include "Misc/AutomationTest.h"
+#include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 #include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -131,6 +132,55 @@ bool FINV_EquippedSlotService_RemoveSlottedItemIgnoresNullTest::RunTest(const FS
 	FINV_EquippedSlotService::RemoveSlottedItem(nullptr, Callbacks);
 
 	TestFalse(TEXT("RemoveSlottedItem should not invoke unbind callback for null slotted item"), bUnbindCalled);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FINV_EquippedSlotService_ClearSlotResetsStateTest,
+	"Inventory.UI.EquippedSlotService.ClearSlotResetsState",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FINV_EquippedSlotService_ClearSlotResetsStateTest::RunTest(const FString& Parameters)
+{
+	UINV_EquippedGridSlot* EquippedGridSlot = NewObject<UINV_EquippedGridSlot>();
+	UINV_InventoryItem* InventoryItem = NewObject<UINV_InventoryItem>();
+	UINV_EquippedSlottedItem* EquippedSlottedItem = NewObject<UINV_EquippedSlottedItem>();
+
+	EquippedGridSlot->SetInventoryItem(InventoryItem);
+	EquippedGridSlot->SetEquippedSlottedItem(EquippedSlottedItem);
+	EquippedGridSlot->SetAvailability(false);
+
+	FINV_EquippedSlotService::ClearSlot(EquippedGridSlot);
+
+	TestFalse(TEXT("ClearSlot should mark slot as available"), EquippedGridSlot->GetInventoryItem().IsValid());
+	TestEqual(TEXT("ClearSlot should clear equipped slotted item"), EquippedGridSlot->GetEquippedSlottedItem(), nullptr);
+	TestTrue(TEXT("ClearSlot should set slot availability to true"), EquippedGridSlot->GetAvailability());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FINV_EquippedSlotService_EquipItemInSlotInvalidInputsClearStateTest,
+	"Inventory.UI.EquippedSlotService.EquipItemInSlotInvalidInputsClearState",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FINV_EquippedSlotService_EquipItemInSlotInvalidInputsClearStateTest::RunTest(const FString& Parameters)
+{
+	UINV_EquippedGridSlot* EquippedGridSlot = NewObject<UINV_EquippedGridSlot>();
+	UINV_InventoryItem* ExistingItem = NewObject<UINV_InventoryItem>();
+	UINV_EquippedSlottedItem* ExistingSlottedItem = NewObject<UINV_EquippedSlottedItem>();
+
+	EquippedGridSlot->SetInventoryItem(ExistingItem);
+	EquippedGridSlot->SetEquippedSlottedItem(ExistingSlottedItem);
+
+	FINV_EquippedSlotService::EquipItemInSlot(
+		EquippedGridSlot,
+		nullptr,
+		FGameplayTag::EmptyTag,
+		32.f,
+		FINV_EquippedSlotCallbacks{});
+
+	TestFalse(TEXT("Invalid item should clear inventory item on slot"), EquippedGridSlot->GetInventoryItem().IsValid());
+	TestEqual(TEXT("Invalid item should clear equipped slotted item"), EquippedGridSlot->GetEquippedSlottedItem(), nullptr);
 	return true;
 }
 

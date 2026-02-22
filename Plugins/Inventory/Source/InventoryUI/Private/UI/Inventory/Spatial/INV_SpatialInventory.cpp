@@ -62,6 +62,21 @@ void UINV_SpatialInventory::ForEachInventoryGrid(TFunctionRef<void(UINV_Inventor
 	Visitor(Grid_Craftable);
 }
 
+UINV_InventoryGrid* UINV_SpatialInventory::GetGridForCategory(const EINV_ItemCategory Category) const
+{
+	switch (Category)
+	{
+	case EINV_ItemCategory::Equippable:
+		return Grid_Equippable;
+	case EINV_ItemCategory::Consumable:
+		return Grid_Consumable;
+	case EINV_ItemCategory::Craftable:
+		return Grid_Craftable;
+	default:
+		return nullptr;
+	}
+}
+
 void UINV_SpatialInventory::ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const
 {
 	Visitor(Button_Equippable);
@@ -362,15 +377,14 @@ FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemCompo
 		return FINV_SlotAvailabilityResult();
 	}
 
-	switch (UINV_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent))
+	const EINV_ItemCategory ItemCategory = UINV_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent);
+	UINV_InventoryGrid* TargetGrid = GetGridForCategory(ItemCategory);
+	if (!IsValid(TargetGrid))
 	{
-		case EINV_ItemCategory::Equippable: return IsValid(Grid_Equippable) ? Grid_Equippable->HasRoomForItem(ItemComponent) : FINV_SlotAvailabilityResult();
-		case EINV_ItemCategory::Consumable: return IsValid(Grid_Consumable) ? Grid_Consumable->HasRoomForItem(ItemComponent) : FINV_SlotAvailabilityResult();
-		case EINV_ItemCategory::Craftable: return IsValid(Grid_Craftable) ? Grid_Craftable->HasRoomForItem(ItemComponent) : FINV_SlotAvailabilityResult();
-		default:
-		UE_LOG(LogTemp, Error, TEXT("Invalid item category for inventory slot availability check"));
 		return FINV_SlotAvailabilityResult();
 	}
+
+	return TargetGrid->HasRoomForItem(ItemComponent);
 }
 
 void UINV_SpatialInventory::OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition)

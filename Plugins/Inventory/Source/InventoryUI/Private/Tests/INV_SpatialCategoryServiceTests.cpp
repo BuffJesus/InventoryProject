@@ -61,6 +61,11 @@ bool FINV_SpatialCategoryService_ResolveNextCategoryIndexHandlesInvalidInputTest
 		TEXT("Non-positive category count should return INDEX_NONE"),
 		FINV_SpatialCategoryService::ResolveNextCategoryIndex(0, 1, 0),
 		INDEX_NONE);
+
+	TestEqual(
+		TEXT("INDEX_NONE current index should fallback to zero before advancing"),
+		FINV_SpatialCategoryService::ResolveNextCategoryIndex(INDEX_NONE, 1, 3),
+		1);
 	return true;
 }
 
