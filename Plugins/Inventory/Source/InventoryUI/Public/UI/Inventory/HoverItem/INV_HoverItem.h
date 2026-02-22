@@ -38,6 +38,7 @@ public:
 	UINV_InventoryItem* GetInventoryItem() const;
 	void SetInventoryItem(UINV_InventoryItem* Item);
 	FORCEINLINE void SetCachedSize(const FVector2D& Size) { CachedSize = Size; }
+	FORCEINLINE FVector2D GetCachedSize() const { return CachedSize; }
 	
 	// Reset hover item state.
 	void Clear();

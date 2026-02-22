@@ -40,7 +40,8 @@ public:
 		const FINV_ImageFragment* ImageFragment,
 		float TileSize,
 		APlayerController* OwningPlayer,
-		UUserWidget* ContextWidget);
+		UUserWidget* ContextWidget,
+		const TOptional<FVector2D>& InitialViewportCenter = TOptional<FVector2D>());
 
 	/**
 	 * Set additional hover item properties (previous index, stack count).

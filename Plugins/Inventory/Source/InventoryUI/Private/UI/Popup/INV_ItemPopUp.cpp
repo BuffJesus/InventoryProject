@@ -6,6 +6,7 @@
 #include "Components/SizeBox.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "Components/Widget.h"
 
 void UINV_ItemPopUp::NativeOnInitialized()
 {
@@ -21,9 +22,58 @@ void UINV_ItemPopUp::NativeOnInitialized()
 	Slider_Split->OnValueChanged.AddDynamic(this, &ThisClass::SliderValueChanged);
 }
 
+void UINV_ItemPopUp::NativeConstruct()
+{
+	Super::NativeConstruct();
+	SetIsFocusable(true);
+}
+
 int32 UINV_ItemPopUp::GetSplitAmount() const
 {
 	return FMath::Floor(Slider_Split->GetValue());
+}
+
+void UINV_ItemPopUp::FocusDefaultAction()
+{
+	SetIsFocusable(true);
+
+	auto IsWidgetUsable = [](const UWidget* Widget) -> bool
+	{
+		if (!IsValid(Widget)) return false;
+		if (Widget->GetVisibility() != ESlateVisibility::Visible) return false;
+		return Widget->GetIsEnabled();
+	};
+
+	UWidget* FocusTarget = nullptr;
+	if (IsWidgetUsable(Button_Split))
+	{
+		FocusTarget = Button_Split;
+	}
+	else if (IsWidgetUsable(Button_Drop))
+	{
+		FocusTarget = Button_Drop;
+	}
+	else if (IsWidgetUsable(Button_Consume))
+	{
+		FocusTarget = Button_Consume;
+	}
+	else if (IsWidgetUsable(Button_Inspect))
+	{
+		FocusTarget = Button_Inspect;
+	}
+	else if (IsWidgetUsable(Slider_Split))
+	{
+		FocusTarget = Slider_Split;
+	}
+
+	if (IsValid(FocusTarget))
+	{
+		FocusTarget->SetKeyboardFocus();
+	}
+	else
+	{
+		SetKeyboardFocus();
+	}
 }
 
 void UINV_ItemPopUp::ExecuteAndClose(const TFunctionRef<bool()>& Action)

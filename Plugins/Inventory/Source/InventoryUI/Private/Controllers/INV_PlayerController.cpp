@@ -140,6 +140,7 @@ void AINV_PlayerController::SetupInputComponent()
 
 bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 {
+	const bool bPreviousInputWasGamepad = bLastInputWasGamepad;
 	if (Params.Key.IsGamepadKey())
 	{
 		bLastInputWasGamepad = true;
@@ -147,6 +148,14 @@ bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 	else
 	{
 		bLastInputWasGamepad = false;
+	}
+
+	if (bPreviousInputWasGamepad != bLastInputWasGamepad && ThisActor.IsValid() && IsValid(HUDWidget))
+	{
+		if (UINV_ItemComponent* ItemComponent = ThisActor->FindComponentByClass<UINV_ItemComponent>(); IsValid(ItemComponent))
+		{
+			HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(ItemComponent->GetPickupMessage()));
+		}
 	}
 
 	return Super::InputKey(Params);
@@ -235,6 +244,9 @@ FString AINV_PlayerController::BuildPickupPromptForCurrentInput(const FString& R
 		: KeyboardInteractKeyLabel.ToString();
 
 	FString Prompt = RawPickupMessage;
+	const FString AlternateLabel = bLastInputWasGamepad
+		? KeyboardInteractKeyLabel.ToString()
+		: GamepadInteractKeyLabel.ToString();
 
 	// Preferred template token support in pickup message text.
 	if (Prompt.ReplaceInline(TEXT("{InteractKey}"), *InteractKeyLabel, ESearchCase::IgnoreCase) > 0)
@@ -248,6 +260,21 @@ FString AINV_PlayerController::BuildPickupPromptForCurrentInput(const FString& R
 		return Prompt;
 	}
 	if (Prompt.ReplaceInline(TEXT("Press X"), *FString::Printf(TEXT("Press %s"), *InteractKeyLabel), ESearchCase::IgnoreCase) > 0)
+	{
+		return Prompt;
+	}
+
+	// Generic token swap when the message contains only the alternate key label.
+	if (!AlternateLabel.IsEmpty() && !InteractKeyLabel.IsEmpty() &&
+		Prompt.Contains(AlternateLabel, ESearchCase::IgnoreCase) &&
+		!Prompt.Contains(InteractKeyLabel, ESearchCase::IgnoreCase))
+	{
+		Prompt.ReplaceInline(*AlternateLabel, *InteractKeyLabel, ESearchCase::IgnoreCase);
+		return Prompt;
+	}
+
+	// If explicit key text already exists, keep message as authored to avoid duplicate "Press X Press E" prompts.
+	if (Prompt.Contains(TEXT("Press"), ESearchCase::IgnoreCase))
 	{
 		return Prompt;
 	}

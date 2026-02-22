@@ -113,7 +113,7 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 		PressedKey == EKeys::Gamepad_FaceButton_Left ||
 		PressedKey == EKeys::Gamepad_FaceButton_Right;
 
-	if (bIsGridNavigationKey && ActiveGrid.IsValid() && !ActiveGrid->HasKeyboardFocus())
+	if (bIsGridNavigationKey && ActiveGrid.IsValid() && !ActiveGrid->HasKeyboardFocus() && !ActiveGrid->HasOpenItemPopup())
 	{
 		ActiveGrid->SetKeyboardFocus();
 		return FReply::Handled();

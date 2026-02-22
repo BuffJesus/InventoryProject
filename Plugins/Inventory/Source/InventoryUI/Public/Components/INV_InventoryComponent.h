@@ -11,6 +11,7 @@ struct FINV_SlotAvailabilityResult;
 struct FINV_InventoryFastArray;
 class UINV_ItemComponent;
 class UINV_InventoryBase;
+class APawn;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryItemChange, UINV_InventoryItem*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNoRoomInInventory);
@@ -76,6 +77,7 @@ private:
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
+	TWeakObjectPtr<APawn> InputSuppressedPawn { nullptr };
 	
 	// Creates the inventory UI widget for local controllers.
 	void ConstructInventory();

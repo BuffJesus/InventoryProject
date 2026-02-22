@@ -944,15 +944,47 @@ void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem)
 		ImageFragment,
 		TileSize,
 		GetOwningPlayer(),
-		this);
+		this,
+		TOptional<FVector2D>());
 	bHasLastTickInputs = false;
 	LastHoveredSlottedIndex = INDEX_NONE;
+	if (IsControllerSelectedIndexValid())
+	{
+		PositionHoverItemAtGridIndex(ControllerSelectedIndex);
+	}
 }
 
 void UINV_InventoryGrid::AssignHoverItem(UINV_InventoryItem* InventoryItem, const int32 GridIndex,
 	const int32 PreviousGridIndex)
 {
-	AssignHoverItem(InventoryItem);
+	const FINV_GridFragment* GridFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedGridFragment() : nullptr };
+	const FINV_ImageFragment* ImageFragment { IsValid(InventoryItem) ? InventoryItem->GetCachedImageFragment() : nullptr };
+	if (!GridFragment || !ImageFragment) return;
+
+	TOptional<FVector2D> SourceViewportCenter;
+	if (GridSlots.IsValidIndex(GridIndex) && IsValid(CanvasPanel))
+	{
+		if (const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]))
+		{
+			const FVector2D CanvasViewportPosition = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
+			const FVector2D SlotCenterLocal = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
+			SourceViewportCenter = CanvasViewportPosition + SlotCenterLocal;
+		}
+	}
+
+	HoverItem = FINV_HoverItemManager::AssignHoverItem(
+		HoverItem,
+		HoverItemClass,
+		InventoryItem,
+		GridFragment,
+		ImageFragment,
+		TileSize,
+		GetOwningPlayer(),
+		this,
+		SourceViewportCenter);
+	bHasLastTickInputs = false;
+	LastHoveredSlottedIndex = INDEX_NONE;
+
 	FINV_HoverItemManager::ConfigureHoverItemProperties(HoverItem, GridSlots[GridIndex], InventoryItem, PreviousGridIndex);
 }
 
@@ -1216,6 +1248,7 @@ void UINV_InventoryGrid::SetControllerSelectedIndex(int32 NewIndex)
 	ClearControllerSelectionVisual();
 	ControllerSelectedIndex = NewIndex;
 	ApplyControllerSelectionVisual();
+	PositionHoverItemAtGridIndex(ControllerSelectedIndex);
 }
 
 bool UINV_InventoryGrid::IsControllerSelectedIndexValid() const
@@ -1226,6 +1259,31 @@ bool UINV_InventoryGrid::IsControllerSelectedIndexValid() const
 int32 UINV_InventoryGrid::GetControllerSelectedIndex() const
 {
 	return ControllerSelectedIndex;
+}
+
+void UINV_InventoryGrid::PositionHoverItemAtGridIndex(int32 GridIndex)
+{
+	if (!IsValid(HoverItem)) return;
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
+	if (!IsValid(CanvasPanel)) return;
+
+	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
+	if (!IsValid(GridSlotCanvasSlot)) return;
+
+	const FVector2D CanvasViewportPosition = UINV_WidgetUtils::GetWidgetPosition(CanvasPanel);
+	const FVector2D SlotCenterLocal = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
+	const FVector2D SlotCenterViewport = CanvasViewportPosition + SlotCenterLocal;
+	const FVector2D HoverSize = HoverItem->GetCachedSize();
+	const FVector2D InitialPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
+		UWidgetLayoutLibrary::GetViewportSize(this),
+		HoverSize,
+		SlotCenterViewport);
+	HoverItem->SetPositionInViewport(InitialPosition, false);
+}
+
+bool UINV_InventoryGrid::HasOpenItemPopup() const
+{
+	return IsValid(ItemPopUp) && ItemPopUp->GetVisibility() == ESlateVisibility::Visible;
 }
 
 void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
@@ -1250,6 +1308,8 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 		ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
 		BoundItemPopUpForCallbacks = ItemPopUp;
 	}
+
+	ItemPopUp->FocusDefaultAction();
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const

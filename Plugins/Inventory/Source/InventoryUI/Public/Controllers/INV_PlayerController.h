@@ -22,6 +22,7 @@ class INVENTORYUI_API AINV_PlayerController : public APlayerController
 public:
 	AINV_PlayerController();
 	virtual void Tick(float DeltaTime) override;
+	bool WasLastInputGamepad() const { return bLastInputWasGamepad; }
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Input")
 	// Toggle the inventory UI.

@@ -5,6 +5,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Controllers/INV_PlayerController.h"
 #include "Items/INV_InventoryItem.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 
@@ -21,6 +22,15 @@ void UINV_HoverItem::Clear()
 void UINV_HoverItem::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// Controller-driven inventory navigation anchors hover icon to selected slot in the grid.
+	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer()))
+	{
+		if (INVPC->WasLastInputGamepad())
+		{
+			return;
+		}
+	}
     
 	// Keep the hover widget centered on the mouse while staying on screen.
 	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);

@@ -8,6 +8,8 @@
 #include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
 #include "Engine/World.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Base/INV_InventoryBase.h"
 
@@ -409,6 +411,29 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	}
 	OwningController->SetIgnoreMoveInput(bIsOpen);
 	OwningController->SetIgnoreLookInput(bIsOpen);
+
+	APawn* ControlledPawn = OwningController->GetPawn();
+	if (bIsOpen)
+	{
+		if (ACharacter* CharacterPawn = Cast<ACharacter>(ControlledPawn))
+		{
+			CharacterPawn->StopJumping();
+		}
+		if (IsValid(ControlledPawn))
+		{
+			ControlledPawn->DisableInput(OwningController.Get());
+			InputSuppressedPawn = ControlledPawn;
+		}
+	}
+	else
+	{
+		APawn* PawnToEnable = InputSuppressedPawn.IsValid() ? InputSuppressedPawn.Get() : ControlledPawn;
+		if (IsValid(PawnToEnable))
+		{
+			PawnToEnable->EnableInput(OwningController.Get());
+		}
+		InputSuppressedPawn = nullptr;
+	}
 	
 	OwningController->SetShowMouseCursor(bIsOpen);
 }

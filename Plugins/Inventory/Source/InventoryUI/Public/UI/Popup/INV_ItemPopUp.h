@@ -26,6 +26,7 @@ class INVENTORYUI_API UINV_ItemPopUp : public UUserWidget
 	
 public:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 	
 	int32 GetSplitAmount() const;
 	int32 GetGridIndex() const { return GridIndex; }
@@ -41,6 +42,7 @@ public:
 	void CollapseConsumeButton() const;
 	void SetSliderParams(const float Max, const float Value) const;
 	void SetGridIndex(int32 Index) { GridIndex = Index; }
+	void FocusDefaultAction();
 	
 	FVector2D GetBoxSize() const;
 	

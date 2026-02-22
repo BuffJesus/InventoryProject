@@ -51,6 +51,7 @@ public:
 	void ClearHoverItem();
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	bool ReturnHoverItemToPreviousSlot();
+	bool HasOpenItemPopup() const;
 	
 	UINV_HoverItem* GetHoverItem() const { return HoverItem; } 
 	
@@ -111,6 +112,7 @@ private:
 	void SetControllerSelectedIndex(int32 NewIndex);
 	bool IsControllerSelectedIndexValid() const;
 	int32 GetControllerSelectedIndex() const;
+	void PositionHoverItemAtGridIndex(int32 GridIndex);
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
 	TSubclassOf<UINV_ItemPopUp> ItemPopUpClass;

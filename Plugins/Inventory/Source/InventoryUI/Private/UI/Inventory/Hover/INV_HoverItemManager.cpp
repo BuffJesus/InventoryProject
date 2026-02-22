@@ -17,7 +17,8 @@ UINV_HoverItem* FINV_HoverItemManager::AssignHoverItem(
 	const FINV_ImageFragment* ImageFragment,
 	float TileSize,
 	APlayerController* OwningPlayer,
-	UUserWidget* ContextWidget)
+	UUserWidget* ContextWidget,
+	const TOptional<FVector2D>& InitialViewportCenter)
 {
 	if (!IsValid(InventoryItem) || !GridFragment || !ImageFragment)
 	{
@@ -56,14 +57,22 @@ UINV_HoverItem* FINV_HoverItemManager::AssignHoverItem(
 	HoverItem->SetIsStackable(InventoryItem->IsStackable());
 	HoverItem->SetDesiredSizeInViewport(IconBrush.ImageSize);
 	HoverItem->SetCachedSize(IconBrush.ImageSize);
-	HoverItem->AddToViewport();
-	// Prevent first-frame flash at (0,0): place hover item at mouse immediately.
-	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(ContextWidget);
+	if (!HoverItem->IsInViewport())
+	{
+		HoverItem->AddToViewport();
+	}
+
+	const FVector2D AnchorPosition = InitialViewportCenter.IsSet()
+		? InitialViewportCenter.GetValue()
+		: UWidgetLayoutLibrary::GetMousePositionOnViewport(ContextWidget);
+
+	// Prevent first-frame flash at (0,0): place hover item immediately before first tick.
 	const FVector2D InitialPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
 		UWidgetLayoutLibrary::GetViewportSize(ContextWidget),
 		IconBrush.ImageSize,
-		MousePosition);
+		AnchorPosition);
 	HoverItem->SetPositionInViewport(InitialPosition, false);
+	HoverItem->SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	return HoverItem;
 }

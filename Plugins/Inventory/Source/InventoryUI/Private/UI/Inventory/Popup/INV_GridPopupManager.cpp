@@ -51,11 +51,16 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	const FVector2D PopUpSize = ItemPopUp->GetBoxSize();
 	CanvasSlot->SetSize(PopUpSize);
 
-	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+	FVector2D AnchorPosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+	if (const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]))
+	{
+		AnchorPosition = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
+	}
+
 	const FVector2D ClampedPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
 		UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel),
 		PopUpSize,
-		MousePos);
+		AnchorPosition);
 	CanvasSlot->SetPosition(ClampedPosition);
 
 	// Configure split button visibility
