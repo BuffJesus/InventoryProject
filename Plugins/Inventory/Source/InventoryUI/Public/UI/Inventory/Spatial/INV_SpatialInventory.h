@@ -18,6 +18,7 @@ class UButton;
 class UWidgetSwitcher;
 class UINV_InventoryGrid;
 class UINV_InventoryComponent;
+struct FINV_EquippedSlotCallbacks;
 /**
  * 
  */
@@ -70,6 +71,7 @@ private:
 	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	float ResolveInventoryTileSize() const;
+	void BuildEquippedSlotCallbacks(FINV_EquippedSlotCallbacks& OutCallbacks);
 	bool TryHandleEquippedItemInspect(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent);
 	void SwapEquippedItemWithHover(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	UINV_InventoryComponent* ResolveInventoryComponent() const;
