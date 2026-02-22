@@ -237,5 +237,6 @@ private:
 	FVector2D LastTickCanvasPos { FVector2D::ZeroVector };
 	FVector2D LastTickCanvasSize { FVector2D::ZeroVector };
 	FVector2D LastTickMousePos { FVector2D::ZeroVector };
+	double LastPopupOpenedRealtimeSeconds { -1.0 };
 };
 

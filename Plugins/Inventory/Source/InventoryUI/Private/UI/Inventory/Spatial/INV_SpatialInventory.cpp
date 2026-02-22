@@ -340,17 +340,6 @@ void UINV_SpatialInventory::SwapEquippedItemWithHover(UINV_EquippedSlottedItem* 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FReply SuperReply = Super::NativeOnMouseButtonDown(MyGeometry, MouseEvent);
-	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
-	{
-		return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
-	}
-
-	if (ActiveGrid.IsValid() && ActiveGrid->HasHoverItem())
-	{
-		ActiveGrid->DropItem();
-		return FReply::Handled();
-	}
-
 	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
 }
 

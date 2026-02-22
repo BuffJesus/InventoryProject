@@ -122,5 +122,4 @@ private:
 	FRotator LastTraceViewRotation { FRotator::ZeroRotator };
 	bool bHasLastTraceView { false };
 	bool bLastInputWasGamepad { false };
-	TSet<FKey> SimulatedMouseButtonsDown;
 };

@@ -34,6 +34,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
+#include "HAL/PlatformTime.h"
 
 namespace
 {
@@ -194,6 +195,12 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 {
 	if (!HasOpenItemPopup())
+	{
+		return;
+	}
+
+	// Ignore the input frame that opened the popup to avoid immediate close.
+	if (LastPopupOpenedRealtimeSeconds > 0.0 && (FPlatformTime::Seconds() - LastPopupOpenedRealtimeSeconds) < 0.05)
 	{
 		return;
 	}
@@ -1515,6 +1522,7 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 		GetOwningPlayer());
 
 	if (!IsValid(ItemPopUp)) return;
+	LastPopupOpenedRealtimeSeconds = FPlatformTime::Seconds();
 
 	// Bind popup callbacks once per popup widget instance.
 	BindItemPopupCallbacksIfNeeded();
