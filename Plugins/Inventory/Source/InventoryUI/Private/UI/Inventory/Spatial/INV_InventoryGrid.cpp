@@ -102,6 +102,8 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 
 	const bool bHasHoverItem = IsValid(HoverItem);
 	const bool bHasOpenPopup = IsValid(ItemPopUp) && ItemPopUp->GetVisibility() == ESlateVisibility::Visible;
+	const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer());
+	const bool bUsingGamepadInput = IsValid(INVPC) && INVPC->WasLastInputGamepad();
 
 	// Idle fast-path: no drag interaction and no active popup to manage.
 	if (!bHasHoverItem && !bHasOpenPopup)
@@ -109,9 +111,22 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 		return;
 	}
 
-	if (bHasOpenPopup)
+	if (bHasOpenPopup && !bUsingGamepadInput)
 	{
 		ClosePopupIfClickedOutside();
+	}
+
+	// While using gamepad, ignore mouse-driven hover updates.
+	if (bUsingGamepadInput)
+	{
+		if (!IsValid(HoverItem) && LastHoveredSlottedIndex != INDEX_NONE && GridSlots.IsValidIndex(LastHoveredSlottedIndex))
+		{
+			ApplyItemFootprintVisualAtIndex(LastHoveredSlottedIndex, false);
+			LastHoveredSlottedIndex = INDEX_NONE;
+			UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
+		}
+		bHasLastTickInputs = false;
+		return;
 	}
 
 	// No hover item means no placement/highlight updates are required this frame.
@@ -1138,8 +1153,42 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 
 	const int32 SpanX = MaxX + 1;
 	const int32 SpanY = MaxY + 1;
-	const int32 NewX = SpanX > 0 ? (CurrentX + Delta.X + SpanX) % SpanX : 0;
-	const int32 NewY = SpanY > 0 ? (CurrentY + Delta.Y + SpanY) % SpanY : 0;
+	int32 TargetX = CurrentX + Delta.X;
+	int32 TargetY = CurrentY + Delta.Y;
+
+	// When navigating with controller and not holding an item, step over entire occupied footprints.
+	if (!IsValid(HoverItem) && GridSlots.IsValidIndex(ControllerSelectedIndex) && GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid())
+	{
+		const int32 AnchorIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
+		const int32 AnchorX = AnchorIndex % GridSize.X;
+		const int32 AnchorY = AnchorIndex / GridSize.X;
+		const UINV_InventoryItem* SelectedItem = GridSlots[AnchorIndex]->GetInventoryItem().Get();
+		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedItem);
+
+		if (Delta.X > 0)
+		{
+			TargetX = AnchorX + Dimensions.X;
+			TargetY = AnchorY;
+		}
+		else if (Delta.X < 0)
+		{
+			TargetX = AnchorX - 1;
+			TargetY = AnchorY;
+		}
+		else if (Delta.Y > 0)
+		{
+			TargetY = AnchorY + Dimensions.Y;
+			TargetX = AnchorX;
+		}
+		else if (Delta.Y < 0)
+		{
+			TargetY = AnchorY - 1;
+			TargetX = AnchorX;
+		}
+	}
+
+	const int32 NewX = SpanX > 0 ? (TargetX % SpanX + SpanX) % SpanX : 0;
+	const int32 NewY = SpanY > 0 ? (TargetY % SpanY + SpanY) % SpanY : 0;
 	SetControllerSelectedIndex(UINV_WidgetUtils::GetIndexFromPosition(FIntPoint(NewX, NewY), GridSize.X));
 	return true;
 }
@@ -1479,5 +1528,3 @@ bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const 
 	}
 	return false;
 }
-
-

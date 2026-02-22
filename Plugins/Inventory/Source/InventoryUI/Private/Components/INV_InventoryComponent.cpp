@@ -12,6 +12,7 @@
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/Base/INV_InventoryBase.h"
+#include "Controllers/INV_PlayerController.h"
 
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
 {
@@ -152,6 +153,18 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 	// Toggle UI visibility and input mode.
 	bInventoryMenuOpen ? HandleInventoryMenu(ESlateVisibility::Collapsed, false)
 		: HandleInventoryMenu(ESlateVisibility::Visible, true);
+}
+
+void UINV_InventoryComponent::OnInputMethodChanged(const bool bIsGamepadInput)
+{
+	if (!bInventoryMenuOpen) return;
+	if (!OwningController.IsValid()) return;
+
+	OwningController->SetShowMouseCursor(!bIsGamepadInput);
+	if (bIsGamepadInput && IsValid(Inventory))
+	{
+		Inventory->SetKeyboardFocus();
+	}
 }
 
 void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
@@ -431,7 +444,12 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 		InputSuppressedPawn = nullptr;
 	}
 	
-	OwningController->SetShowMouseCursor(bIsOpen);
+	bool bUseGamepadInput = false;
+	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(OwningController.Get()))
+	{
+		bUseGamepadInput = INVPC->WasLastInputGamepad();
+	}
+	OwningController->SetShowMouseCursor(bIsOpen && !bUseGamepadInput);
 }
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)

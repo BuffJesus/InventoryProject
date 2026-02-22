@@ -27,6 +27,8 @@ public:
 	UINV_InventoryComponent();
 	// Shows or hides the inventory UI widget.
 	void ToggleInventoryMenu();
+	// Refresh cursor/UI behavior when active input source changes.
+	void OnInputMethodChanged(bool bIsGamepadInput);
 	// Registers a UObject for replication when using the subobject list.
 	void AddRepSubObj(UObject* SubObj);
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

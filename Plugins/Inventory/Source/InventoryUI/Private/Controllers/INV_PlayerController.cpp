@@ -157,6 +157,10 @@ bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 			HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(ItemComponent->GetPickupMessage()));
 		}
 	}
+	if (bPreviousInputWasGamepad != bLastInputWasGamepad && InventoryComponent.IsValid())
+	{
+		InventoryComponent->OnInputMethodChanged(bLastInputWasGamepad);
+	}
 
 	return Super::InputKey(Params);
 }
