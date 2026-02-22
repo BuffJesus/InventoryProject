@@ -114,7 +114,7 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 		ClosePopupIfClickedOutside();
 	}
 
-	// No hover item means no placement/highlight updates required this frame.
+	// No hover item means no placement/highlight updates are required this frame.
 	if (!bHasHoverItem)
 	{
 		return;
@@ -1250,7 +1250,7 @@ bool UINV_InventoryGrid::TryHandleControllerConfirmHoverPlacement()
 
 	ControllerSelectedIndex = ClampControllerAnchorIndexForHover(ControllerSelectedIndex);
 
-	// Use selected slot as the drop anchor when using controller input.
+	// Use the selected slot as the drop anchor when using controller input.
 	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
 	const FIntPoint HoverDimensions = GetItemDimensionsOrDefault(HoverInventoryItem);
 	const FIntPoint SelectedCoordinates(
