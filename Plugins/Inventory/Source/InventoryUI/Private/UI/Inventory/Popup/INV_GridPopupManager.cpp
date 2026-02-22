@@ -49,7 +49,15 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp);
 	if (!IsValid(CanvasSlot)) return nullptr;
 
-	const FVector2D PopUpSize = ItemPopUp->GetBoxSize();
+	FVector2D PopUpSize = ItemPopUp->GetBoxSize();
+	if (PopUpSize.IsNearlyZero())
+	{
+		PopUpSize = ItemPopUp->GetDesiredSize();
+	}
+	if (PopUpSize.IsNearlyZero())
+	{
+		PopUpSize = FVector2D(220.f, 140.f);
+	}
 	CanvasSlot->SetSize(PopUpSize);
 
 	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
@@ -129,6 +137,7 @@ bool FINV_GridPopupManager::ClosePopupIfClickedOutside(
 	APlayerController* PlayerController)
 {
 	if (!IsValid(ItemPopUp)) return false;
+	if (ItemPopUp->GetVisibility() != ESlateVisibility::Visible) return false;
 	if (!IsValid(PlayerController)) return false;
 
 	const bool bClickedThisFrame =

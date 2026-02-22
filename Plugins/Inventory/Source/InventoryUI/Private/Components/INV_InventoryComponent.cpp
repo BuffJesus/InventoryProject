@@ -160,11 +160,21 @@ void UINV_InventoryComponent::OnInputMethodChanged(const bool bIsGamepadInput)
 	if (!bInventoryMenuOpen) return;
 	if (!OwningController.IsValid()) return;
 
-	OwningController->SetShowMouseCursor(!bIsGamepadInput);
+	ApplyPointerInputMode(true, bIsGamepadInput);
 	if (bIsGamepadInput && IsValid(Inventory))
 	{
 		Inventory->SetKeyboardFocus();
 	}
+}
+
+void UINV_InventoryComponent::ApplyPointerInputMode(const bool bIsOpen, const bool bUseGamepadInput) const
+{
+	if (!OwningController.IsValid()) return;
+
+	const bool bUseMousePointerUI = bIsOpen && !bUseGamepadInput;
+	OwningController->SetShowMouseCursor(bUseMousePointerUI);
+	OwningController->bEnableClickEvents = bUseMousePointerUI;
+	OwningController->bEnableMouseOverEvents = bUseMousePointerUI;
 }
 
 void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
@@ -449,7 +459,7 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	{
 		bUseGamepadInput = INVPC->WasLastInputGamepad();
 	}
-	OwningController->SetShowMouseCursor(bIsOpen && !bUseGamepadInput);
+	ApplyPointerInputMode(bIsOpen, bUseGamepadInput);
 }
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
@@ -476,7 +486,7 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 	if (!HasAuthorityOnOwner()) return;
 
 	// Update existing stack count and handle remainder.
-	const FGameplayTag& ItemType { IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag };
+	const FGameplayTag& ItemType { ItemComponent->GetItemManifest().GetItemType() };
 	UINV_InventoryItem* Item { InventoryFastArray.FindFirstItemByType(
 		ItemType,
 		ItemComponent->IsItemRarityEnabled(),

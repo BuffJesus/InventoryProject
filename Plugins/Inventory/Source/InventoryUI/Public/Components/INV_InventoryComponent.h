@@ -76,6 +76,7 @@ private:
 	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
 	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	void TrimRecentDropLocations();
+	void ApplyPointerInputMode(bool bIsOpen, bool bUseGamepadInput) const;
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };

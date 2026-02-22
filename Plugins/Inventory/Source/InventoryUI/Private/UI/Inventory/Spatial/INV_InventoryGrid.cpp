@@ -50,6 +50,31 @@ FPointerEvent MakeSimulatedLeftMouseClickEvent()
 		0.0f,
 		FModifierKeysState());
 }
+
+bool IsControllerMoveUpKey(const FKey& Key)
+{
+	return Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up;
+}
+
+bool IsControllerMoveDownKey(const FKey& Key)
+{
+	return Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down;
+}
+
+bool IsControllerMoveLeftKey(const FKey& Key)
+{
+	return Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left;
+}
+
+bool IsControllerMoveRightKey(const FKey& Key)
+{
+	return Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right;
+}
+
+FReply ResolveUnhandledWithSuper(const FReply& SuperReply)
+{
+	return SuperReply.IsEventHandled() ? SuperReply : FReply::Unhandled();
+}
 }
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
@@ -101,7 +126,7 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
 	const bool bHasHoverItem = IsValid(HoverItem);
-	const bool bHasOpenPopup = IsValid(ItemPopUp) && ItemPopUp->GetVisibility() == ESlateVisibility::Visible;
+	const bool bHasOpenPopup = HasOpenItemPopup();
 	const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(GetOwningPlayer());
 	const bool bUsingGamepadInput = IsValid(INVPC) && INVPC->WasLastInputGamepad();
 
@@ -208,7 +233,7 @@ void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVec
 
 void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 {
-	if (!IsValid(ItemPopUp) || ItemPopUp->GetVisibility() != ESlateVisibility::Visible)
+	if (!HasOpenItemPopup())
 	{
 		return;
 	}
@@ -342,10 +367,10 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 
 FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	const FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 	const FKey PressedKey = InKeyEvent.GetKey();
 
-	if (PressedKey == EKeys::Gamepad_DPad_Up || PressedKey == EKeys::Gamepad_LeftStick_Up)
+	if (IsControllerMoveUpKey(PressedKey))
 	{
 		if (IsControllerSelectedIndexValid() && IsValid(HoverItem))
 		{
@@ -363,15 +388,15 @@ FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 		}
 		return MoveControllerSelection(FIntPoint(0, -1)) ? FReply::Handled() : FReply::Unhandled();
 	}
-	if (PressedKey == EKeys::Gamepad_DPad_Down || PressedKey == EKeys::Gamepad_LeftStick_Down)
+	if (IsControllerMoveDownKey(PressedKey))
 	{
 		return MoveControllerSelection(FIntPoint(0, 1)) ? FReply::Handled() : FReply::Unhandled();
 	}
-	if (PressedKey == EKeys::Gamepad_DPad_Left || PressedKey == EKeys::Gamepad_LeftStick_Left)
+	if (IsControllerMoveLeftKey(PressedKey))
 	{
 		return MoveControllerSelection(FIntPoint(-1, 0)) ? FReply::Handled() : FReply::Unhandled();
 	}
-	if (PressedKey == EKeys::Gamepad_DPad_Right || PressedKey == EKeys::Gamepad_LeftStick_Right)
+	if (IsControllerMoveRightKey(PressedKey))
 	{
 		return MoveControllerSelection(FIntPoint(1, 0)) ? FReply::Handled() : FReply::Unhandled();
 	}
@@ -388,7 +413,7 @@ FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 		return HandleControllerContext() ? FReply::Handled() : FReply::Unhandled();
 	}
 
-	return FReply::Unhandled();
+	return ResolveUnhandledWithSuper(SuperReply);
 }
 
 void UINV_InventoryGrid::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)
@@ -1116,9 +1141,9 @@ bool UINV_InventoryGrid::HandleControllerConfirm()
 
 bool UINV_InventoryGrid::HandleControllerBack()
 {
-	if (IsValid(ItemPopUp) && ItemPopUp->GetVisibility() == ESlateVisibility::Visible)
+	if (HasOpenItemPopup())
 	{
-		CloseActiveItemPopup();
+		CloseItemPopup();
 		return true;
 	}
 
@@ -1213,12 +1238,38 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 				break;
 			}
 
-			const int32 BlockerIndex = Query.BlockingUpperLeftIndices[0];
+			int32 BlockerIndex = Query.BlockingUpperLeftIndices[0];
+			for (const int32 CandidateIndex : Query.BlockingUpperLeftIndices)
+			{
+				if (!GridSlots.IsValidIndex(CandidateIndex) || !GridSlots.IsValidIndex(BlockerIndex))
+				{
+					continue;
+				}
+
+				if (Delta.X > 0 && CandidateIndex % GridSize.X > BlockerIndex % GridSize.X)
+				{
+					BlockerIndex = CandidateIndex;
+				}
+				else if (Delta.X < 0 && CandidateIndex % GridSize.X < BlockerIndex % GridSize.X)
+				{
+					BlockerIndex = CandidateIndex;
+				}
+				else if (Delta.Y > 0 && CandidateIndex / GridSize.X > BlockerIndex / GridSize.X)
+				{
+					BlockerIndex = CandidateIndex;
+				}
+				else if (Delta.Y < 0 && CandidateIndex / GridSize.X < BlockerIndex / GridSize.X)
+				{
+					BlockerIndex = CandidateIndex;
+				}
+			}
 			if (!GridSlots.IsValidIndex(BlockerIndex))
 			{
 				break;
 			}
 
+			const int32 PrevX = NewX;
+			const int32 PrevY = NewY;
 			const int32 BlockerX = BlockerIndex % GridSize.X;
 			const int32 BlockerY = BlockerIndex / GridSize.X;
 			const UINV_InventoryItem* BlockingItem = GridSlots[BlockerIndex]->GetInventoryItem().Get();
@@ -1239,6 +1290,11 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 			else if (Delta.Y < 0)
 			{
 				NewY = FMath::Clamp(BlockerY - HoverDimensions.Y, 0, MaxY);
+			}
+
+			if (PrevX == NewX && PrevY == NewY)
+			{
+				break;
 			}
 		}
 	}

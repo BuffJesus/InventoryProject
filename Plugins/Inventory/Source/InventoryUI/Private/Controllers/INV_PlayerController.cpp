@@ -140,24 +140,24 @@ void AINV_PlayerController::SetupInputComponent()
 
 bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 {
+	const bool bIsGamepadInput = Params.Key.IsGamepadKey();
+	const bool bIsMouseOrKeyboardInput = Params.Key.IsMouseButton() || Params.Key.IsKeyboardKey();
 	const bool bPreviousInputWasGamepad = bLastInputWasGamepad;
-	if (Params.Key.IsGamepadKey())
+
+	if (bIsGamepadInput || bIsMouseOrKeyboardInput)
 	{
-		bLastInputWasGamepad = true;
-	}
-	else
-	{
-		bLastInputWasGamepad = false;
+		bLastInputWasGamepad = bIsGamepadInput;
 	}
 
-	if (bPreviousInputWasGamepad != bLastInputWasGamepad && ThisActor.IsValid() && IsValid(HUDWidget))
+	const bool bInputMethodChanged = bPreviousInputWasGamepad != bLastInputWasGamepad;
+	if (bInputMethodChanged && ThisActor.IsValid() && IsValid(HUDWidget))
 	{
 		if (UINV_ItemComponent* ItemComponent = ThisActor->FindComponentByClass<UINV_ItemComponent>(); IsValid(ItemComponent))
 		{
 			HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(ItemComponent->GetPickupMessage()));
 		}
 	}
-	if (bPreviousInputWasGamepad != bLastInputWasGamepad && InventoryComponent.IsValid())
+	if (bInputMethodChanged && InventoryComponent.IsValid())
 	{
 		InventoryComponent->OnInputMethodChanged(bLastInputWasGamepad);
 	}

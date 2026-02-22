@@ -24,6 +24,14 @@
 #include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
 #include "InputCoreTypes.h"
 
+namespace
+{
+FReply ResolveUnhandledWithSuper(const FReply& SuperReply)
+{
+	return SuperReply.IsEventHandled() ? SuperReply : FReply::Unhandled();
+}
+}
+
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
 	SetActiveGrid(Grid_Equippable, Button_Equippable);
@@ -91,9 +99,10 @@ void UINV_SpatialInventory::SwitchCategoryByDirection(int32 Direction)
 	TArray<UINV_InventoryGrid*> OrderedGrids;
 	TArray<UButton*> OrderedButtons;
 	BuildCategoryViews(OrderedGrids, OrderedButtons);
+	if (OrderedGrids.Num() == 0) return;
 	if (OrderedGrids.Num() != OrderedButtons.Num()) return;
 
-	int32 CurrentIndex = OrderedGrids.Find(ActiveGrid.Get());
+	const int32 CurrentIndex = OrderedGrids.Find(ActiveGrid.Get());
 	const int32 NewIndex = FINV_SpatialCategoryService::ResolveNextCategoryIndex(
 		CurrentIndex,
 		Direction,
@@ -105,12 +114,37 @@ void UINV_SpatialInventory::SwitchCategoryByDirection(int32 Direction)
 
 void UINV_SpatialInventory::BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutGrids, TArray<UButton*>& OutButtons) const
 {
-	OutGrids = { Grid_Equippable, Grid_Consumable, Grid_Craftable };
-	OutButtons = { Button_Equippable, Button_Consumable, Button_Craftable };
+	OutGrids.Reset();
+	OutButtons.Reset();
+
+	auto AddCategoryView = [&OutGrids, &OutButtons](UINV_InventoryGrid* Grid, UButton* Button)
+	{
+		if (!IsValid(Grid) || !IsValid(Button))
+		{
+			return;
+		}
+
+		OutGrids.Add(Grid);
+		OutButtons.Add(Button);
+	};
+
+	AddCategoryView(Grid_Equippable, Button_Equippable);
+	AddCategoryView(Grid_Consumable, Button_Consumable);
+	AddCategoryView(Grid_Craftable, Button_Craftable);
 }
 
 void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button)
 {
+	if (ActiveGrid.Get() == Grid)
+	{
+		DisableButton(Button);
+		if (ActiveGrid.IsValid())
+		{
+			ActiveGrid->SetKeyboardFocus();
+		}
+		return;
+	}
+
 	ReturnActiveHoverItemToSource();
 	if (ActiveGrid.IsValid()) ActiveGrid->HideCursor();
 	ActiveGrid = Grid;
@@ -144,7 +178,7 @@ bool UINV_SpatialInventory::TryFocusActiveGridForNavigation(const FKey& PressedK
 
 FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	const FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 	const FKey PressedKey = InKeyEvent.GetKey();
 
 	if (TryFocusActiveGridForNavigation(PressedKey))
@@ -171,7 +205,7 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 		SwitchCategoryByDirection(1);
 		return FReply::Handled();
 	}
-	return FReply::Unhandled();
+	return ResolveUnhandledWithSuper(SuperReply);
 }
 
 bool UINV_SpatialInventory::TryEquipHoveredItemFromController()
@@ -196,7 +230,7 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	Super::NativeOnInitialized();
 	SetIsFocusable(true);
 
-	if (!IsValid(Button_Equippable) || !IsValid(Button_Consumable) || !IsValid(Button_Craftable) || !IsValid(Switcher))
+	if (!IsValid(Button_Equippable) || !IsValid(Button_Consumable) || !IsValid(Button_Craftable) || !IsValid(Switcher) || !IsValid(CanvasPanel))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Spatial inventory is missing required category widgets."));
 		return;
@@ -372,25 +406,33 @@ void UINV_SpatialInventory::SwapEquippedItemWithHover(UINV_EquippedSlottedItem* 
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (ActiveGrid.IsValid())
+	const FReply SuperReply = Super::NativeOnMouseButtonDown(MyGeometry, MouseEvent);
+	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
+		return ResolveUnhandledWithSuper(SuperReply);
+	}
+
+	if (ActiveGrid.IsValid() && ActiveGrid->HasHoverItem())
 	{
 		ActiveGrid->DropItem();
+		return FReply::Handled();
 	}
-	return FReply::Handled();
+
+	return ResolveUnhandledWithSuper(SuperReply);
 }
 
 FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const
 {
 	if (ItemComponent == nullptr)
 	{
-		return FINV_SlotAvailabilityResult();
+		return {};
 	}
 
 	const EINV_ItemCategory ItemCategory = UINV_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent);
 	UINV_InventoryGrid* TargetGrid = GetGridForCategory(ItemCategory);
 	if (!IsValid(TargetGrid))
 	{
-		return FINV_SlotAvailabilityResult();
+		return {};
 	}
 
 	return TargetGrid->HasRoomForItem(ItemComponent);
@@ -579,7 +621,17 @@ UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
 {
 	if (!IsValid(ItemDescription))
 	{
+		if (!IsValid(ItemDescriptionClass) || !IsValid(CanvasPanel))
+		{
+			return nullptr;
+		}
+
 		ItemDescription = CreateWidget<UINV_ItemDescription>(GetOwningPlayer(), ItemDescriptionClass);
+		if (!IsValid(ItemDescription))
+		{
+			return nullptr;
+		}
+
 		CanvasPanel->AddChild(ItemDescription);
 		if (UCanvasPanelSlot* DescriptionSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemDescription))
 		{
