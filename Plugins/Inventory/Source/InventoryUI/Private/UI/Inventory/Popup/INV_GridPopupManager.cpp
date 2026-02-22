@@ -7,11 +7,9 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
-#include "Blueprint/SlateBlueprintLibrary.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
-#include "Controllers/INV_PlayerController.h"
 
 UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	TObjectPtr<UINV_ItemPopUp>& ItemPopUp,
@@ -50,63 +48,14 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemPopUp);
 	if (!IsValid(CanvasSlot)) return nullptr;
 
-	FVector2D PopUpSize = ItemPopUp->GetBoxSize();
-	if (PopUpSize.IsNearlyZero())
-	{
-		PopUpSize = ItemPopUp->GetDesiredSize();
-	}
-	if (PopUpSize.IsNearlyZero())
-	{
-		PopUpSize = FVector2D(220.f, 140.f);
-	}
+	const FVector2D PopUpSize = ItemPopUp->GetBoxSize();
 	CanvasSlot->SetSize(PopUpSize);
 
-	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
-	FVector2D AnchorPosition = FVector2D::ZeroVector;
-	FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
-	if (IsValid(PlayerController))
-	{
-		FVector2D PixelPosition = FVector2D::ZeroVector;
-		const FVector2D CursorAbsPosition = FSlateApplication::Get().GetCursorPos();
-		USlateBlueprintLibrary::AbsoluteToViewport(PlayerController, CursorAbsPosition, PixelPosition, MouseViewportPos);
-	}
-	const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(OwningCanvasPanel);
-	AnchorPosition = MouseViewportPos - CanvasViewportPos;
-
-	// Fallback to slot center if mouse position is unavailable.
-	if ((!FMath::IsFinite(AnchorPosition.X) || !FMath::IsFinite(AnchorPosition.Y)) && IsValid(GridSlotCanvasSlot))
-	{
-		AnchorPosition = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
-	}
-
-	FVector2D GridMin(FLT_MAX, FLT_MAX);
-	FVector2D GridMax(-FLT_MAX, -FLT_MAX);
-	for (const TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
-	{
-		const UCanvasPanelSlot* IterGridSlotCanvasSlot = IsValid(GridSlot)
-			? UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlot)
-			: nullptr;
-		if (!IsValid(IterGridSlotCanvasSlot)) continue;
-		const FVector2D SlotPos = IterGridSlotCanvasSlot->GetPosition();
-		const FVector2D SlotMax = SlotPos + IterGridSlotCanvasSlot->GetSize();
-		GridMin.X = FMath::Min(GridMin.X, SlotPos.X);
-		GridMin.Y = FMath::Min(GridMin.Y, SlotPos.Y);
-		GridMax.X = FMath::Max(GridMax.X, SlotMax.X);
-		GridMax.Y = FMath::Max(GridMax.Y, SlotMax.Y);
-	}
-	if (!FMath::IsFinite(GridMin.X) || !FMath::IsFinite(GridMin.Y) || !FMath::IsFinite(GridMax.X) || !FMath::IsFinite(GridMax.Y))
-	{
-		GridMin = FVector2D::ZeroVector;
-		GridMax = UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel);
-	}
-	const FVector2D GridBoundsSize = FVector2D(
-		FMath::Max(0.f, GridMax.X - GridMin.X),
-		FMath::Max(0.f, GridMax.Y - GridMin.Y));
-
-	const FVector2D ClampedPosition = GridMin + UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
-		GridBoundsSize,
+	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+	const FVector2D ClampedPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
+		UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel),
 		PopUpSize,
-		AnchorPosition - GridMin);
+		MousePos);
 	CanvasSlot->SetPosition(ClampedPosition);
 
 	// Configure split button visibility
@@ -134,22 +83,14 @@ bool FINV_GridPopupManager::ClosePopupIfClickedOutside(
 	APlayerController* PlayerController)
 {
 	if (!IsValid(ItemPopUp)) return false;
-	if (ItemPopUp->GetVisibility() != ESlateVisibility::Visible) return false;
 	if (!IsValid(PlayerController)) return false;
 
 	const bool bClickedThisFrame =
 		PlayerController->WasInputKeyJustPressed(EKeys::LeftMouseButton) ||
 		PlayerController->WasInputKeyJustPressed(EKeys::RightMouseButton) ||
 		PlayerController->WasInputKeyJustPressed(EKeys::MiddleMouseButton);
-	bool bSimulatedClickThisFrame = false;
-	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(PlayerController))
-	{
-		bSimulatedClickThisFrame =
-			INVPC->WasSimulatedMouseButtonJustPressed(EKeys::LeftMouseButton) ||
-			INVPC->WasSimulatedMouseButtonJustPressed(EKeys::RightMouseButton);
-	}
 
-	if (!bClickedThisFrame && !bSimulatedClickThisFrame) return false;
+	if (!bClickedThisFrame) return false;
 
 	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
 	if (ItemPopUp->GetCachedGeometry().IsUnderLocation(CursorPosition)) return false;

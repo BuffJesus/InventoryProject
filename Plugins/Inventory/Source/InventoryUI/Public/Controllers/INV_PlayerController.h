@@ -23,7 +23,6 @@ public:
 	AINV_PlayerController();
 	virtual void Tick(float DeltaTime) override;
 	bool WasLastInputGamepad() const { return bLastInputWasGamepad; }
-	bool WasSimulatedMouseButtonJustPressed(const FKey& MouseButton) const;
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Input")
 	// Toggle the inventory UI.
@@ -124,6 +123,4 @@ private:
 	bool bHasLastTraceView { false };
 	bool bLastInputWasGamepad { false };
 	TSet<FKey> SimulatedMouseButtonsDown;
-	double LastSimulatedLeftMousePressTime { -1.0 };
-	double LastSimulatedRightMousePressTime { -1.0 };
 };

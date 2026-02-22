@@ -524,6 +524,11 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 	// If we have a hover item, try to place it
 	if (!IsValid(HoverItem)) return;
+	// Guard against same-frame duplicate click routing (observed with simulated controller mouse input).
+	if ((FPlatformTime::Seconds() - LastHoverAssignedRealtimeSeconds) < 0.04)
+	{
+		return;
+	}
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
 
@@ -1353,6 +1358,7 @@ bool UINV_InventoryGrid::TryHandleControllerConfirmHoverPlacement()
 
 void UINV_InventoryGrid::FinalizeHoverItemAssignment()
 {
+	LastHoverAssignedRealtimeSeconds = FPlatformTime::Seconds();
 	bHasLastTickInputs = false;
 	LastHoveredSlottedIndex = INDEX_NONE;
 
