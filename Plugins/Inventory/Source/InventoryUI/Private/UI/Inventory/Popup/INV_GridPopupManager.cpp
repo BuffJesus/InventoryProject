@@ -78,12 +78,12 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	FVector2D GridMax(-FLT_MAX, -FLT_MAX);
 	for (const TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
 	{
-		const UCanvasPanelSlot* GridSlotCanvasSlot = IsValid(GridSlot)
+		const UCanvasPanelSlot* IterGridSlotCanvasSlot = IsValid(GridSlot)
 			? UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlot)
 			: nullptr;
-		if (!IsValid(GridSlotCanvasSlot)) continue;
-		const FVector2D SlotPos = GridSlotCanvasSlot->GetPosition();
-		const FVector2D SlotMax = SlotPos + GridSlotCanvasSlot->GetSize();
+		if (!IsValid(IterGridSlotCanvasSlot)) continue;
+		const FVector2D SlotPos = IterGridSlotCanvasSlot->GetPosition();
+		const FVector2D SlotMax = SlotPos + IterGridSlotCanvasSlot->GetSize();
 		GridMin.X = FMath::Min(GridMin.X, SlotPos.X);
 		GridMin.Y = FMath::Min(GridMin.Y, SlotPos.Y);
 		GridMax.X = FMath::Max(GridMax.X, SlotMax.X);

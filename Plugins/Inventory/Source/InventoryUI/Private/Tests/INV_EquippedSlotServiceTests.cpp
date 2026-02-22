@@ -153,7 +153,7 @@ bool FINV_EquippedSlotService_ClearSlotResetsStateTest::RunTest(const FString& P
 	FINV_EquippedSlotService::ClearSlot(EquippedGridSlot);
 
 	TestFalse(TEXT("ClearSlot should mark slot as available"), EquippedGridSlot->GetInventoryItem().IsValid());
-	TestEqual(TEXT("ClearSlot should clear equipped slotted item"), EquippedGridSlot->GetEquippedSlottedItem(), nullptr);
+	TestNull(TEXT("ClearSlot should clear equipped slotted item"), EquippedGridSlot->GetEquippedSlottedItem());
 	TestTrue(TEXT("ClearSlot should set slot availability to true"), EquippedGridSlot->GetAvailability());
 	return true;
 }
@@ -180,7 +180,7 @@ bool FINV_EquippedSlotService_EquipItemInSlotInvalidInputsClearStateTest::RunTes
 		FINV_EquippedSlotCallbacks{});
 
 	TestFalse(TEXT("Invalid item should clear inventory item on slot"), EquippedGridSlot->GetInventoryItem().IsValid());
-	TestEqual(TEXT("Invalid item should clear equipped slotted item"), EquippedGridSlot->GetEquippedSlottedItem(), nullptr);
+	TestNull(TEXT("Invalid item should clear equipped slotted item"), EquippedGridSlot->GetEquippedSlottedItem());
 	return true;
 }
 
