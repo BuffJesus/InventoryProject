@@ -14,6 +14,7 @@
 #include "UI/Widgets/HUD/INV_HUDWidget.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWindow.h"
+#include "HAL/PlatformTime.h"
 
 AINV_PlayerController::AINV_PlayerController()
 {
@@ -180,18 +181,6 @@ bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 				: EKeys::RightMouseButton;
 			if (SimulateMouseButtonFromGamepad(MappedMouseKey, Params.Event))
 			{
-				if (Params.Event == IE_Pressed || Params.Event == IE_Released || Params.Event == IE_DoubleClick)
-				{
-					const FInputKeyEventArgs SimulatedMouseArgs = FInputKeyEventArgs::CreateSimulated(
-						MappedMouseKey,
-						Params.Event,
-						Params.AmountDepressed,
-						Params.NumSamples,
-						Params.InputDevice,
-						false,
-						Params.Viewport);
-					Super::InputKey(SimulatedMouseArgs);
-				}
 				return true;
 			}
 
@@ -266,6 +255,14 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 		{
 			SimulatedMouseButtonsDown.Add(MouseButton);
 		}
+		if (MouseButton == EKeys::LeftMouseButton)
+		{
+			LastSimulatedLeftMousePressTime = FPlatformTime::Seconds();
+		}
+		else if (MouseButton == EKeys::RightMouseButton)
+		{
+			LastSimulatedRightMousePressTime = FPlatformTime::Seconds();
+		}
 
 		const FPointerEvent PointerDownEvent = MakePointerEvent(MouseButton);
 		const TSharedPtr<SWindow> ActiveWindow = SlateApp.GetActiveTopLevelWindow();
@@ -287,6 +284,21 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 		return true;
 	}
 
+	return false;
+}
+
+bool AINV_PlayerController::WasSimulatedMouseButtonJustPressed(const FKey& MouseButton) const
+{
+	const double Now = FPlatformTime::Seconds();
+	constexpr double MaxAgeSeconds = 0.08;
+	if (MouseButton == EKeys::LeftMouseButton)
+	{
+		return LastSimulatedLeftMousePressTime > 0.0 && (Now - LastSimulatedLeftMousePressTime) <= MaxAgeSeconds;
+	}
+	if (MouseButton == EKeys::RightMouseButton)
+	{
+		return LastSimulatedRightMousePressTime > 0.0 && (Now - LastSimulatedRightMousePressTime) <= MaxAgeSeconds;
+	}
 	return false;
 }
 

@@ -11,6 +11,7 @@
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "Controllers/INV_PlayerController.h"
 
 UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	TObjectPtr<UINV_ItemPopUp>& ItemPopUp,
@@ -140,8 +141,15 @@ bool FINV_GridPopupManager::ClosePopupIfClickedOutside(
 		PlayerController->WasInputKeyJustPressed(EKeys::LeftMouseButton) ||
 		PlayerController->WasInputKeyJustPressed(EKeys::RightMouseButton) ||
 		PlayerController->WasInputKeyJustPressed(EKeys::MiddleMouseButton);
+	bool bSimulatedClickThisFrame = false;
+	if (const AINV_PlayerController* INVPC = Cast<AINV_PlayerController>(PlayerController))
+	{
+		bSimulatedClickThisFrame =
+			INVPC->WasSimulatedMouseButtonJustPressed(EKeys::LeftMouseButton) ||
+			INVPC->WasSimulatedMouseButtonJustPressed(EKeys::RightMouseButton);
+	}
 
-	if (!bClickedThisFrame) return false;
+	if (!bClickedThisFrame && !bSimulatedClickThisFrame) return false;
 
 	const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
 	if (ItemPopUp->GetCachedGeometry().IsUnderLocation(CursorPosition)) return false;
