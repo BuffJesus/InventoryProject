@@ -25,6 +25,8 @@ public:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	bool SetEquippedItemImageBrush(UINV_InventoryItem* Item, const FVector2D& DrawSize);
 	void AddEquippedItemToOverlay();
+	void SetSlotOccupiedVisual();
+	void SetSlotEmptyVisual();
 	void SetEquippedSlottedItem(UINV_EquippedSlottedItem* Item) { EquippedSlottedItem = Item; };
 	FGameplayTag GetEquipmentTypeTag() const { return EquipmentTypeTag; }
 

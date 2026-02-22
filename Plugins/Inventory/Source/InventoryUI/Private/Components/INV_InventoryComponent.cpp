@@ -396,8 +396,17 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	
 	if (!OwningController.IsValid()) return;
 	
-	bIsOpen ? OwningController->SetInputMode(FInputModeGameAndUI()) 
-			: OwningController->SetInputMode(FInputModeGameOnly());
+	if (bIsOpen)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(Inventory->TakeWidget());
+		InputMode.SetHideCursorDuringCapture(false);
+		OwningController->SetInputMode(InputMode);
+	}
+	else
+	{
+		OwningController->SetInputMode(FInputModeGameOnly());
+	}
 	OwningController->SetIgnoreMoveInput(bIsOpen);
 	OwningController->SetIgnoreLookInput(bIsOpen);
 	

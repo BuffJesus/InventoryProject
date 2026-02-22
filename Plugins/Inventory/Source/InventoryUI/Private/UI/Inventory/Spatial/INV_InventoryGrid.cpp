@@ -1157,7 +1157,26 @@ void UINV_InventoryGrid::ApplyControllerSelectionVisual()
 	}
 
 	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
-	GridSlots[ControllerSelectedIndex]->SetSelectedTexture();
+	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
+	if (!IsValid(SelectedGridSlot)) return;
+
+	if (SelectedGridSlot->GetInventoryItem().IsValid())
+	{
+		int32 UpperLeftIndex = SelectedGridSlot->GetUpperLeftIndex();
+		if (!GridSlots.IsValidIndex(UpperLeftIndex))
+		{
+			UpperLeftIndex = ControllerSelectedIndex;
+		}
+		const UINV_InventoryItem* SelectedInventoryItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
+		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedInventoryItem);
+		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
+		{
+			GridSlot->SetSelectedTexture();
+		});
+		return;
+	}
+
+	SelectedGridSlot->SetSelectedTexture();
 }
 
 void UINV_InventoryGrid::ClearControllerSelectionVisual()
@@ -1165,8 +1184,24 @@ void UINV_InventoryGrid::ClearControllerSelectionVisual()
 	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
 	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
 	if (!IsValid(SelectedGridSlot)) return;
-	if (SelectedGridSlot->GetInventoryItem().IsValid()) SelectedGridSlot->SetOccupiedTexture();
-	else SelectedGridSlot->SetUnoccupiedTexture();
+
+	if (SelectedGridSlot->GetInventoryItem().IsValid())
+	{
+		int32 UpperLeftIndex = SelectedGridSlot->GetUpperLeftIndex();
+		if (!GridSlots.IsValidIndex(UpperLeftIndex))
+		{
+			UpperLeftIndex = ControllerSelectedIndex;
+		}
+		const UINV_InventoryItem* SelectedInventoryItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
+		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedInventoryItem);
+		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
+		{
+			GridSlot->SetOccupiedTexture();
+		});
+		return;
+	}
+
+	SelectedGridSlot->SetUnoccupiedTexture();
 }
 
 void UINV_InventoryGrid::SetControllerSelectedIndex(int32 NewIndex)

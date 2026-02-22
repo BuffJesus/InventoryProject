@@ -46,6 +46,26 @@ FReply UINV_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 	return FReply::Handled();
 }
 
+void UINV_EquippedGridSlot::SetSlotOccupiedVisual()
+{
+	SetAvailability(false);
+	SetOccupiedTexture();
+	if (IsValid(Image_GrayedOutIcon))
+	{
+		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UINV_EquippedGridSlot::SetSlotEmptyVisual()
+{
+	SetAvailability(true);
+	SetUnoccupiedTexture();
+	if (IsValid(Image_GrayedOutIcon))
+	{
+		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
 bool UINV_EquippedGridSlot::SetEquippedItemImageBrush(UINV_InventoryItem* Item, const FVector2D& DrawSize)
 {
 	const FINV_ImageFragment* ImageFragment { GetFragment<FINV_ImageFragment>(Item, FragmentTags::IconFragment) };
@@ -108,6 +128,7 @@ UINV_EquippedSlottedItem* UINV_EquippedGridSlot::OnItemEquipped(UINV_InventoryIt
 	
 	// Set the inventory item on this class (the equipped grid slot)
 	SetInventoryItem(Item);
+	SetSlotOccupiedVisual();
 
 	// Set the image brush on the equipped slotted item
 	if (!SetEquippedItemImageBrush(Item, DrawSize)) return nullptr;

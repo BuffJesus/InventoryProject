@@ -100,6 +100,25 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 {
 	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 	const FKey PressedKey = InKeyEvent.GetKey();
+	const bool bIsGridNavigationKey =
+		PressedKey == EKeys::Gamepad_DPad_Up ||
+		PressedKey == EKeys::Gamepad_DPad_Down ||
+		PressedKey == EKeys::Gamepad_DPad_Left ||
+		PressedKey == EKeys::Gamepad_DPad_Right ||
+		PressedKey == EKeys::Gamepad_LeftStick_Up ||
+		PressedKey == EKeys::Gamepad_LeftStick_Down ||
+		PressedKey == EKeys::Gamepad_LeftStick_Left ||
+		PressedKey == EKeys::Gamepad_LeftStick_Right ||
+		PressedKey == EKeys::Gamepad_FaceButton_Bottom ||
+		PressedKey == EKeys::Gamepad_FaceButton_Left ||
+		PressedKey == EKeys::Gamepad_FaceButton_Right;
+
+	if (bIsGridNavigationKey && ActiveGrid.IsValid() && !ActiveGrid->HasKeyboardFocus())
+	{
+		ActiveGrid->SetKeyboardFocus();
+		return FReply::Handled();
+	}
+
 	if (PressedKey == EKeys::Gamepad_LeftShoulder)
 	{
 		SwitchCategoryByDirection(-1);
@@ -262,7 +281,10 @@ void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem*
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ActiveGrid->DropItem();
+	if (ActiveGrid.IsValid())
+	{
+		ActiveGrid->DropItem();
+	}
 	return FReply::Handled();
 }
 
@@ -359,6 +381,7 @@ void UINV_SpatialInventory::ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridS
 	{
 		EquippedGridSlot->SetEquippedSlottedItem(nullptr);
 		EquippedGridSlot->SetInventoryItem(nullptr);
+		EquippedGridSlot->SetSlotEmptyVisual();
 	}
 }
 
