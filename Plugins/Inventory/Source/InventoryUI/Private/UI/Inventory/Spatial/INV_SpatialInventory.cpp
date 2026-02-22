@@ -17,6 +17,7 @@
 #include "UI/Description/INV_ItemDescription.h"
 #include "UI/Utils/INV_ItemPresentationUtils.h"
 #include "UI/Inventory/Services/INV_EquippedSlotService.h"
+#include "UI/Inventory/Services/INV_SpatialCategoryService.h"
 #include "Framework/Application/SlateApplication.h"
 #include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -71,16 +72,26 @@ void UINV_SpatialInventory::ForEachCategoryButton(TFunctionRef<void(UButton* But
 void UINV_SpatialInventory::SwitchCategoryByDirection(int32 Direction)
 {
 	if (Direction == 0) return;
-	TArray<UINV_InventoryGrid*> OrderedGrids { Grid_Equippable, Grid_Consumable, Grid_Craftable };
-	TArray<UButton*> OrderedButtons { Button_Equippable, Button_Consumable, Button_Craftable };
+
+	TArray<UINV_InventoryGrid*> OrderedGrids;
+	TArray<UButton*> OrderedButtons;
+	BuildCategoryViews(OrderedGrids, OrderedButtons);
+	if (OrderedGrids.Num() != OrderedButtons.Num()) return;
 
 	int32 CurrentIndex = OrderedGrids.Find(ActiveGrid.Get());
-	if (CurrentIndex == INDEX_NONE) CurrentIndex = 0;
+	const int32 NewIndex = FINV_SpatialCategoryService::ResolveNextCategoryIndex(
+		CurrentIndex,
+		Direction,
+		OrderedGrids.Num());
+	if (NewIndex == INDEX_NONE) return;
 
-	const int32 GridCount = OrderedGrids.Num();
-	if (GridCount <= 0) return;
-	const int32 NewIndex = (CurrentIndex + (Direction > 0 ? 1 : -1) + GridCount) % GridCount;
 	SetActiveGrid(OrderedGrids[NewIndex], OrderedButtons[NewIndex]);
+}
+
+void UINV_SpatialInventory::BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutGrids, TArray<UButton*>& OutButtons) const
+{
+	OutGrids = { Grid_Equippable, Grid_Consumable, Grid_Craftable };
+	OutButtons = { Button_Equippable, Button_Consumable, Button_Craftable };
 }
 
 void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button)
@@ -102,18 +113,18 @@ void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* But
 
 bool UINV_SpatialInventory::IsGridNavigationInput(const FKey& PressedKey) const
 {
-	return
-		PressedKey == EKeys::Gamepad_DPad_Up ||
-		PressedKey == EKeys::Gamepad_DPad_Down ||
-		PressedKey == EKeys::Gamepad_DPad_Left ||
-		PressedKey == EKeys::Gamepad_DPad_Right ||
-		PressedKey == EKeys::Gamepad_LeftStick_Up ||
-		PressedKey == EKeys::Gamepad_LeftStick_Down ||
-		PressedKey == EKeys::Gamepad_LeftStick_Left ||
-		PressedKey == EKeys::Gamepad_LeftStick_Right ||
-		PressedKey == EKeys::Gamepad_FaceButton_Bottom ||
-		PressedKey == EKeys::Gamepad_FaceButton_Left ||
-		PressedKey == EKeys::Gamepad_FaceButton_Right;
+	return FINV_SpatialCategoryService::IsGridNavigationInput(PressedKey);
+}
+
+bool UINV_SpatialInventory::TryFocusActiveGridForNavigation(const FKey& PressedKey)
+{
+	if (!IsGridNavigationInput(PressedKey)) return false;
+	if (!ActiveGrid.IsValid()) return false;
+	if (ActiveGrid->HasKeyboardFocus()) return false;
+	if (ActiveGrid->HasOpenItemPopup()) return false;
+
+	ActiveGrid->SetKeyboardFocus();
+	return true;
 }
 
 FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -121,9 +132,8 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 	const FKey PressedKey = InKeyEvent.GetKey();
 
-	if (IsGridNavigationInput(PressedKey) && ActiveGrid.IsValid() && !ActiveGrid->HasKeyboardFocus() && !ActiveGrid->HasOpenItemPopup())
+	if (TryFocusActiveGridForNavigation(PressedKey))
 	{
-		ActiveGrid->SetKeyboardFocus();
 		return FReply::Handled();
 	}
 
@@ -239,6 +249,10 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 		EquipmentTypeTag,
 		TileSize,
 		SlotCallbacks);
+	if (!IsValid(EquippedGridSlot->GetEquippedSlottedItem()))
+	{
+		return;
+	}
 	
 	// Inform the server that we've equipped an item (potentially unequipping an item as well)
 	UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent();
@@ -469,9 +483,11 @@ void UINV_SpatialInventory::BroadcastEquipState(
 	UINV_InventoryItem* ItemToUnequip) const
 {
 	if (!IsValid(InventoryComponent)) return;
+	const APlayerController* OwningPlayer = GetOwningPlayer();
+	if (!IsValid(OwningPlayer)) return;
 
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
-	if (GetOwningPlayer()->GetNetMode() == NM_DedicatedServer) return;
+	if (OwningPlayer->GetNetMode() == NM_DedicatedServer) return;
 
 	InventoryComponent->OnItemEquipped.Broadcast(ItemToEquip);
 	if (IsValid(ItemToUnequip))

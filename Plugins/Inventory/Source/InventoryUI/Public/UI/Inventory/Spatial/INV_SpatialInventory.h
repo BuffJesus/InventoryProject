@@ -66,7 +66,9 @@ private:
 	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
 	void ForEachInventoryGrid(TFunctionRef<void(UINV_InventoryGrid* Grid)> Visitor) const;
 	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
+	void BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutGrids, TArray<UButton*>& OutButtons) const;
 	void SwitchCategoryByDirection(int32 Direction);
+	bool TryFocusActiveGridForNavigation(const FKey& PressedKey);
 	bool IsGridNavigationInput(const FKey& PressedKey) const;
 	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;

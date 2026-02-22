@@ -28,6 +28,7 @@ public:
 	void SetSlotOccupiedVisual();
 	void SetSlotEmptyVisual();
 	void SetEquippedSlottedItem(UINV_EquippedSlottedItem* Item) { EquippedSlottedItem = Item; };
+	UINV_EquippedSlottedItem* GetEquippedSlottedItem() const { return EquippedSlottedItem; }
 	FGameplayTag GetEquipmentTypeTag() const { return EquipmentTypeTag; }
 
 	UINV_EquippedSlottedItem* OnItemEquipped(UINV_InventoryItem* Item, const FGameplayTag& EquipmentTag, float TileSize);
