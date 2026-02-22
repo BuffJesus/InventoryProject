@@ -62,11 +62,11 @@ private:
 
 	// Pixels per second used to move the mouse cursor from left-stick input while inventory is open.
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Cursor", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float VirtualCursorSpeed { 1400.f };
+	float VirtualCursorSpeed { 850.f };
 
 	// Deadzone applied to left-stick input when driving virtual cursor.
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Cursor", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
-	float VirtualCursorDeadzone { 0.18f };
+	float VirtualCursorDeadzone { 0.24f };
 
 	// Label shown for interact when using keyboard/mouse input.
 	UPROPERTY(EditDefaultsOnly, Category="INV|Input|Prompts")

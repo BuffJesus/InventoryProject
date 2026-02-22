@@ -9,7 +9,6 @@
 
 class UINV_EquippedGridSlot;
 class UINV_EquippedSlottedItem;
-class UTextBlock;
 struct FGameplayTag;
 struct FKey;
 class UINV_ItemDescription;
@@ -68,7 +67,6 @@ private:
 	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
 	void BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutGrids, TArray<UButton*>& OutButtons) const;
 	void SwitchCategoryByDirection(int32 Direction);
-	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	float ResolveInventoryTileSize() const;
 	void BuildEquippedSlotCallbacks(FINV_EquippedSlotCallbacks& OutCallbacks);
@@ -88,10 +86,6 @@ private:
 	TSubclassOf<UINV_ItemDescription> ItemDescriptionClass;
 	
 	UPROPERTY() TObjectPtr<UINV_ItemDescription> ItemDescription;
-	UPROPERTY() TObjectPtr<UTextBlock> ControllerHintsText;
-
-	UPROPERTY(EditAnywhere, Category="INV|Controller")
-	FText ControllerHintsLabel { FText::FromString(TEXT("A Select   B Back   X Options   LB/RB Category")) };
 
 	// Prevent immediate close on the same frame the description is opened.
 	bool bSkipDescriptionCloseThisTick { false };

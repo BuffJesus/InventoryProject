@@ -212,7 +212,8 @@ void AINV_PlayerController::UpdateVirtualCursor(const float DeltaTime)
 	const float LeftX = GetInputAnalogKeyState(EKeys::Gamepad_LeftX);
 	const float LeftY = GetInputAnalogKeyState(EKeys::Gamepad_LeftY);
 	const FVector2D StickInput(LeftX, LeftY);
-	if (StickInput.SizeSquared() < FMath::Square(VirtualCursorDeadzone))
+	const float InputMagnitude = StickInput.Size();
+	if (InputMagnitude < VirtualCursorDeadzone)
 	{
 		return;
 	}
@@ -233,8 +234,16 @@ void AINV_PlayerController::UpdateVirtualCursor(const float DeltaTime)
 		MouseY = static_cast<float>(ViewportHeight) * 0.5f;
 	}
 
-	const float DeltaX = StickInput.X * VirtualCursorSpeed * DeltaTime;
-	const float DeltaY = -StickInput.Y * VirtualCursorSpeed * DeltaTime;
+	// Apply deadzone remap and curved response for better fine control at low stick tilt.
+	const float NormalizedMagnitude = FMath::Clamp(
+		(InputMagnitude - VirtualCursorDeadzone) / FMath::Max(0.001f, 1.0f - VirtualCursorDeadzone),
+		0.0f,
+		1.0f);
+	const float ResponseScale = NormalizedMagnitude * NormalizedMagnitude;
+	const FVector2D Direction = StickInput.GetSafeNormal();
+
+	const float DeltaX = Direction.X * ResponseScale * VirtualCursorSpeed * DeltaTime;
+	const float DeltaY = -Direction.Y * ResponseScale * VirtualCursorSpeed * DeltaTime;
 	const int32 NextX = FMath::Clamp(FMath::RoundToInt(MouseX + DeltaX), 0, ViewportWidth - 1);
 	const int32 NextY = FMath::Clamp(FMath::RoundToInt(MouseY + DeltaY), 0, ViewportHeight - 1);
 	SetMouseLocation(NextX, NextY);
