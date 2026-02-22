@@ -175,10 +175,20 @@ bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 	{
 		if (Params.Key == EKeys::Gamepad_FaceButton_Bottom || Params.Key == EKeys::Gamepad_FaceButton_Left)
 		{
-			if (SimulateMouseButtonFromGamepad(
-				Params.Key == EKeys::Gamepad_FaceButton_Bottom ? EKeys::LeftMouseButton : EKeys::RightMouseButton,
-				Params.Event))
+			const FKey MappedMouseKey = Params.Key == EKeys::Gamepad_FaceButton_Bottom
+				? EKeys::LeftMouseButton
+				: EKeys::RightMouseButton;
+			if (SimulateMouseButtonFromGamepad(MappedMouseKey, Params.Event))
 			{
+				const FInputKeyEventArgs SimulatedMouseArgs = FInputKeyEventArgs::CreateSimulated(
+					MappedMouseKey,
+					Params.Event,
+					Params.AmountDepressed,
+					Params.NumSamples,
+					Params.InputDevice,
+					false,
+					Params.Viewport);
+				Super::InputKey(SimulatedMouseArgs);
 				return true;
 			}
 
@@ -247,12 +257,13 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 			FModifierKeysState());
 	};
 
-	if (InputEvent == IE_Pressed || InputEvent == IE_DoubleClick || InputEvent == IE_Repeat)
+	if (InputEvent == IE_Pressed || InputEvent == IE_DoubleClick)
 	{
-		if (!SimulatedMouseButtonsDown.Contains(MouseButton))
+		if (SimulatedMouseButtonsDown.Contains(MouseButton))
 		{
-			SimulatedMouseButtonsDown.Add(MouseButton);
+			return true;
 		}
+		SimulatedMouseButtonsDown.Add(MouseButton);
 
 		const FPointerEvent PointerEvent = MakePointerEvent(MouseButton);
 		const TSharedPtr<SWindow> ActiveWindow = SlateApp.GetActiveTopLevelWindow();
@@ -263,9 +274,18 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 
 	if (InputEvent == IE_Released)
 	{
+		if (!SimulatedMouseButtonsDown.Contains(MouseButton))
+		{
+			return true;
+		}
 		SimulatedMouseButtonsDown.Remove(MouseButton);
 		const FPointerEvent PointerEvent = MakePointerEvent(MouseButton);
 		SlateApp.ProcessMouseButtonUpEvent(PointerEvent);
+		return true;
+	}
+
+	if (InputEvent == IE_Repeat)
+	{
 		return true;
 	}
 

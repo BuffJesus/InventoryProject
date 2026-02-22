@@ -7,6 +7,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
@@ -65,7 +66,12 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 	if (!CanvasGeometry.GetLocalSize().IsNearlyZero())
 	{
 		const FVector2D CursorAbsPosition = FSlateApplication::Get().GetCursorPos();
-		AnchorPosition = CanvasGeometry.AbsoluteToLocal(CursorAbsPosition);
+		USlateBlueprintLibrary::ScreenToWidgetLocal(
+			PlayerController,
+			CanvasGeometry,
+			CursorAbsPosition,
+			AnchorPosition,
+			true);
 	}
 	else
 	{
