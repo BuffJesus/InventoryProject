@@ -54,6 +54,7 @@ public:
 	void AssignHoverItem(UINV_InventoryItem* InventoryItem);
 	bool ReturnHoverItemToPreviousSlot();
 	bool HasOpenItemPopup() const;
+	void CloseItemPopup();
 	
 	UINV_HoverItem* GetHoverItem() const { return HoverItem; } 
 	

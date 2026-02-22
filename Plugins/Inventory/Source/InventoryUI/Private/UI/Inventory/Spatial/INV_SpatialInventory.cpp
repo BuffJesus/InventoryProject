@@ -152,6 +152,15 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 		return FReply::Handled();
 	}
 
+	if (PressedKey == EKeys::Gamepad_FaceButton_Right)
+	{
+		if (ActiveGrid.IsValid() && ActiveGrid->HasOpenItemPopup())
+		{
+			ActiveGrid->CloseItemPopup();
+			return FReply::Handled();
+		}
+	}
+
 	if (PressedKey == EKeys::Gamepad_LeftShoulder)
 	{
 		SwitchCategoryByDirection(-1);

@@ -111,7 +111,7 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 		return;
 	}
 
-	if (bHasOpenPopup && !bUsingGamepadInput)
+	if (bHasOpenPopup)
 	{
 		ClosePopupIfClickedOutside();
 	}
@@ -121,7 +121,6 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	{
 		if (!IsValid(HoverItem) && LastHoveredSlottedIndex != INDEX_NONE && GridSlots.IsValidIndex(LastHoveredSlottedIndex))
 		{
-			ApplyItemFootprintVisualAtIndex(LastHoveredSlottedIndex, false);
 			LastHoveredSlottedIndex = INDEX_NONE;
 			UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 		}
@@ -220,6 +219,11 @@ void UINV_InventoryGrid::ClosePopupIfClickedOutside()
 void UINV_InventoryGrid::CloseActiveItemPopup()
 {
 	FINV_GridPopupManager::CloseActiveItemPopup(ItemPopUp);
+}
+
+void UINV_InventoryGrid::CloseItemPopup()
+{
+	CloseActiveItemPopup();
 }
 
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
@@ -1164,26 +1168,28 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 		const int32 AnchorY = AnchorIndex / GridSize.X;
 		const UINV_InventoryItem* SelectedItem = GridSlots[AnchorIndex]->GetInventoryItem().Get();
 		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedItem);
+		const int32 CurrentOffsetX = FMath::Clamp(CurrentX - AnchorX, 0, FMath::Max(0, Dimensions.X - 1));
+		const int32 CurrentOffsetY = FMath::Clamp(CurrentY - AnchorY, 0, FMath::Max(0, Dimensions.Y - 1));
 
 		if (Delta.X > 0)
 		{
 			TargetX = AnchorX + Dimensions.X;
-			TargetY = AnchorY;
+			TargetY = AnchorY + CurrentOffsetY;
 		}
 		else if (Delta.X < 0)
 		{
 			TargetX = AnchorX - 1;
-			TargetY = AnchorY;
+			TargetY = AnchorY + CurrentOffsetY;
 		}
 		else if (Delta.Y > 0)
 		{
 			TargetY = AnchorY + Dimensions.Y;
-			TargetX = AnchorX;
+			TargetX = AnchorX + CurrentOffsetX;
 		}
 		else if (Delta.Y < 0)
 		{
 			TargetY = AnchorY - 1;
-			TargetX = AnchorX;
+			TargetX = AnchorX + CurrentOffsetX;
 		}
 	}
 
