@@ -34,6 +34,7 @@ protected:
 	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 
 private:
+	bool SimulateMouseButtonFromGamepad(const FKey& MouseButton, EInputEvent InputEvent);
 	void UpdateVirtualCursor(float DeltaTime);
 	// Evaluate view-change thresholds and execute trace when conditions are met.
 	void AttemptTrace(float ElapsedSinceLastCheck);
@@ -121,4 +122,5 @@ private:
 	FRotator LastTraceViewRotation { FRotator::ZeroRotator };
 	bool bHasLastTraceView { false };
 	bool bLastInputWasGamepad { false };
+	TSet<FKey> SimulatedMouseButtonsDown;
 };

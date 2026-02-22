@@ -12,6 +12,8 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "TimerManager.h"
 #include "UI/Widgets/HUD/INV_HUDWidget.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SWindow.h"
 
 AINV_PlayerController::AINV_PlayerController()
 {
@@ -173,20 +175,11 @@ bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 	{
 		if (Params.Key == EKeys::Gamepad_FaceButton_Bottom || Params.Key == EKeys::Gamepad_FaceButton_Left)
 		{
-			if (Params.Event == IE_Pressed || Params.Event == IE_Released || Params.Event == IE_Repeat || Params.Event == IE_DoubleClick)
+			if (SimulateMouseButtonFromGamepad(
+				Params.Key == EKeys::Gamepad_FaceButton_Bottom ? EKeys::LeftMouseButton : EKeys::RightMouseButton,
+				Params.Event))
 			{
-				const FKey MappedMouseKey = Params.Key == EKeys::Gamepad_FaceButton_Bottom
-					? EKeys::LeftMouseButton
-					: EKeys::RightMouseButton;
-				const FInputKeyEventArgs SimulatedMouseArgs = FInputKeyEventArgs::CreateSimulated(
-					MappedMouseKey,
-					Params.Event,
-					Params.AmountDepressed,
-					Params.NumSamples,
-					Params.InputDevice,
-					false,
-					Params.Viewport);
-				return Super::InputKey(SimulatedMouseArgs);
+				return true;
 			}
 
 			return true;
@@ -232,6 +225,51 @@ void AINV_PlayerController::UpdateVirtualCursor(const float DeltaTime)
 	const int32 NextX = FMath::Clamp(FMath::RoundToInt(MouseX + DeltaX), 0, ViewportWidth - 1);
 	const int32 NextY = FMath::Clamp(FMath::RoundToInt(MouseY + DeltaY), 0, ViewportHeight - 1);
 	SetMouseLocation(NextX, NextY);
+}
+
+bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButton, const EInputEvent InputEvent)
+{
+	FSlateApplication& SlateApp = FSlateApplication::Get();
+	const FVector2D CursorScreenPos = SlateApp.GetCursorPos();
+	const uint32 PointerIndex = 0u;
+	const uint32 UserIndex = 0u;
+
+	auto MakePointerEvent = [this, &CursorScreenPos, PointerIndex, UserIndex](const FKey& EffectingButton)
+	{
+		return FPointerEvent(
+			UserIndex,
+			PointerIndex,
+			CursorScreenPos,
+			CursorScreenPos,
+			SimulatedMouseButtonsDown,
+			EffectingButton,
+			0.0f,
+			FModifierKeysState());
+	};
+
+	if (InputEvent == IE_Pressed || InputEvent == IE_DoubleClick || InputEvent == IE_Repeat)
+	{
+		if (!SimulatedMouseButtonsDown.Contains(MouseButton))
+		{
+			SimulatedMouseButtonsDown.Add(MouseButton);
+		}
+
+		const FPointerEvent PointerEvent = MakePointerEvent(MouseButton);
+		const TSharedPtr<SWindow> ActiveWindow = SlateApp.GetActiveTopLevelWindow();
+		const TSharedPtr<FGenericWindow> NativeWindow = ActiveWindow.IsValid() ? ActiveWindow->GetNativeWindow() : nullptr;
+		SlateApp.ProcessMouseButtonDownEvent(NativeWindow, PointerEvent);
+		return true;
+	}
+
+	if (InputEvent == IE_Released)
+	{
+		SimulatedMouseButtonsDown.Remove(MouseButton);
+		const FPointerEvent PointerEvent = MakePointerEvent(MouseButton);
+		SlateApp.ProcessMouseButtonUpEvent(PointerEvent);
+		return true;
+	}
+
+	return false;
 }
 
 void AINV_PlayerController::PrimaryInteract()

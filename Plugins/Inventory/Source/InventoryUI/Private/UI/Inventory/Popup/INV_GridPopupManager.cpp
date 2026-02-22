@@ -61,9 +61,18 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 
 	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
 	FVector2D AnchorPosition = FVector2D::ZeroVector;
-	const FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
-	const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(OwningCanvasPanel);
-	AnchorPosition = MouseViewportPos - CanvasViewportPos;
+	const FGeometry CanvasGeometry = OwningCanvasPanel->GetCachedGeometry();
+	if (!CanvasGeometry.GetLocalSize().IsNearlyZero())
+	{
+		const FVector2D CursorAbsPosition = FSlateApplication::Get().GetCursorPos();
+		AnchorPosition = CanvasGeometry.AbsoluteToLocal(CursorAbsPosition);
+	}
+	else
+	{
+		const FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+		const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(OwningCanvasPanel);
+		AnchorPosition = MouseViewportPos - CanvasViewportPos;
+	}
 
 	// Fallback to slot center if mouse position is unavailable.
 	if ((!FMath::IsFinite(AnchorPosition.X) || !FMath::IsFinite(AnchorPosition.Y)) && IsValid(GridSlotCanvasSlot))
