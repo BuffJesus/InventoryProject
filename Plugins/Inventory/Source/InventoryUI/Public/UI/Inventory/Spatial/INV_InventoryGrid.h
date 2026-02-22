@@ -113,6 +113,8 @@ private:
 	bool IsControllerSelectedIndexValid() const;
 	int32 GetControllerSelectedIndex() const;
 	void PositionHoverItemAtGridIndex(int32 GridIndex);
+	void RefreshControllerHoverPlacementVisual();
+	int32 ClampControllerAnchorIndexForHover(int32 CandidateIndex) const;
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
 	TSubclassOf<UINV_ItemPopUp> ItemPopUpClass;

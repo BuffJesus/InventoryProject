@@ -57,10 +57,34 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 		AnchorPosition = GridSlotCanvasSlot->GetPosition() + (GridSlotCanvasSlot->GetSize() * 0.5f);
 	}
 
-	const FVector2D ClampedPosition = UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
-		UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel),
+	FVector2D GridMin(FLT_MAX, FLT_MAX);
+	FVector2D GridMax(-FLT_MAX, -FLT_MAX);
+	for (const TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
+	{
+		const UCanvasPanelSlot* GridSlotCanvasSlot = IsValid(GridSlot)
+			? UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlot)
+			: nullptr;
+		if (!IsValid(GridSlotCanvasSlot)) continue;
+		const FVector2D SlotPos = GridSlotCanvasSlot->GetPosition();
+		const FVector2D SlotMax = SlotPos + GridSlotCanvasSlot->GetSize();
+		GridMin.X = FMath::Min(GridMin.X, SlotPos.X);
+		GridMin.Y = FMath::Min(GridMin.Y, SlotPos.Y);
+		GridMax.X = FMath::Max(GridMax.X, SlotMax.X);
+		GridMax.Y = FMath::Max(GridMax.Y, SlotMax.Y);
+	}
+	if (!FMath::IsFinite(GridMin.X) || !FMath::IsFinite(GridMin.Y) || !FMath::IsFinite(GridMax.X) || !FMath::IsFinite(GridMax.Y))
+	{
+		GridMin = FVector2D::ZeroVector;
+		GridMax = UINV_WidgetUtils::GetWidgetSize(OwningCanvasPanel);
+	}
+	const FVector2D GridBoundsSize = FVector2D(
+		FMath::Max(0.f, GridMax.X - GridMin.X),
+		FMath::Max(0.f, GridMax.Y - GridMin.Y));
+
+	const FVector2D ClampedPosition = GridMin + UINV_WidgetUtils::GetCenteredClampedWidgetPosition(
+		GridBoundsSize,
 		PopUpSize,
-		AnchorPosition);
+		AnchorPosition - GridMin);
 	CanvasSlot->SetPosition(ClampedPosition);
 
 	// Configure split button visibility

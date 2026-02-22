@@ -27,6 +27,7 @@ class INVENTORYUI_API UINV_ItemPopUp : public UUserWidget
 public:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	
 	int32 GetSplitAmount() const;
 	int32 GetGridIndex() const { return GridIndex; }
@@ -56,6 +57,7 @@ private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<USizeBox> SizeBox_Root;
 	
 	int32 GridIndex { INDEX_NONE };
+	bool bUpdatingSliderFromSnap { false };
 	
 	UFUNCTION() void SplitButtonClicked();
 	UFUNCTION() void DropButtonClicked();

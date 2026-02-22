@@ -7,6 +7,7 @@
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
+#include "InputCoreTypes.h"
 
 void UINV_ItemPopUp::NativeOnInitialized()
 {
@@ -31,6 +32,32 @@ void UINV_ItemPopUp::NativeConstruct()
 int32 UINV_ItemPopUp::GetSplitAmount() const
 {
 	return FMath::Floor(Slider_Split->GetValue());
+}
+
+FReply UINV_ItemPopUp::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	if (!IsValid(Slider_Split) || Slider_Split->GetVisibility() != ESlateVisibility::Visible)
+	{
+		return FReply::Unhandled();
+	}
+
+	const FKey Key = InKeyEvent.GetKey();
+	const bool bDecrease = Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left || Key == EKeys::Left;
+	const bool bIncrease = Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right || Key == EKeys::Right;
+	if (!bDecrease && !bIncrease)
+	{
+		return FReply::Unhandled();
+	}
+
+	const float MinValue = Slider_Split->GetMinValue();
+	const float MaxValue = Slider_Split->GetMaxValue();
+	const float CurrentValue = FMath::RoundHalfFromZero(Slider_Split->GetValue());
+	const float NextValue = bIncrease
+		? FMath::Clamp(CurrentValue + 1.0f, MinValue, MaxValue)
+		: FMath::Clamp(CurrentValue - 1.0f, MinValue, MaxValue);
+	Slider_Split->SetValue(NextValue);
+	return FReply::Handled();
 }
 
 void UINV_ItemPopUp::FocusDefaultAction()
@@ -113,8 +140,11 @@ void UINV_ItemPopUp::SetSliderParams(const float Max, const float Value) const
 {
 	Slider_Split->SetMaxValue(Max);
 	Slider_Split->SetMinValue(1);
-	Slider_Split->SetValue(Value);
-	Text_SplitAmount->SetText(FText::AsNumber(FMath::Floor(Value)));
+	const float StepDenominator = FMath::Max(1.0f, Max - 1.0f);
+	Slider_Split->SetStepSize(1.0f / StepDenominator);
+	const float SnappedInitialValue = FMath::RoundHalfFromZero(FMath::Clamp(Value, 1.0f, Max));
+	Slider_Split->SetValue(SnappedInitialValue);
+	Text_SplitAmount->SetText(FText::AsNumber(FMath::RoundToInt(SnappedInitialValue)));
 }
 
 FVector2D UINV_ItemPopUp::GetBoxSize() const
@@ -146,5 +176,14 @@ void UINV_ItemPopUp::InspectButtonClicked()
 
 void UINV_ItemPopUp::SliderValueChanged(float Value)
 {
-	Text_SplitAmount->SetText(FText::AsNumber(FMath::Floor(Value)));
+	const float MinValue = Slider_Split->GetMinValue();
+	const float MaxValue = Slider_Split->GetMaxValue();
+	const float SnappedValue = FMath::RoundHalfFromZero(FMath::Clamp(Value, MinValue, MaxValue));
+	if (!bUpdatingSliderFromSnap && !FMath::IsNearlyEqual(Value, SnappedValue, KINDA_SMALL_NUMBER))
+	{
+		bUpdatingSliderFromSnap = true;
+		Slider_Split->SetValue(SnappedValue);
+		bUpdatingSliderFromSnap = false;
+	}
+	Text_SplitAmount->SetText(FText::AsNumber(FMath::RoundToInt(SnappedValue)));
 }
