@@ -141,7 +141,7 @@ void AINV_PlayerController::SetupInputComponent()
 bool AINV_PlayerController::InputKey(const FInputKeyEventArgs& Params)
 {
 	const bool bIsGamepadInput = Params.Key.IsGamepadKey();
-	const bool bIsMouseOrKeyboardInput = Params.Key.IsMouseButton() || Params.Key.IsKeyboardKey();
+	const bool bIsMouseOrKeyboardInput = !bIsGamepadInput;
 	const bool bPreviousInputWasGamepad = bLastInputWasGamepad;
 
 	if (bIsGamepadInput || bIsMouseOrKeyboardInput)

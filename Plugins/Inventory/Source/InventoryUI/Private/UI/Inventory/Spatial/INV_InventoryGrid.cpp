@@ -70,11 +70,6 @@ bool IsControllerMoveRightKey(const FKey& Key)
 {
 	return Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right;
 }
-
-FReply ResolveUnhandledWithSuper(const FReply& SuperReply)
-{
-	return SuperReply.IsEventHandled() ? SuperReply : FReply::Unhandled();
-}
 }
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
@@ -367,7 +362,7 @@ void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Res
 
 FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	const FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 	const FKey PressedKey = InKeyEvent.GetKey();
 
 	if (IsControllerMoveUpKey(PressedKey))
@@ -413,7 +408,7 @@ FReply UINV_InventoryGrid::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 		return HandleControllerContext() ? FReply::Handled() : FReply::Unhandled();
 	}
 
-	return ResolveUnhandledWithSuper(SuperReply);
+	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
 }
 
 void UINV_InventoryGrid::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)

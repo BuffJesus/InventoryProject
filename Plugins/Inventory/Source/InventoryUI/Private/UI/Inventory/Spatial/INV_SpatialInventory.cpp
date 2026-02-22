@@ -24,14 +24,6 @@
 #include "UI/Inventory/SlottedItems/INV_EquippedSlottedItem.h"
 #include "InputCoreTypes.h"
 
-namespace
-{
-FReply ResolveUnhandledWithSuper(const FReply& SuperReply)
-{
-	return SuperReply.IsEventHandled() ? SuperReply : FReply::Unhandled();
-}
-}
-
 void UINV_SpatialInventory::ShowEquippableGrid()
 {
 	SetActiveGrid(Grid_Equippable, Button_Equippable);
@@ -178,7 +170,7 @@ bool UINV_SpatialInventory::TryFocusActiveGridForNavigation(const FKey& PressedK
 
 FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	const FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	FReply SuperReply = Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 	const FKey PressedKey = InKeyEvent.GetKey();
 
 	if (TryFocusActiveGridForNavigation(PressedKey))
@@ -205,7 +197,7 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 		SwitchCategoryByDirection(1);
 		return FReply::Handled();
 	}
-	return ResolveUnhandledWithSuper(SuperReply);
+	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
 }
 
 bool UINV_SpatialInventory::TryEquipHoveredItemFromController()
@@ -406,10 +398,10 @@ void UINV_SpatialInventory::SwapEquippedItemWithHover(UINV_EquippedSlottedItem* 
 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	const FReply SuperReply = Super::NativeOnMouseButtonDown(MyGeometry, MouseEvent);
+	FReply SuperReply = Super::NativeOnMouseButtonDown(MyGeometry, MouseEvent);
 	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
 	{
-		return ResolveUnhandledWithSuper(SuperReply);
+		return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
 	}
 
 	if (ActiveGrid.IsValid() && ActiveGrid->HasHoverItem())
@@ -418,7 +410,7 @@ FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometr
 		return FReply::Handled();
 	}
 
-	return ResolveUnhandledWithSuper(SuperReply);
+	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
 }
 
 FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const
