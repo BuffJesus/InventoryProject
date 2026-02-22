@@ -247,14 +247,14 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 	const uint32 PointerIndex = 0u;
 	const uint32 UserIndex = 0u;
 
-	auto MakePointerEvent = [&CursorScreenPos, PointerIndex, UserIndex, MouseButton](const FKey& EffectingButton)
+	auto MakePointerEvent = [this, &CursorScreenPos, PointerIndex, UserIndex](const FKey& EffectingButton)
 	{
 		return FPointerEvent(
 			UserIndex,
 			PointerIndex,
 			CursorScreenPos,
 			CursorScreenPos,
-			TSet<FKey>{ MouseButton },
+			SimulatedMouseButtonsDown,
 			EffectingButton,
 			0.0f,
 			FModifierKeysState());
@@ -262,17 +262,23 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 
 	if (InputEvent == IE_Pressed || InputEvent == IE_DoubleClick)
 	{
+		if (!SimulatedMouseButtonsDown.Contains(MouseButton))
+		{
+			SimulatedMouseButtonsDown.Add(MouseButton);
+		}
+
 		const FPointerEvent PointerDownEvent = MakePointerEvent(MouseButton);
 		const TSharedPtr<SWindow> ActiveWindow = SlateApp.GetActiveTopLevelWindow();
 		const TSharedPtr<FGenericWindow> NativeWindow = ActiveWindow.IsValid() ? ActiveWindow->GetNativeWindow() : nullptr;
 		SlateApp.ProcessMouseButtonDownEvent(NativeWindow, PointerDownEvent);
-		const FPointerEvent PointerUpEvent = MakePointerEvent(MouseButton);
-		SlateApp.ProcessMouseButtonUpEvent(PointerUpEvent);
 		return true;
 	}
 
 	if (InputEvent == IE_Released)
 	{
+		SimulatedMouseButtonsDown.Remove(MouseButton);
+		const FPointerEvent PointerUpEvent = MakePointerEvent(MouseButton);
+		SlateApp.ProcessMouseButtonUpEvent(PointerUpEvent);
 		return true;
 	}
 

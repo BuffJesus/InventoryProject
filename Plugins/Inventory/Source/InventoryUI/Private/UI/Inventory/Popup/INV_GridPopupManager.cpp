@@ -7,6 +7,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
@@ -61,7 +62,13 @@ UINV_ItemPopUp* FINV_GridPopupManager::CreateItemPopup(
 
 	const UCanvasPanelSlot* GridSlotCanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(GridSlots[GridIndex]);
 	FVector2D AnchorPosition = FVector2D::ZeroVector;
-	const FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+	FVector2D MouseViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PlayerController);
+	if (IsValid(PlayerController))
+	{
+		FVector2D PixelPosition = FVector2D::ZeroVector;
+		const FVector2D CursorAbsPosition = FSlateApplication::Get().GetCursorPos();
+		USlateBlueprintLibrary::AbsoluteToViewport(PlayerController, CursorAbsPosition, PixelPosition, MouseViewportPos);
+	}
 	const FVector2D CanvasViewportPos = UINV_WidgetUtils::GetWidgetPosition(OwningCanvasPanel);
 	AnchorPosition = MouseViewportPos - CanvasViewportPos;
 
