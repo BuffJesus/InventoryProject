@@ -89,18 +89,19 @@ void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* But
 	ActiveGrid = Grid;
 	if (ActiveGrid.IsValid()) ActiveGrid->ShowCursor();
 	DisableButton(Button);
-	Switcher->SetActiveWidget(Grid);
+	if (IsValid(Switcher) && IsValid(Grid))
+	{
+		Switcher->SetActiveWidget(Grid);
+	}
 	if (ActiveGrid.IsValid())
 	{
 		ActiveGrid->SetKeyboardFocus();
 	}
 }
 
-FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+bool UINV_SpatialInventory::IsGridNavigationInput(const FKey& PressedKey) const
 {
-	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
-	const FKey PressedKey = InKeyEvent.GetKey();
-	const bool bIsGridNavigationKey =
+	return
 		PressedKey == EKeys::Gamepad_DPad_Up ||
 		PressedKey == EKeys::Gamepad_DPad_Down ||
 		PressedKey == EKeys::Gamepad_DPad_Left ||
@@ -112,8 +113,14 @@ FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const
 		PressedKey == EKeys::Gamepad_FaceButton_Bottom ||
 		PressedKey == EKeys::Gamepad_FaceButton_Left ||
 		PressedKey == EKeys::Gamepad_FaceButton_Right;
+}
 
-	if (bIsGridNavigationKey && ActiveGrid.IsValid() && !ActiveGrid->HasKeyboardFocus() && !ActiveGrid->HasOpenItemPopup())
+FReply UINV_SpatialInventory::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	const FKey PressedKey = InKeyEvent.GetKey();
+
+	if (IsGridNavigationInput(PressedKey) && ActiveGrid.IsValid() && !ActiveGrid->HasKeyboardFocus() && !ActiveGrid->HasOpenItemPopup())
 	{
 		ActiveGrid->SetKeyboardFocus();
 		return FReply::Handled();
@@ -153,6 +160,12 @@ void UINV_SpatialInventory::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	SetIsFocusable(true);
+
+	if (!IsValid(Button_Equippable) || !IsValid(Button_Consumable) || !IsValid(Button_Craftable) || !IsValid(Switcher))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Spatial inventory is missing required category widgets."));
+		return;
+	}
 	
 	Button_Equippable->OnClicked.AddDynamic(this, &ThisClass::ShowEquippableGrid);
 	Button_Consumable->OnClicked.AddDynamic(this, &ThisClass::ShowConsumableGrid);
@@ -224,15 +237,9 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 	BindEquippedSlottedItemDelegates(EquippedSlottedItem);
 	
 	// Inform the server that we've equipped an item (potentially unequipping an item as well)
-	UINV_InventoryComponent* InventoryComponent { UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()) };
+	UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent();
 	checkf(InventoryComponent, TEXT("Inventory component is invalid"));
-	
-	InventoryComponent->Server_EquipSlotClicked(HoveredInventoryItem, nullptr);
-	
-	if (GetOwningPlayer()->GetNetMode() != NM_DedicatedServer)
-	{
-		InventoryComponent->OnItemEquipped.Broadcast(HoveredInventoryItem);
-	}
+	BroadcastEquipState(InventoryComponent, HoveredInventoryItem, nullptr);
 	
 	// Clear the hover item
 	Grid_Equippable->ClearHoverItem();
@@ -290,11 +297,16 @@ FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometr
 
 FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const
 {
+	if (!IsValid(ItemComponent))
+	{
+		return FINV_SlotAvailabilityResult();
+	}
+
 	switch (UINV_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent))
 	{
-		case EINV_ItemCategory::Equippable: return Grid_Equippable->HasRoomForItem(ItemComponent);
-		case EINV_ItemCategory::Consumable: return Grid_Consumable->HasRoomForItem(ItemComponent);
-		case EINV_ItemCategory::Craftable: return Grid_Craftable->HasRoomForItem(ItemComponent);
+		case EINV_ItemCategory::Equippable: return IsValid(Grid_Equippable) ? Grid_Equippable->HasRoomForItem(ItemComponent) : FINV_SlotAvailabilityResult();
+		case EINV_ItemCategory::Consumable: return IsValid(Grid_Consumable) ? Grid_Consumable->HasRoomForItem(ItemComponent) : FINV_SlotAvailabilityResult();
+		case EINV_ItemCategory::Craftable: return IsValid(Grid_Craftable) ? Grid_Craftable->HasRoomForItem(ItemComponent) : FINV_SlotAvailabilityResult();
 		default:
 		UE_LOG(LogTemp, Error, TEXT("Invalid item category for inventory slot availability check"));
 		return FINV_SlotAvailabilityResult();
@@ -314,8 +326,7 @@ bool UINV_SpatialInventory::HasHoverItem() const
 		if (bHasHoverItem || !IsValid(Grid)) return;
 		bHasHoverItem = Grid->HasHoverItem();
 	});
-	if (bHasHoverItem) return true;
-	return false;
+	return bHasHoverItem;
 }
 
 void UINV_SpatialInventory::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -332,7 +343,7 @@ UINV_HoverItem* UINV_SpatialInventory::GetHoverItem() const
 
 float UINV_SpatialInventory::GetTileSize() const
 {
-	return Grid_Equippable->GetTileSize();
+	return IsValid(Grid_Equippable) ? Grid_Equippable->GetTileSize() : 0.f;
 }
 
 void UINV_SpatialInventory::ReturnActiveHoverItemToSource()
@@ -420,13 +431,29 @@ void UINV_SpatialInventory::MakeEquippedSlottedItem(UINV_EquippedGridSlot* Equip
 void UINV_SpatialInventory::BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip,
 	UINV_InventoryItem* ItemToUnequip)
 {
-	UINV_InventoryComponent* InventoryComponent { UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()) };
+	UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent();
 	checkf(InventoryComponent, TEXT("Inventory component is invalid"));
+	BroadcastEquipState(InventoryComponent, ItemToEquip, ItemToUnequip);
+}
+
+UINV_InventoryComponent* UINV_SpatialInventory::ResolveInventoryComponent() const
+{
+	return UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
+}
+
+void UINV_SpatialInventory::BroadcastEquipState(
+	UINV_InventoryComponent* InventoryComponent,
+	UINV_InventoryItem* ItemToEquip,
+	UINV_InventoryItem* ItemToUnequip) const
+{
+	if (!IsValid(InventoryComponent)) return;
+
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
-	
-	if (GetOwningPlayer()->GetNetMode() != NM_DedicatedServer)
+	if (GetOwningPlayer()->GetNetMode() == NM_DedicatedServer) return;
+
+	InventoryComponent->OnItemEquipped.Broadcast(ItemToEquip);
+	if (IsValid(ItemToUnequip))
 	{
-		InventoryComponent->OnItemEquipped.Broadcast(ItemToEquip);
 		InventoryComponent->OnItemUnequipped.Broadcast(ItemToUnequip);
 	}
 }
@@ -481,8 +508,7 @@ bool UINV_SpatialInventory::CanEquipHoverItem(UINV_EquippedGridSlot* EquippedGri
 	UINV_InventoryItem* HeldItem { HoverItem->GetInventoryItem() };
 	if (!IsValid(HeldItem)) return false;
 	
-	return HasHoverItem() && IsValid(HeldItem) && 
-		!HoverItem->IsStackable() && 
+	return !HoverItem->IsStackable() &&
 			HeldItem->GetItemManifest().GetItemCategory() == EINV_ItemCategory::Equippable &&
 			HeldItem->GetItemManifest().GetItemType().MatchesTag(EquipmentTypeTag);
 }

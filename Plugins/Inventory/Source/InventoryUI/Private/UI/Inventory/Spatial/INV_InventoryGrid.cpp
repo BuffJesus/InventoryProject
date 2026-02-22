@@ -222,6 +222,11 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	// Check hover position - delegate to placement engine
 	CurrentQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(GridSlots, GridSize, StartingCoord, Dimensions);
 
+	ApplyHoverPlacementVisuals(Dimensions);
+}
+
+void UINV_InventoryGrid::ApplyHoverPlacementVisuals(const FIntPoint& Dimensions)
+{
 	if (CurrentQueryResult.bHasSpace)
 	{
 		// Free space: highlight potential drop area.
@@ -229,20 +234,27 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 		HighlightSlots(ItemDropIndex, Dimensions);
 		return;
 	}
+
 	UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
 	HighlightBlockingItems(CurrentQueryResult.BlockingUpperLeftIndices);
+	HighlightHoverFootprintSelection(Dimensions);
+}
 
+void UINV_InventoryGrid::HighlightHoverFootprintSelection(const FIntPoint& Dimensions)
+{
 	// Show the exact hovered-item placement footprint with a distinct visual.
-	if (FINV_GridPlacementEngine::IsInGridBounds(ItemDropIndex, Dimensions, GridSize))
+	if (!FINV_GridPlacementEngine::IsInGridBounds(ItemDropIndex, Dimensions, GridSize))
 	{
-		FINV_GridIteration::ForEach2D(GridSlots, ItemDropIndex, Dimensions, GridSize.X,
-			[](UINV_GridSlot* GridSlot)
-		{
-			GridSlot->SetSelectedTexture();
-		});
-		LastHighlightedIndex = ItemDropIndex;
-		LastHighlightedDimensions = Dimensions;
+		return;
 	}
+
+	FINV_GridIteration::ForEach2D(GridSlots, ItemDropIndex, Dimensions, GridSize.X,
+		[](UINV_GridSlot* GridSlot)
+	{
+		GridSlot->SetSelectedTexture();
+	});
+	LastHighlightedIndex = ItemDropIndex;
+	LastHighlightedDimensions = Dimensions;
 }
 
 void UINV_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dimensions)
@@ -833,13 +845,7 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;
 	UINV_InventoryStatics::ItemHovered(GetOwningPlayer(), const_cast<UINV_InventoryItem*>(HoveredInventoryItem));
-
-	const FIntPoint Dimensions = GetItemDimensionsOrDefault(HoveredInventoryItem);
-
-	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
-	{
-		GridSlot->SetSelectedTexture();
-	});
+	ApplyItemFootprintVisualAtIndex(GridIndex, true);
 
 	LastHoveredSlottedIndex = GridIndex;
 }
@@ -852,13 +858,7 @@ void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerE
 
 	const UINV_InventoryItem* HoveredInventoryItem { GridSlots[GridIndex]->GetInventoryItem().Get() };
 	if (!IsValid(HoveredInventoryItem)) return;
-
-	const FIntPoint Dimensions = GetItemDimensionsOrDefault(HoveredInventoryItem);
-
-	FINV_GridIteration::ForEach2D(GridSlots, GridIndex, Dimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
-	{
-		GridSlot->SetOccupiedTexture();
-	});
+	ApplyItemFootprintVisualAtIndex(GridIndex, false);
 
 	if (LastHoveredSlottedIndex == GridIndex)
 	{
@@ -1319,13 +1319,18 @@ int32 UINV_InventoryGrid::ResolveControllerActionIndex(const int32 GridIndex) co
 
 void UINV_InventoryGrid::ApplyControllerVisualForSelectedIndex(const bool bSelectedVisual)
 {
-	if (!GridSlots.IsValidIndex(ControllerSelectedIndex)) return;
-	UINV_GridSlot* SelectedGridSlot = GridSlots[ControllerSelectedIndex];
+	ApplyItemFootprintVisualAtIndex(ControllerSelectedIndex, bSelectedVisual);
+}
+
+void UINV_InventoryGrid::ApplyItemFootprintVisualAtIndex(const int32 GridIndex, const bool bSelectedVisual)
+{
+	if (!GridSlots.IsValidIndex(GridIndex)) return;
+	UINV_GridSlot* SelectedGridSlot = GridSlots[GridIndex];
 	if (!IsValid(SelectedGridSlot)) return;
 
 	if (SelectedGridSlot->GetInventoryItem().IsValid())
 	{
-		const int32 UpperLeftIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
+		const int32 UpperLeftIndex = ResolveControllerActionIndex(GridIndex);
 		const UINV_InventoryItem* SelectedInventoryItem = GridSlots[UpperLeftIndex]->GetInventoryItem().Get();
 		const FIntPoint Dimensions = GetItemDimensionsOrDefault(SelectedInventoryItem);
 		FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X,
@@ -1398,26 +1403,7 @@ void UINV_InventoryGrid::RefreshControllerHoverPlacementVisual()
 		GridSize,
 		AnchorCoordinates,
 		HoverDimensions);
-
-	if (CurrentQueryResult.bHasSpace)
-	{
-		UnHighlightBlockingItems();
-		HighlightSlots(ItemDropIndex, HoverDimensions);
-	}
-	else
-	{
-		UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
-		HighlightBlockingItems(CurrentQueryResult.BlockingUpperLeftIndices);
-		if (FINV_GridPlacementEngine::IsInGridBounds(ItemDropIndex, HoverDimensions, GridSize))
-		{
-			FINV_GridIteration::ForEach2D(GridSlots, ItemDropIndex, HoverDimensions, GridSize.X, [](UINV_GridSlot* GridSlot)
-			{
-				GridSlot->SetSelectedTexture();
-			});
-			LastHighlightedIndex = ItemDropIndex;
-			LastHighlightedDimensions = HoverDimensions;
-		}
-	}
+	ApplyHoverPlacementVisuals(HoverDimensions);
 
 	PositionHoverItemAtGridIndex(ControllerSelectedIndex);
 }
@@ -1456,16 +1442,21 @@ void UINV_InventoryGrid::CreateItemPopup(const int32 GridIndex)
 	if (!IsValid(ItemPopUp)) return;
 
 	// Bind popup callbacks once per popup widget instance.
-	if (BoundItemPopUpForCallbacks.Get() != ItemPopUp)
-	{
-		ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
-		ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
-		ItemPopUp->OnInspect.BindDynamic(this, &ThisClass::OnPopUpMenuInspect);
-		ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
-		BoundItemPopUpForCallbacks = ItemPopUp;
-	}
+	BindItemPopupCallbacksIfNeeded();
 
 	ItemPopUp->FocusDefaultAction();
+}
+
+void UINV_InventoryGrid::BindItemPopupCallbacksIfNeeded()
+{
+	if (!IsValid(ItemPopUp)) return;
+	if (BoundItemPopUpForCallbacks.Get() == ItemPopUp) return;
+
+	ItemPopUp->OnSplit.BindDynamic(this, &ThisClass::OnPopUpMenuSplit);
+	ItemPopUp->OnDrop.BindDynamic(this, &ThisClass::OnPopUpMenuDrop);
+	ItemPopUp->OnInspect.BindDynamic(this, &ThisClass::OnPopUpMenuInspect);
+	ItemPopUp->OnConsume.BindDynamic(this, &ThisClass::OnPopUpMenuConsume);
+	BoundItemPopUpForCallbacks = ItemPopUp;
 }
 
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const

@@ -122,9 +122,11 @@ private:
 	TOptional<FVector2D> ComputeSourceViewportCenterForGridIndex(int32 GridIndex) const;
 	int32 ResolveControllerActionIndex(int32 GridIndex) const;
 	void ApplyControllerVisualForSelectedIndex(bool bSelectedVisual);
+	void ApplyItemFootprintVisualAtIndex(int32 GridIndex, bool bSelectedVisual);
 	void PositionHoverItemAtGridIndex(int32 GridIndex);
 	void RefreshControllerHoverPlacementVisual();
 	int32 ClampControllerAnchorIndexForHover(int32 CandidateIndex) const;
+	void BindItemPopupCallbacksIfNeeded();
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
 	TSubclassOf<UINV_ItemPopUp> ItemPopUpClass;
@@ -160,6 +162,8 @@ private:
 	void RemoveItemFromGrid(const UINV_InventoryItem* InventoryItem, const int32 GridIndex);
 	void UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos);
 	void OnTileParamsUpdated(const FINV_TileParams& Params);
+	void ApplyHoverPlacementVisuals(const FIntPoint& Dimensions);
+	void HighlightHoverFootprintSelection(const FIntPoint& Dimensions);
 	void HighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 	void UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 	void HighlightBlockingItems(const TArray<int32>& BlockingUpperLeftIndices);

@@ -11,11 +11,13 @@ class UINV_EquippedGridSlot;
 class UINV_EquippedSlottedItem;
 class UTextBlock;
 struct FGameplayTag;
+struct FKey;
 class UINV_ItemDescription;
 class UCanvasPanel;
 class UButton;
 class UWidgetSwitcher;
 class UINV_InventoryGrid;
+class UINV_InventoryComponent;
 /**
  * 
  */
@@ -64,11 +66,14 @@ private:
 	void ForEachInventoryGrid(TFunctionRef<void(UINV_InventoryGrid* Grid)> Visitor) const;
 	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
 	void SwitchCategoryByDirection(int32 Direction);
+	bool IsGridNavigationInput(const FKey& PressedKey) const;
 	void EnsureControllerHintWidget();
 	void SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description, UCanvasPanel* Canvas, const FVector2D& OpenPosition) const;
 	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
 	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	void MakeEquippedSlottedItem(UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip, const FGameplayTag& EquipmentTypeTag);
+	UINV_InventoryComponent* ResolveInventoryComponent() const;
+	void BroadcastEquipState(UINV_InventoryComponent* InventoryComponent, UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip) const;
 	void BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
 	void BindEquippedSlottedItemDelegates(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	void UnbindEquippedSlottedItemDelegates(UINV_EquippedSlottedItem* EquippedSlottedItem);
