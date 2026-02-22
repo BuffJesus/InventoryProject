@@ -1193,8 +1193,56 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 		}
 	}
 
-	const int32 NewX = SpanX > 0 ? (TargetX % SpanX + SpanX) % SpanX : 0;
-	const int32 NewY = SpanY > 0 ? (TargetY % SpanY + SpanY) % SpanY : 0;
+	int32 NewX = SpanX > 0 ? (TargetX % SpanX + SpanX) % SpanX : 0;
+	int32 NewY = SpanY > 0 ? (TargetY % SpanY + SpanY) % SpanY : 0;
+
+	// While dragging with controller, skip across blocking footprints so lateral navigation
+	// does not require repeated presses through large occupied regions.
+	if (IsValid(HoverItem))
+	{
+		const FIntPoint HoverDimensions = HoverItem->GetGridDimensions();
+		for (int32 Attempt = 0; Attempt < 6; ++Attempt)
+		{
+			const FINV_SpaceQueryResult Query = FINV_GridPlacementEngine::CheckHoverPosition(
+				GridSlots,
+				GridSize,
+				FIntPoint(NewX, NewY),
+				HoverDimensions);
+			if (Query.bHasSpace || Query.BlockingUpperLeftIndices.Num() == 0)
+			{
+				break;
+			}
+
+			const int32 BlockerIndex = Query.BlockingUpperLeftIndices[0];
+			if (!GridSlots.IsValidIndex(BlockerIndex))
+			{
+				break;
+			}
+
+			const int32 BlockerX = BlockerIndex % GridSize.X;
+			const int32 BlockerY = BlockerIndex / GridSize.X;
+			const UINV_InventoryItem* BlockingItem = GridSlots[BlockerIndex]->GetInventoryItem().Get();
+			const FIntPoint BlockerDimensions = GetItemDimensionsOrDefault(BlockingItem);
+
+			if (Delta.X > 0)
+			{
+				NewX = FMath::Clamp(BlockerX + BlockerDimensions.X, 0, MaxX);
+			}
+			else if (Delta.X < 0)
+			{
+				NewX = FMath::Clamp(BlockerX - HoverDimensions.X, 0, MaxX);
+			}
+			else if (Delta.Y > 0)
+			{
+				NewY = FMath::Clamp(BlockerY + BlockerDimensions.Y, 0, MaxY);
+			}
+			else if (Delta.Y < 0)
+			{
+				NewY = FMath::Clamp(BlockerY - HoverDimensions.Y, 0, MaxY);
+			}
+		}
+	}
+
 	SetControllerSelectedIndex(UINV_WidgetUtils::GetIndexFromPosition(FIntPoint(NewX, NewY), GridSize.X));
 	return true;
 }

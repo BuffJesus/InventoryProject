@@ -381,7 +381,7 @@ FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometr
 
 FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const
 {
-	if (!IsValid(ItemComponent))
+	if (ItemComponent == nullptr)
 	{
 		return FINV_SlotAvailabilityResult();
 	}
