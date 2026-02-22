@@ -1,25 +1,7 @@
 #include "UI/Inventory/Services/INV_SpatialCategoryService.h"
-#include "InputCoreTypes.h"
 #include "Misc/AutomationTest.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FINV_SpatialCategoryService_IsGridNavigationInputTest,
-	"Inventory.UI.SpatialCategoryService.IsGridNavigationInput",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FINV_SpatialCategoryService_IsGridNavigationInputTest::RunTest(const FString& Parameters)
-{
-	TestTrue(
-		TEXT("Gamepad DPad up should be considered grid navigation input"),
-		FINV_SpatialCategoryService::IsGridNavigationInput(EKeys::Gamepad_DPad_Up));
-
-	TestFalse(
-		TEXT("Keyboard key should not be considered grid navigation input"),
-		FINV_SpatialCategoryService::IsGridNavigationInput(EKeys::A));
-	return true;
-}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FINV_SpatialCategoryService_ResolveNextCategoryIndexWrapsForwardTest,

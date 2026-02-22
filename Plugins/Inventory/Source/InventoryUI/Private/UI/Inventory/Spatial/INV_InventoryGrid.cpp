@@ -1113,7 +1113,7 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 	int32 TargetX = CurrentX + Delta.X;
 	int32 TargetY = CurrentY + Delta.Y;
 
-	// When navigating with controller and not holding an item, step over entire occupied footprints.
+	// When navigating with the controller and not holding an item, step over entire occupied footprints.
 	if (!IsValid(HoverItem) && GridSlots.IsValidIndex(ControllerSelectedIndex) && GridSlots[ControllerSelectedIndex]->GetInventoryItem().IsValid())
 	{
 		const int32 AnchorIndex = ResolveControllerActionIndex(ControllerSelectedIndex);
@@ -1149,7 +1149,7 @@ bool UINV_InventoryGrid::MoveControllerSelection(const FIntPoint& Delta)
 	int32 NewX = SpanX > 0 ? (TargetX % SpanX + SpanX) % SpanX : 0;
 	int32 NewY = SpanY > 0 ? (TargetY % SpanY + SpanY) % SpanY : 0;
 
-	// While dragging with controller, skip across blocking footprints so lateral navigation
+	// While dragging with the controller, skip across blocking footprints so lateral navigation
 	// does not require repeated presses through large occupied regions.
 	if (IsValid(HoverItem))
 	{

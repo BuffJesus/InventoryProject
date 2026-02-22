@@ -1,16 +1,5 @@
 #include "UI/Inventory/Services/INV_SpatialCategoryService.h"
 
-#include "InputCoreTypes.h"
-
-bool FINV_SpatialCategoryService::IsGridNavigationInput(const FKey& PressedKey)
-{
-	return
-		PressedKey == EKeys::Gamepad_DPad_Up ||
-		PressedKey == EKeys::Gamepad_DPad_Down ||
-		PressedKey == EKeys::Gamepad_DPad_Left ||
-		PressedKey == EKeys::Gamepad_DPad_Right;
-}
-
 int32 FINV_SpatialCategoryService::ResolveNextCategoryIndex(
 	const int32 CurrentIndex,
 	const int32 Direction,

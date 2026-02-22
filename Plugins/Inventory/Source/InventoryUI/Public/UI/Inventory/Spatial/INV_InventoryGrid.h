@@ -106,27 +106,10 @@ private:
 	void CreateItemPopup(const int32 GridIndex);
 	void CloseActiveItemPopup();
 	void ClosePopupIfClickedOutside();
-	bool HandleControllerConfirm();
-	bool HandleControllerBack();
-	bool HandleControllerContext();
-	bool MoveControllerSelection(const FIntPoint& Delta);
-	void ApplyControllerSelectionVisual();
-	void ClearControllerSelectionVisual();
-	void SetControllerSelectedIndex(int32 NewIndex);
-	bool IsControllerSelectedIndexValid() const;
-	int32 GetControllerSelectedIndex() const;
-	bool EnsureControllerSelectionInitialized();
-	void GetControllerSelectionLimits(int32& OutMaxX, int32& OutMaxY) const;
-	bool TryHandleControllerConfirmOnOccupiedSelection();
-	bool TryHandleControllerConfirmHoverPlacement();
 	void FinalizeHoverItemAssignment();
 	TOptional<FVector2D> ComputeSourceViewportCenterForGridIndex(int32 GridIndex) const;
 	int32 ResolveControllerActionIndex(int32 GridIndex) const;
-	void ApplyControllerVisualForSelectedIndex(bool bSelectedVisual);
 	void ApplyItemFootprintVisualAtIndex(int32 GridIndex, bool bSelectedVisual);
-	void PositionHoverItemAtGridIndex(int32 GridIndex);
-	void RefreshControllerHoverPlacementVisual();
-	int32 ClampControllerAnchorIndexForHover(int32 CandidateIndex) const;
 	void BindItemPopupCallbacksIfNeeded();
 	
 	UPROPERTY(EditAnywhere, Category="INV|Inventory")
@@ -231,7 +214,6 @@ private:
 	bool bHasLastTickInputs { false };
 	int32 LastHighlightedIndex { INDEX_NONE };
 	int32 LastHoveredSlottedIndex { INDEX_NONE };
-	int32 ControllerSelectedIndex { INDEX_NONE };
 	FIntPoint LastHighlightedDimensions;
 	TArray<int32> LastGrayedOutUpperLeftIndices;
 	FVector2D LastTickCanvasPos { FVector2D::ZeroVector };
