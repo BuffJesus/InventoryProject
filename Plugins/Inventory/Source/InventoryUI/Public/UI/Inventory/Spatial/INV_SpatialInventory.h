@@ -72,9 +72,6 @@ private:
 	float ResolveInventoryTileSize() const;
 	bool TryHandleEquippedItemInspect(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent);
 	void SwapEquippedItemWithHover(UINV_EquippedSlottedItem* EquippedSlottedItem);
-	void ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot);
-	void RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem);
-	void MakeEquippedSlottedItem(UINV_EquippedGridSlot* EquippedGridSlot, UINV_InventoryItem* ItemToEquip, const FGameplayTag& EquipmentTypeTag);
 	UINV_InventoryComponent* ResolveInventoryComponent() const;
 	void BroadcastEquipState(UINV_InventoryComponent* InventoryComponent, UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip) const;
 	void BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);

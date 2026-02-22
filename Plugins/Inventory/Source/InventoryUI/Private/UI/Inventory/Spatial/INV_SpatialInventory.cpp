@@ -16,6 +16,7 @@
 #include "UI/Inventory/Spatial/INV_InventoryGrid.h"
 #include "UI/Description/INV_ItemDescription.h"
 #include "UI/Utils/INV_ItemPresentationUtils.h"
+#include "UI/Inventory/Services/INV_EquippedSlotService.h"
 #include "Framework/Application/SlateApplication.h"
 #include "UI/Inventory/GridSlots/INV_EquippedGridSlot.h"
 #include "UI/Inventory/HoverItem/INV_HoverItem.h"
@@ -252,8 +253,23 @@ void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* Equip
 
 void UINV_SpatialInventory::EquippedSlottedItemClicked(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent)
 {
-	if (TryHandleEquippedItemInspect(EquippedSlottedItem, MouseEvent)) return;
-	SwapEquippedItemWithHover(EquippedSlottedItem);
+	const EINV_EquippedClickAction ClickAction = FINV_EquippedSlotService::ResolveClickAction(
+		MouseEvent,
+		IsValid(EquippedSlottedItem),
+		IsValid(GetHoverItem()) && GetHoverItem()->IsStackable());
+
+	switch (ClickAction)
+	{
+	case EINV_EquippedClickAction::Inspect:
+		TryHandleEquippedItemInspect(EquippedSlottedItem, MouseEvent);
+		return;
+	case EINV_EquippedClickAction::Swap:
+		SwapEquippedItemWithHover(EquippedSlottedItem);
+		return;
+	case EINV_EquippedClickAction::None:
+	default:
+		return;
+	}
 }
 
 bool UINV_SpatialInventory::TryHandleEquippedItemInspect(
@@ -261,6 +277,7 @@ bool UINV_SpatialInventory::TryHandleEquippedItemInspect(
 	const FPointerEvent& MouseEvent)
 {
 	if (MouseEvent.GetEffectingButton() != EKeys::RightMouseButton) return false;
+
 	if (!IsValid(EquippedSlottedItem)) return true;
 
 	UINV_InventoryItem* RightClickedItem { EquippedSlottedItem->GetInventoryItem() };
@@ -276,9 +293,9 @@ void UINV_SpatialInventory::SwapEquippedItemWithHover(UINV_EquippedSlottedItem* 
 {
 	if (!IsValid(EquippedSlottedItem)) return;
 	if (!IsValid(Grid_Equippable)) return;
+
 	// Remove the Item Description
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
-	if (IsValid(GetHoverItem()) && GetHoverItem()->IsStackable()) return;
 	
 	// Get the item to equip
 	UINV_InventoryItem* ItemToEquip { IsValid(GetHoverItem()) ? GetHoverItem()->GetInventoryItem() : nullptr };
@@ -292,16 +309,30 @@ void UINV_SpatialInventory::SwapEquippedItemWithHover(UINV_EquippedSlottedItem* 
 	UINV_EquippedGridSlot* EquippedGridSlot { FindSlotWithEquippedItem(ItemToUnequip) };
 	
 	// Clear the equipped grid slot of this item (set its inventory item to nullptr)
-	ClearSlotOfItem(EquippedGridSlot);
+	FINV_EquippedSlotService::ClearSlot(EquippedGridSlot);
 	
 	// Assign the previously equipped item as the hover item
 	Grid_Equippable->AssignHoverItem(ItemToUnequip);
 	
 	// Removal of the equipped slotted item from the equipped grid slot 
-	RemoveEquippedSlottedItem(EquippedSlottedItem);
+	FINV_EquippedSlotCallbacks SlotCallbacks;
+	SlotCallbacks.BindEquippedSlottedItemDelegates = [this](UINV_EquippedSlottedItem* SlottedItem)
+	{
+		BindEquippedSlottedItemDelegates(SlottedItem);
+	};
+	SlotCallbacks.UnbindEquippedSlottedItemDelegates = [this](UINV_EquippedSlottedItem* SlottedItem)
+	{
+		UnbindEquippedSlottedItemDelegates(SlottedItem);
+	};
+	FINV_EquippedSlotService::RemoveSlottedItem(EquippedSlottedItem, SlotCallbacks);
 	
 	// Make a new equipped slotted item (for the item we held in HoverItem)
-	MakeEquippedSlottedItem(EquippedGridSlot, ItemToEquip, EquipmentTypeTag);
+	FINV_EquippedSlotService::EquipItemInSlot(
+		EquippedGridSlot,
+		ItemToEquip,
+		EquipmentTypeTag,
+		ResolveInventoryTileSize(),
+		SlotCallbacks);
 	
 	// Broadcast delegate for OnItemEquipped/OnItemUnequipped (from the IC)
 	BroadcastSlotClickedDelegates(ItemToEquip, ItemToUnequip);
@@ -411,48 +442,6 @@ float UINV_SpatialInventory::ResolveInventoryTileSize() const
 {
 	const UINV_InventoryBase* InventoryWidget = UINV_InventoryStatics::GetInventoryWidget(GetOwningPlayer());
 	return IsValid(InventoryWidget) ? InventoryWidget->GetTileSize() : 0.f;
-}
-
-void UINV_SpatialInventory::ClearSlotOfItem(UINV_EquippedGridSlot* EquippedGridSlot)
-{
-	if (IsValid(EquippedGridSlot))
-	{
-		EquippedGridSlot->SetEquippedSlottedItem(nullptr);
-		EquippedGridSlot->SetInventoryItem(nullptr);
-		EquippedGridSlot->SetSlotEmptyVisual();
-	}
-}
-
-void UINV_SpatialInventory::RemoveEquippedSlottedItem(UINV_EquippedSlottedItem* EquippedSlottedItem)
-{
-	if (!IsValid(EquippedSlottedItem)) return;
-	EquippedSlottedItem->SetHighlightEnabled(false);
-	
-	UnbindEquippedSlottedItemDelegates(EquippedSlottedItem);
-	EquippedSlottedItem->RemoveFromParent();
-}
-
-void UINV_SpatialInventory::MakeEquippedSlottedItem(UINV_EquippedGridSlot* EquippedGridSlot,
-	UINV_InventoryItem* ItemToEquip, const FGameplayTag& EquipmentTypeTag)
-{
-	if (!IsValid(EquippedGridSlot)) return;
-	if (!IsValid(ItemToEquip))
-	{
-		EquippedGridSlot->SetEquippedSlottedItem(nullptr);
-		EquippedGridSlot->SetInventoryItem(nullptr);
-		return;
-	}
-	
-	UINV_EquippedSlottedItem* SlottedItem { EquippedGridSlot->OnItemEquipped(
-		ItemToEquip, 
-		EquipmentTypeTag,
-		ResolveInventoryTileSize()) };
-	if (IsValid(SlottedItem))
-	{
-		BindEquippedSlottedItemDelegates(SlottedItem);
-	}
-	
-	EquippedGridSlot->SetEquippedSlottedItem(SlottedItem);
 }
 
 void UINV_SpatialInventory::BroadcastSlotClickedDelegates(UINV_InventoryItem* ItemToEquip,
