@@ -2,6 +2,7 @@
 
 
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "EquipmentManagement/INV_EquipActor.h"
 
 namespace
 {
@@ -128,5 +129,25 @@ void FINV_EquipmentFragment::OnUnequip(APlayerController* PC)
 	{
 		auto& ModRef { Modifier.GetMutable() };
 		ModRef.OnUnequip(PC);
+	}
+}
+
+AINV_EquipActor* FINV_EquipmentFragment::SpawnAttachedActor(USkeletalMeshComponent* AttachMesh) const
+{
+	if (!IsValid(EquipActorClass) || !IsValid(AttachMesh)) return nullptr;
+	
+	AINV_EquipActor* SpawnedActor { AttachMesh->GetWorld()->SpawnActor<AINV_EquipActor>(EquipActorClass) };
+	if (!IsValid(SpawnedActor)) return nullptr;
+	
+	SpawnedActor->AttachToComponent(AttachMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketAttachPoint);
+	
+	return SpawnedActor;
+}
+
+void FINV_EquipmentFragment::DestroyAttachedActor() const
+{
+	if (EquippedActor.IsValid())
+	{
+		EquippedActor->Destroy();
 	}
 }

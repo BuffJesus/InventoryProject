@@ -7,6 +7,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "INV_ItemFragment.generated.h"
 
+class AINV_EquipActor;
 struct FINV_EquipModifier;
 class APlayerController;
 
@@ -227,7 +228,18 @@ struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragm
 	void OnUnequip(APlayerController* PC);
 	const TArray<TInstancedStruct<FINV_EquipModifier>>& GetEquipModifiers() const { return EquipModifiers; }
 	
+	AINV_EquipActor* SpawnAttachedActor(USkeletalMeshComponent* AttachMesh) const;
+	void DestroyAttachedActor() const;
+	
 private:
 	UPROPERTY(EditAnywhere, Category = "INV|Equipment", meta = (ExcludeBaseStruct))
 	TArray<TInstancedStruct<FINV_EquipModifier>> EquipModifiers;
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Equipment")
+	TSubclassOf<AINV_EquipActor> EquipActorClass { nullptr };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Equipment")
+	FName SocketAttachPoint {NAME_None};
+	
+	TWeakObjectPtr<AINV_EquipActor> EquippedActor { nullptr };
 };
