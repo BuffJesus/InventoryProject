@@ -229,7 +229,7 @@ struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragm
 	const TArray<TInstancedStruct<FINV_EquipModifier>>& GetEquipModifiers() const { return EquipModifiers; }
 	
 	FGameplayTag GetEquipmentType() const { return EquipmentType; }
-	void SetEquippedActor(AINV_EquipActor* EquipActor) { EquippedActor = EquipActor; }
+	void SetEquippedActor(AINV_EquipActor* EquipActor);
 	
 	AINV_EquipActor* SpawnAttachedActor(USkeletalMeshComponent* AttachMesh) const;
 	void DestroyAttachedActor() const;

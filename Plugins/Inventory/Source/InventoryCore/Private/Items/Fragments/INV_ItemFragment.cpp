@@ -132,6 +132,11 @@ void FINV_EquipmentFragment::OnUnequip(APlayerController* PC)
 	}
 }
 
+void FINV_EquipmentFragment::SetEquippedActor(AINV_EquipActor* EquipActor)
+{
+	EquippedActor = EquipActor;
+}
+
 AINV_EquipActor* FINV_EquipmentFragment::SpawnAttachedActor(USkeletalMeshComponent* AttachMesh) const
 {
 	if (!IsValid(EquipActorClass) || !IsValid(AttachMesh)) return nullptr;

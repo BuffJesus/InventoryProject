@@ -30,12 +30,11 @@ private:
 	
 	UFUNCTION() void OnItemEquipped(UINV_InventoryItem* EquippedItem);
 	UFUNCTION() void OnItemUnequipped(UINV_InventoryItem* UnequippedItem);
+	bool TryGetEquipmentFragment(UINV_InventoryItem* Item, FINV_EquipmentFragment*& OutEquipmentFragment);
 	void ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip);
 	void InitInventoryComponent();
 	
-	AINV_EquipActor* SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment, 
-		const FINV_ItemManifest& Manifest, 
-		USkeletalMeshComponent* AttachMesh);
+	AINV_EquipActor* SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment, USkeletalMeshComponent* AttachMesh);
 	
 	UPROPERTY() TArray<TObjectPtr<AINV_EquipActor>> EquippedActors;
 };
