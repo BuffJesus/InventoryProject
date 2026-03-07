@@ -3,6 +3,27 @@
 
 #include "Items/Fragments/INV_ItemFragment.h"
 
+namespace
+{
+void NotifyNoOpEquipModifier(const TCHAR* ActionText)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.f,
+			FColor::Orange,
+			FString::Printf(TEXT("Equipment modifier %s but uses the base FINV_EquipModifier type."), ActionText));
+	}
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Equipment modifier %s, but the configured struct is the base FINV_EquipModifier type. Use a derived modifier struct instead."),
+		ActionText);
+}
+}
+
 void FINV_LabeledNumberFragment::InitializeRuntimeState()
 {
 	FINV_InventoryItemFragment::InitializeRuntimeState();
@@ -37,6 +58,16 @@ void FINV_ConsumableFragment::InitializeRuntimeState()
 	}
 }
 
+void FINV_EquipModifier::OnEquip(APlayerController* PC)
+{
+	NotifyNoOpEquipModifier(TEXT("equipped"));
+}
+
+void FINV_EquipModifier::OnUnequip(APlayerController* PC)
+{
+	NotifyNoOpEquipModifier(TEXT("unequipped"));
+}
+
 void FINV_HealthPotionFragment::OnConsume(APlayerController* PC)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Health Potion consumed! Restoring health by: %f"), GetValue()));
@@ -53,12 +84,18 @@ void FINV_ManaPotionFragment::OnConsume(APlayerController* PC)
 
 void FINV_AttributeModifier::OnEquip(APlayerController* PC)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Attribute modifier equipped! Modifying attribute by: %f"), GetValue()));
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Attribute modifier equipped! Modifying attribute by: %f"), GetValue()));
+	}
 }
 
 void FINV_AttributeModifier::OnUnequip(APlayerController* PC)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Attribute modifier unequipped! Reverting attribute change by: %f"), GetValue()));
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Attribute modifier unequipped! Reverting attribute change by: %f"), GetValue()));
+	}
 }
 
 void FINV_EquipmentFragment::InitializeRuntimeState()

@@ -205,8 +205,8 @@ USTRUCT(BlueprintType)
 struct INVENTORYCORE_API FINV_EquipModifier : public FINV_LabeledNumberFragment
 {
 	GENERATED_BODY()
-	virtual void OnEquip(APlayerController* PC) {}
-	virtual void OnUnequip(APlayerController* PC) {}
+	virtual void OnEquip(APlayerController* PC);
+	virtual void OnUnequip(APlayerController* PC);
 };
 
 USTRUCT(BlueprintType)
@@ -228,6 +228,6 @@ struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragm
 	const TArray<TInstancedStruct<FINV_EquipModifier>>& GetEquipModifiers() const { return EquipModifiers; }
 	
 private:
-	UPROPERTY(EditAnywhere, Category = "INV|Equipment")
+	UPROPERTY(EditAnywhere, Category = "INV|Equipment", meta = (ExcludeBaseStruct))
 	TArray<TInstancedStruct<FINV_EquipModifier>> EquipModifiers;
 };

@@ -22,7 +22,7 @@ FINV_AddItemDecision FINV_InventoryAddResolver::Resolve(const FINV_SlotAvailabil
 	if (SpaceResult.TotalRoomToFill > 0)
 	{
 		Decision.Action = EINV_AddItemAction::AddNewItem;
-		Decision.StackCountToAdd = SpaceResult.bStackable ? SpaceResult.TotalRoomToFill : 0;
+		Decision.StackCountToAdd = SpaceResult.bStackable ? SpaceResult.TotalRoomToFill : 1;
 	}
 
 	return Decision;

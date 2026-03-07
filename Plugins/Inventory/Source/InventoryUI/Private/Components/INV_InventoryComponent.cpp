@@ -345,8 +345,13 @@ void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryIt
 void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 {
 	if (!IsValid(ItemComponent)) return;
-	if (!IsValid(Inventory)) return;
 	if (!GetOwner()) return;
+
+	if (!IsValid(Inventory))
+	{
+		ConstructInventory();
+	}
+	if (!IsValid(Inventory)) return;
 	
 	// Ask the UI for available space and stacking info.
 	const FINV_SlotAvailabilityResult SpaceResult { Inventory->HasRoomForItem(ItemComponent) };
