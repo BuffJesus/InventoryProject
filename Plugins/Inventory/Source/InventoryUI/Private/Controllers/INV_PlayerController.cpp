@@ -269,7 +269,10 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 			FModifierKeysState());
 	};
 
-	if (InputEvent == IE_Pressed || InputEvent == IE_DoubleClick)
+	switch (InputEvent)
+	{
+	case IE_Pressed:
+	case IE_DoubleClick:
 	{
 		if (!SimulatedMouseButtonsDown.Contains(MouseButton))
 		{
@@ -283,7 +286,7 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 		return true;
 	}
 
-	if (InputEvent == IE_Released)
+	case IE_Released:
 	{
 		SimulatedMouseButtonsDown.Remove(MouseButton);
 		const FPointerEvent PointerUpEvent = MakePointerEvent(MouseButton);
@@ -291,12 +294,12 @@ bool AINV_PlayerController::SimulateMouseButtonFromGamepad(const FKey& MouseButt
 		return true;
 	}
 
-	if (InputEvent == IE_Repeat)
-	{
+	case IE_Repeat:
 		return true;
-	}
 
-	return false;
+	default:
+		return false;
+	}
 }
 
 void AINV_PlayerController::PrimaryInteract()
