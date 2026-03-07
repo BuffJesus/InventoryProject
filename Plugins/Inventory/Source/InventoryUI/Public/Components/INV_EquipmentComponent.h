@@ -9,7 +9,7 @@
 class UINV_InventoryItem;
 class UINV_InventoryComponent;
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class INVENTORYUI_API UINV_EquipmentComponent : public UActorComponent
 {
 	GENERATED_BODY()
