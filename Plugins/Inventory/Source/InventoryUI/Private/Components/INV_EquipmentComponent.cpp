@@ -37,13 +37,11 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
 	ProcessEquipmentItem(EquippedItem, true);
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Item equipped"));
 }
 
 void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedItem)
 {
 	ProcessEquipmentItem(UnequippedItem, false);
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Item unequipped"));
 }
 
 void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip)
