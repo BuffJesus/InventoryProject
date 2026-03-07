@@ -42,24 +42,7 @@ void UINV_EquipmentComponent::BeginPlay()
 void UINV_EquipmentComponent::InitInventoryComponent()
 {
 	InventoryComponent = UINV_InventoryStatics::GetInventoryComponent(OwningPlayerController.Get());
-	if (!InventoryComponent.IsValid())
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("EquipmentComponent::InitInventoryComponent failed. Owner=%s PC=%s"),
-			*GetNameSafe(GetOwner()),
-			*GetNameSafe(OwningPlayerController.Get()));
-		return;
-	}
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("EquipmentComponent::InitInventoryComponent bound delegates. Owner=%s PC=%s InventoryComponent=%s"),
-		*GetNameSafe(GetOwner()),
-		*GetNameSafe(OwningPlayerController.Get()),
-		*GetNameSafe(InventoryComponent.Get()));
+	if (!InventoryComponent.IsValid()) return;
 	
 	InventoryComponent->OnItemEquipped.AddUniqueDynamic(this, &ThisClass::OnItemEquipped);
 	InventoryComponent->OnItemUnequipped.AddUniqueDynamic(this, &ThisClass::OnItemUnequipped);
@@ -68,68 +51,24 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("EquipmentComponent::OnItemEquipped Owner=%s Item=%s"),
-		*GetNameSafe(GetOwner()),
-		*GetNameSafe(EquippedItem));
 	ProcessEquipmentItem(EquippedItem, true);
 }
 
 void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedItem)
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("EquipmentComponent::OnItemUnequipped Owner=%s Item=%s"),
-		*GetNameSafe(GetOwner()),
-		*GetNameSafe(UnequippedItem));
 	ProcessEquipmentItem(UnequippedItem, false);
 }
 
 void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip)
 {
-	if (!IsValid(Item))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("EquipmentComponent::ProcessEquipmentItem aborted: invalid item."));
-		return;
-	}
-	if (!OwningPlayerController.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("EquipmentComponent::ProcessEquipmentItem aborted: invalid player controller."));
-		return;
-	}
-	if (!OwningPlayerController->HasAuthority())
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("EquipmentComponent::ProcessEquipmentItem aborted: no authority. PC=%s"),
-			*GetNameSafe(OwningPlayerController.Get()));
-		return;
-	}
+	if (!IsValid(Item)) return;
+	if (!OwningPlayerController.IsValid()) return;
+	if (!OwningPlayerController->HasAuthority()) return;
 
 	FINV_ItemManifest& ItemManifest = Item->GetItemManifestMutable();
 	FINV_EquipmentFragment* EquipmentFragment = ItemManifest.GetFragmentOfTypeMutable<FINV_EquipmentFragment>();
-	if (!EquipmentFragment)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("EquipmentComponent::ProcessEquipmentItem aborted: no equipment fragment. Item=%s"),
-			*GetNameSafe(Item));
-		return;
-	}
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("EquipmentComponent::ProcessEquipmentItem executing %s for Item=%s"),
-		bEquip ? TEXT("equip") : TEXT("unequip"),
-		*GetNameSafe(Item));
+	if (!EquipmentFragment) return;
 
 	if (bEquip) { EquipmentFragment->OnEquip(OwningPlayerController.Get()); }
 	else { EquipmentFragment->OnUnequip(OwningPlayerController.Get()); }
 }
-

@@ -481,15 +481,6 @@ void UINV_SpatialInventory::BroadcastEquipState(
 	const APlayerController* OwningPlayer = GetOwningPlayer();
 	if (!IsValid(OwningPlayer)) return;
 
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("BroadcastEquipState: PC=%s NetMode=%d ItemToEquip=%s ItemToUnequip=%s"),
-		*GetNameSafe(OwningPlayer),
-		static_cast<int32>(OwningPlayer->GetNetMode()),
-		*GetNameSafe(ItemToEquip),
-		*GetNameSafe(ItemToUnequip));
-
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
 	if (OwningPlayer->GetNetMode() == NM_DedicatedServer) return;
 

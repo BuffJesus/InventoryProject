@@ -111,14 +111,6 @@ void FINV_EquipmentFragment::InitializeRuntimeState()
 
 void FINV_EquipmentFragment::OnEquip(APlayerController* PC)
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("FINV_EquipmentFragment::OnEquip PC=%s ModifierCount=%d bEquipped=%d"),
-		*GetNameSafe(PC),
-		EquipModifiers.Num(),
-		bEquipped ? 1 : 0);
-
 	if (bEquipped) return;
 	bEquipped = true;
 	for (auto& Modifier : EquipModifiers)
@@ -130,14 +122,6 @@ void FINV_EquipmentFragment::OnEquip(APlayerController* PC)
 
 void FINV_EquipmentFragment::OnUnequip(APlayerController* PC)
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("FINV_EquipmentFragment::OnUnequip PC=%s ModifierCount=%d bEquipped=%d"),
-		*GetNameSafe(PC),
-		EquipModifiers.Num(),
-		bEquipped ? 1 : 0);
-
 	if (!bEquipped) return;
 	bEquipped = false;
 	for (auto& Modifier : EquipModifiers)

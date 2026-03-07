@@ -316,15 +316,6 @@ void UINV_InventoryComponent::Server_EquipSlotClicked_Implementation(UINV_Invent
 void UINV_InventoryComponent::Multicast_EquipSlotClicked_Implementation(UINV_InventoryItem* ItemToEquip,
 	UINV_InventoryItem* ItemToUnequip)
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Multicast_EquipSlotClicked: Owner=%s NetMode=%d ItemToEquip=%s ItemToUnequip=%s"),
-		*GetNameSafe(GetOwner()),
-		static_cast<int32>(GetNetMode()),
-		*GetNameSafe(ItemToEquip),
-		*GetNameSafe(ItemToUnequip));
-
 	// Equipment component will listen to these delegates
 	OnItemEquipped.Broadcast(ItemToEquip);
 	OnItemUnequipped.Broadcast(ItemToUnequip);
