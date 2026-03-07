@@ -315,7 +315,40 @@ void UINV_SpatialInventory::SwapEquippedItemWithHover(UINV_EquippedSlottedItem* 
 FReply UINV_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FReply SuperReply = Super::NativeOnMouseButtonDown(MyGeometry, MouseEvent);
-	return SuperReply.IsEventHandled() ? MoveTemp(SuperReply) : FReply::Unhandled();
+	if (SuperReply.IsEventHandled())
+	{
+		return MoveTemp(SuperReply);
+	}
+
+	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
+		return FReply::Unhandled();
+	}
+
+	UINV_InventoryGrid* HoverSourceGrid = FindGridWithHoverItem();
+	if (!IsValid(HoverSourceGrid))
+	{
+		return FReply::Unhandled();
+	}
+
+	const FVector2D ScreenSpacePosition = MouseEvent.GetScreenSpacePosition();
+	const bool bClickedActiveGrid = ActiveGrid.IsValid() && ActiveGrid->GetCachedGeometry().IsUnderLocation(ScreenSpacePosition);
+	if (bClickedActiveGrid)
+	{
+		return FReply::Unhandled();
+	}
+
+	const bool bClickedEquippedSlot = EquippedGridSlots.ContainsByPredicate([&ScreenSpacePosition](const UINV_EquippedGridSlot* GridSlot)
+	{
+		return IsValid(GridSlot) && GridSlot->GetCachedGeometry().IsUnderLocation(ScreenSpacePosition);
+	});
+	if (bClickedEquippedSlot)
+	{
+		return FReply::Unhandled();
+	}
+
+	HoverSourceGrid->DropItem();
+	return FReply::Handled();
 }
 
 FINV_SlotAvailabilityResult UINV_SpatialInventory::HasRoomForItem(UINV_ItemComponent* ItemComponent) const

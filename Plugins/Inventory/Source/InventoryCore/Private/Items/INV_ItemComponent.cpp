@@ -11,6 +11,20 @@ UINV_ItemComponent::UINV_ItemComponent()
 	SetIsReplicatedByDefault(true);
 }
 
+void UINV_ItemComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	AActor* OwnerActor = GetOwner();
+	if (!IsValid(OwnerActor))
+	{
+		return;
+	}
+
+	OwnerActor->SetReplicates(true);
+	OwnerActor->SetReplicateMovement(true);
+}
+
 void UINV_ItemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

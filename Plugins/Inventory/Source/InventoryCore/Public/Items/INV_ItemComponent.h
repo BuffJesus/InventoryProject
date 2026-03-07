@@ -15,6 +15,7 @@ class INVENTORYCORE_API UINV_ItemComponent : public UActorComponent
 
 public:
 	UINV_ItemComponent();
+	virtual void OnRegister() override;
 	// UI text shown when the item can be picked up.
 	FORCEINLINE const FString& GetPickupMessage() const { return PickupMessage; }
 	// Static item data for this pickup.
