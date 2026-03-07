@@ -6,6 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "INV_EquipmentComponent.generated.h"
 
+struct FINV_ItemManifest;
+struct FINV_EquipmentFragment;
+class AINV_EquipActor;
 class UINV_InventoryItem;
 class UINV_InventoryComponent;
 
@@ -21,13 +24,18 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent;
-	TWeakObjectPtr<APlayerController> OwningPlayerController;
-	TWeakObjectPtr<USkeletalMeshComponent> OwnerSkeletalMesh;
+	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
+	TWeakObjectPtr<APlayerController> OwningPlayerController { nullptr };
+	TWeakObjectPtr<USkeletalMeshComponent> OwningSkeletalMesh { nullptr };
 	
 	UFUNCTION() void OnItemEquipped(UINV_InventoryItem* EquippedItem);
 	UFUNCTION() void OnItemUnequipped(UINV_InventoryItem* UnequippedItem);
 	void ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip);
-	
 	void InitInventoryComponent();
+	
+	AINV_EquipActor* SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment, 
+		const FINV_ItemManifest& Manifest, 
+		USkeletalMeshComponent* AttachMesh);
+	
+	UPROPERTY() TArray<TObjectPtr<AINV_EquipActor>> EquippedActors;
 };

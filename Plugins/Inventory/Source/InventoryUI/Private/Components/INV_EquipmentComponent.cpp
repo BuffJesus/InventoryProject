@@ -3,9 +3,11 @@
 
 #include "Components/INV_EquipmentComponent.h"
 #include "Components/INV_InventoryComponent.h"
+#include "EquipmentManagement/INV_EquipActor.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "Items/INV_InventoryItem.h"
+#include "Items/Fragments/INV_FragmentTags.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
@@ -32,7 +34,7 @@ void UINV_EquipmentComponent::BeginPlay()
 	{
 		if (const ACharacter* OwnerCharacter = Cast<ACharacter>(OwningPlayerController->GetPawn()); IsValid(OwnerCharacter))
 		{
-			OwnerSkeletalMesh = OwnerCharacter->GetMesh();
+			OwningSkeletalMesh = OwnerCharacter->GetMesh();
 		}
 
 		InitInventoryComponent();
@@ -48,10 +50,13 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 	InventoryComponent->OnItemUnequipped.AddUniqueDynamic(this, &ThisClass::OnItemUnequipped);
 }
 
-
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
 	ProcessEquipmentItem(EquippedItem, true);
+	if (!OwningSkeletalMesh.IsValid()) return;
+	AINV_EquipActor* SpawnedEquipActor { SpawnEquippedActor(EquipmentFragment, FINV_ItemManifest, OwningSkeletalMesh.Get()) };
+	
+	EquippedActors.Add(SpawnedEquipActor);
 }
 
 void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedItem)
@@ -71,4 +76,14 @@ void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, boo
 
 	if (bEquip) { EquipmentFragment->OnEquip(OwningPlayerController.Get()); }
 	else { EquipmentFragment->OnUnequip(OwningPlayerController.Get()); }
+}
+
+AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment,
+	const FINV_ItemManifest& Manifest, USkeletalMeshComponent* AttachMesh)
+{
+	AINV_EquipActor* SpawnedEquipActor { EquipmentFragment->SpawnAttachedActor(AttachMesh) };
+	SpawnedEquipActor->SetEquipmentType(EquipmentFragment->GetEquipmentType());
+	SpawnedEquipActor->SetOwner(GetOwner());
+	EquipmentFragment->SetEquippedActor(SpawnedEquipActor);
+	return SpawnedEquipActor;	
 }

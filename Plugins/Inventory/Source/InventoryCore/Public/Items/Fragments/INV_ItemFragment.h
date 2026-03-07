@@ -228,6 +228,9 @@ struct INVENTORYCORE_API FINV_EquipmentFragment : public FINV_InventoryItemFragm
 	void OnUnequip(APlayerController* PC);
 	const TArray<TInstancedStruct<FINV_EquipModifier>>& GetEquipModifiers() const { return EquipModifiers; }
 	
+	FGameplayTag GetEquipmentType() const { return EquipmentType; }
+	void SetEquippedActor(AINV_EquipActor* EquipActor) { EquippedActor = EquipActor; }
+	
 	AINV_EquipActor* SpawnAttachedActor(USkeletalMeshComponent* AttachMesh) const;
 	void DestroyAttachedActor() const;
 	
@@ -242,4 +245,7 @@ private:
 	FName SocketAttachPoint {NAME_None};
 	
 	TWeakObjectPtr<AINV_EquipActor> EquippedActor { nullptr };
+	
+	UPROPERTY(EditAnywhere, Category = "INV|Equipment")
+	FGameplayTag EquipmentType { FGameplayTag::EmptyTag };
 };
