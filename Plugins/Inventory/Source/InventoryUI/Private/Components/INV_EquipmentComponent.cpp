@@ -15,9 +15,20 @@ void UINV_EquipmentComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	RefreshOwningReferences();
+	if (OwningPlayerController.IsValid())
+	{
+		InitInventoryComponent();
+	}
+}
+
+void UINV_EquipmentComponent::RefreshOwningReferences()
+{
 	AActor* OwnerActor = GetOwner();
 	if (!IsValid(OwnerActor))
 	{
+		OwningPlayerController = nullptr;
+		OwningSkeletalMesh = nullptr;
 		return;
 	}
 
@@ -29,15 +40,18 @@ void UINV_EquipmentComponent::BeginPlay()
 	{
 		OwningPlayerController = Cast<APlayerController>(OwnerPawn->GetController());
 	}
+	else
+	{
+		OwningPlayerController = nullptr;
+	}
 
+	OwningSkeletalMesh = nullptr;
 	if (OwningPlayerController.IsValid())
 	{
 		if (const ACharacter* OwnerCharacter = Cast<ACharacter>(OwningPlayerController->GetPawn()); IsValid(OwnerCharacter))
 		{
 			OwningSkeletalMesh = OwnerCharacter->GetMesh();
 		}
-
-		InitInventoryComponent();
 	}
 }
 
@@ -52,6 +66,8 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
+	RefreshOwningReferences();
+
 	FINV_EquipmentFragment* EquipmentFragment { nullptr };
 	if (!TryGetEquipmentFragment(EquippedItem, EquipmentFragment)) return;
 
@@ -68,6 +84,7 @@ void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 
 void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedItem)
 {
+	RefreshOwningReferences();
 	ProcessEquipmentItem(UnequippedItem, false);
 }
 
@@ -87,6 +104,8 @@ bool UINV_EquipmentComponent::TryGetEquipmentFragment(UINV_InventoryItem* Item, 
 
 void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip)
 {
+	RefreshOwningReferences();
+
 	if (!OwningPlayerController.IsValid()) return;
 	if (!OwningPlayerController->HasAuthority()) return;
 

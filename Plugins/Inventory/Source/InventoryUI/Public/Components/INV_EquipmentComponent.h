@@ -28,6 +28,7 @@ private:
 	TWeakObjectPtr<APlayerController> OwningPlayerController { nullptr };
 	TWeakObjectPtr<USkeletalMeshComponent> OwningSkeletalMesh { nullptr };
 	
+	void RefreshOwningReferences();
 	UFUNCTION() void OnItemEquipped(UINV_InventoryItem* EquippedItem);
 	UFUNCTION() void OnItemUnequipped(UINV_InventoryItem* UnequippedItem);
 	bool TryGetEquipmentFragment(UINV_InventoryItem* Item, FINV_EquipmentFragment*& OutEquipmentFragment);
