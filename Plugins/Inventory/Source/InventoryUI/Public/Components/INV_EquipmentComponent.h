@@ -27,6 +27,7 @@ private:
 	
 	UFUNCTION() void OnItemEquipped(UINV_InventoryItem* EquippedItem);
 	UFUNCTION() void OnItemUnequipped(UINV_InventoryItem* UnequippedItem);
+	void ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip);
 	
 	void InitInventoryComponent();
 };

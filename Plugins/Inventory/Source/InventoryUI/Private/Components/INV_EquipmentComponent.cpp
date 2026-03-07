@@ -5,6 +5,8 @@
 
 #include "Components/INV_InventoryComponent.h"
 #include "GameFramework/Character.h"
+#include "Items/INV_InventoryItem.h"
+#include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
 void UINV_EquipmentComponent::BeginPlay()
@@ -34,11 +36,27 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
-	
+	ProcessEquipmentItem(EquippedItem, true);
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Item equipped"));
 }
 
 void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedItem)
 {
-	
+	ProcessEquipmentItem(UnequippedItem, false);
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Item unequipped"));
+}
+
+void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip)
+{
+	if (!IsValid(Item)) return;
+	if (!OwningPlayerController.IsValid()) return;
+	if (!OwningPlayerController->HasAuthority()) return;
+
+	FINV_ItemManifest& ItemManifest = Item->GetItemManifestMutable();
+	FINV_EquipmentFragment* EquipmentFragment = ItemManifest.GetFragmentOfTypeMutable<FINV_EquipmentFragment>();
+	if (!EquipmentFragment) return;
+
+	if (bEquip) { EquipmentFragment->OnEquip(OwningPlayerController.Get()); }
+	else { EquipmentFragment->OnUnequip(OwningPlayerController.Get()); }
 }
 
