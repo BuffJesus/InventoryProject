@@ -64,6 +64,14 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 	InventoryComponent->OnItemUnequipped.AddUniqueDynamic(this, &ThisClass::OnItemUnequipped);
 }
 
+void UINV_EquipmentComponent::RemoveEquippedActor(const FGameplayTag& EquipmentTypeTag)
+{
+	AINV_EquipActor* EquippedActor { FindEquippedActor(EquipmentTypeTag) };
+	if (!EquippedActor) return;
+	EquippedActors.Remove(EquippedActor);
+	EquippedActor->Destroy();
+}
+
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
 	RefreshOwningReferences();
@@ -86,6 +94,11 @@ void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedIte
 {
 	RefreshOwningReferences();
 	ProcessEquipmentItem(UnequippedItem, false);
+
+	FINV_EquipmentFragment* EquipmentFragment { nullptr };
+	if (!TryGetEquipmentFragment(UnequippedItem, EquipmentFragment)) return;
+
+	RemoveEquippedActor(EquipmentFragment->GetEquipmentType());
 }
 
 bool UINV_EquipmentComponent::TryGetEquipmentFragment(UINV_InventoryItem* Item, FINV_EquipmentFragment*& OutEquipmentFragment)
@@ -125,4 +138,13 @@ AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragm
 	SpawnedEquipActor->SetOwner(GetOwner());
 	EquipmentFragment->SetEquippedActor(SpawnedEquipActor);
 	return SpawnedEquipActor;	
+}
+
+AINV_EquipActor* UINV_EquipmentComponent::FindEquippedActor(const FGameplayTag& EquipmentTypeTag)
+{
+	auto FoundActor { EquippedActors.FindByPredicate([&EquipmentTypeTag](const AINV_EquipActor* EquippedActor)
+	{
+		return EquippedActor->GetEquipmentType().MatchesTagExact(EquipmentTypeTag);
+	}) };
+	return FoundActor ? *FoundActor : nullptr;
 }

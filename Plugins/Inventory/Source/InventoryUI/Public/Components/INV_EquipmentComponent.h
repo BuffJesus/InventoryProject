@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "INV_EquipmentComponent.generated.h"
 
+struct FGameplayTag;
 struct FINV_ItemManifest;
 struct FINV_EquipmentFragment;
 class AINV_EquipActor;
@@ -34,8 +35,10 @@ private:
 	bool TryGetEquipmentFragment(UINV_InventoryItem* Item, FINV_EquipmentFragment*& OutEquipmentFragment);
 	void ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip);
 	void InitInventoryComponent();
+	void RemoveEquippedActor(const FGameplayTag& EquipmentTypeTag);
 	
 	AINV_EquipActor* SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment, USkeletalMeshComponent* AttachMesh);
+	AINV_EquipActor* FindEquippedActor(const FGameplayTag& EquipmentTypeTag);
 	
 	UPROPERTY() TArray<TObjectPtr<AINV_EquipActor>> EquippedActors;
 };
