@@ -7,7 +7,6 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "Items/INV_InventoryItem.h"
-#include "Items/Fragments/INV_FragmentTags.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
