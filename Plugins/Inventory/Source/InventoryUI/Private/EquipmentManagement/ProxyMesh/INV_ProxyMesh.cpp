@@ -96,16 +96,6 @@ bool AINV_ProxyMesh::TryInitializeFromPlayerController(APlayerController* Player
 	ObservedPlayerController = PlayerController;
 	SourceMesh = CharacterMesh;
 	Mesh->SetSkeletalMesh(SourceMesh->GetSkeletalMeshAsset());
-	Mesh->SetRelativeTransform(SourceMesh->GetRelativeTransform());
-
-	if (const USkeletalMesh* SkeletalMeshAsset = SourceMesh->GetSkeletalMeshAsset())
-	{
-		const FBoxSphereBounds MeshBounds = SkeletalMeshAsset->GetBounds();
-		const float MeshBottomZ = MeshBounds.Origin.Z - MeshBounds.BoxExtent.Z;
-		FVector RelativeLocation = Mesh->GetRelativeLocation();
-		RelativeLocation.Z -= MeshBottomZ * Mesh->GetRelativeScale3D().Z;
-		Mesh->SetRelativeLocation(RelativeLocation);
-	}
 
 	if (UAnimInstance* SourceAnimInstance = SourceMesh->GetAnimInstance())
 	{
