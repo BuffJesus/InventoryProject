@@ -1,40 +1,73 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "InventoryManagement/FastArray/INV_FastArray.h"
+
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
 #include "Items/INV_InventoryItem.h"
+#include "UObject/UObjectGlobals.h"
 
 TArray<UINV_InventoryItem*> FINV_InventoryFastArray::GetAllItems() const
 {
-	// Return a list of valid items.
 	TArray<UINV_InventoryItem*> Results;
 	Results.Reserve(Entries.Num());
-	for (const auto& Entry : Entries)
+	for (const FINV_InventoryEntry& Entry : Entries)
 	{
-		if (Entry.Item == nullptr) continue;
+		if (Entry.Item == nullptr)
+		{
+			continue;
+		}
+
 		Results.Add(Entry.Item);
 	}
 	return Results;
 }
 
-void FINV_InventoryFastArray::RegisterEntrySubObject(UINV_InventoryItem* Item) const
+FINV_InventoryEntry* FINV_InventoryFastArray::FindEntry(UINV_InventoryItem* Item)
 {
-	if (!IsValid(Item)) return;
-	if (Callbacks.RegisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
+	return Entries.FindByPredicate([Item](const FINV_InventoryEntry& Entry)
 	{
-		Callbacks.RegisterReplicatedSubObject(static_cast<UObject*>(Item));
-	}
+		return Entry.Item == Item;
+	});
 }
 
-void FINV_InventoryFastArray::UnregisterEntrySubObject(UINV_InventoryItem* Item) const
+const FINV_InventoryEntry* FINV_InventoryFastArray::FindEntry(UINV_InventoryItem* Item) const
 {
-	if (!IsValid(Item)) return;
-	if (Callbacks.UnregisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
+	return Entries.FindByPredicate([Item](const FINV_InventoryEntry& Entry)
 	{
-		Callbacks.UnregisterReplicatedSubObject(static_cast<UObject*>(Item));
+		return Entry.Item == Item;
+	});
+}
+
+UINV_InventoryItem* FINV_InventoryFastArray::EnsureItemWrapper(FINV_InventoryEntry& Entry)
+{
+	if (IsValid(Entry.Item))
+	{
+		Entry.Item->InitializeFromReplicatedData(
+			Entry.ItemInstanceId,
+			Entry.DefinitionHandle,
+			Entry.InstanceState,
+			Entry.PlacementState,
+			Entry.bUseItemRarity,
+			Entry.ItemRarityTag);
+		return Entry.Item;
 	}
+
+	if (!Callbacks.CreateItemWrapperFromReplication)
+	{
+		return nullptr;
+	}
+
+	UObject* ItemOuter = Owner ? static_cast<UObject*>(Owner) : GetTransientPackage();
+	Entry.Item = Callbacks.CreateItemWrapperFromReplication(
+		ItemOuter,
+		Entry.ItemInstanceId,
+		Entry.DefinitionHandle,
+		Entry.InstanceState,
+		Entry.PlacementState,
+		Entry.bUseItemRarity,
+		Entry.ItemRarityTag);
+	return Entry.Item;
 }
 
 void FINV_InventoryFastArray::NotifyItemAdded(UINV_InventoryItem* Item) const
@@ -63,25 +96,30 @@ void FINV_InventoryFastArray::NotifyItemChanged(UINV_InventoryItem* Item) const
 
 void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
-	// Notify about items that are being removed.
-	for (int32 Index : RemovedIndices)
+	for (const int32 Index : RemovedIndices)
 	{
-		if (!Entries.IsValidIndex(Index)) continue;
+		if (!Entries.IsValidIndex(Index))
+		{
+			continue;
+		}
+
 		if (UINV_InventoryItem* RemovedItem = Entries[Index].Item)
 		{
 			NotifyItemRemoved(RemovedItem);
-			UnregisterEntrySubObject(RemovedItem);
 		}
 	}
 }
 
 void FINV_InventoryFastArray::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
-	// Notify about items that were added.
-	for (int32 Index : AddedIndices)
+	for (const int32 Index : AddedIndices)
 	{
-		if (!Entries.IsValidIndex(Index)) continue;
-		if (UINV_InventoryItem* AddedItem = Entries[Index].Item)
+		if (!Entries.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		if (UINV_InventoryItem* AddedItem = EnsureItemWrapper(Entries[Index]))
 		{
 			NotifyItemAdded(AddedItem);
 		}
@@ -90,60 +128,105 @@ void FINV_InventoryFastArray::PostReplicatedAdd(const TArrayView<int32> AddedInd
 
 void FINV_InventoryFastArray::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
-	for (int32 Index : ChangedIndices)
+	for (const int32 Index : ChangedIndices)
 	{
-		if (!Entries.IsValidIndex(Index)) continue;
-		if (UINV_InventoryItem* ChangedItem = Entries[Index].Item)
+		if (!Entries.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		if (UINV_InventoryItem* ChangedItem = EnsureItemWrapper(Entries[Index]))
 		{
 			NotifyItemChanged(ChangedItem);
 		}
 	}
 }
 
-UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemComponent)
+UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemComponent, const FINV_ItemPlacementState& PlacementState)
 {
-	// Create a new item object from the pickup manifest.
 	checkf(Owner, TEXT("Owner cannot be null when adding an item to the inventory fast array"));
-	AActor* OwningActor { Owner->GetOwner() };
+	AActor* OwningActor = Owner->GetOwner();
 	checkf(OwningActor->HasAuthority(), TEXT("Only the owning actor can add items to the inventory fast array"));
 	checkf(ItemComponent != nullptr, TEXT("ItemComponent must be valid when adding an item to the inventory fast array"));
 	checkf(Callbacks.CreateItemFromPickup, TEXT("CreateItemFromPickup callback must be configured"));
 
-	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
+	FINV_InventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
 	NewEntry.Item = Callbacks.CreateItemFromPickup(ItemComponent, OwningActor);
 	checkf(NewEntry.Item != nullptr, TEXT("CreateItemFromPickup callback returned null"));
 
-	RegisterEntrySubObject(NewEntry.Item.Get());
-	MarkItemDirty(NewEntry);
+	NewEntry.ItemInstanceId = FGuid::NewGuid();
+	NewEntry.DefinitionHandle = NewEntry.Item->GetItemDefinitionHandle();
+	NewEntry.InstanceState = NewEntry.Item->GetItemInstanceState();
+	NewEntry.PlacementState = PlacementState;
+	NewEntry.bUseItemRarity = NewEntry.Item->IsItemRarityEnabled();
+	NewEntry.ItemRarityTag = NewEntry.Item->GetItemRarityTag();
 
+	NewEntry.Item->InitializeFromReplicatedData(
+		NewEntry.ItemInstanceId,
+		NewEntry.DefinitionHandle,
+		NewEntry.InstanceState,
+		NewEntry.PlacementState,
+		NewEntry.bUseItemRarity,
+		NewEntry.ItemRarityTag);
+
+	MarkItemDirty(NewEntry);
 	return NewEntry.Item;
 }
 
-UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_InventoryItem* Item)
+UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_InventoryItem* Item, const FINV_ItemPlacementState& PlacementState)
 {
-	// Insert an existing item object.
 	checkf(Owner, TEXT("Owner cannot be null when adding an item to the inventory fast array"));
-	AActor* OwningActor { Owner->GetOwner() };
+	AActor* OwningActor = Owner->GetOwner();
 	checkf(OwningActor->HasAuthority(), TEXT("Only the owning actor can add items to the inventory fast array"));
-	
-	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
+	checkf(Item != nullptr, TEXT("Item must be valid when adding an item to the inventory fast array"));
+
+	FINV_InventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
 	NewEntry.Item = Item;
-	RegisterEntrySubObject(NewEntry.Item.Get());
-	
+	NewEntry.ItemInstanceId = Item->GetItemInstanceId().IsValid() ? Item->GetItemInstanceId() : FGuid::NewGuid();
+	NewEntry.DefinitionHandle = Item->GetItemDefinitionHandle();
+	NewEntry.InstanceState = Item->GetItemInstanceState();
+	NewEntry.PlacementState = PlacementState;
+	NewEntry.bUseItemRarity = Item->IsItemRarityEnabled();
+	NewEntry.ItemRarityTag = Item->GetItemRarityTag();
+
+	NewEntry.Item->InitializeFromReplicatedData(
+		NewEntry.ItemInstanceId,
+		NewEntry.DefinitionHandle,
+		NewEntry.InstanceState,
+		NewEntry.PlacementState,
+		NewEntry.bUseItemRarity,
+		NewEntry.ItemRarityTag);
+
 	MarkItemDirty(NewEntry);
 	return Item;
 }
 
+void FINV_InventoryFastArray::SyncItem(UINV_InventoryItem* Item)
+{
+	FINV_InventoryEntry* Entry = FindEntry(Item);
+	if (Entry == nullptr || !IsValid(Item))
+	{
+		return;
+	}
+
+	Entry->DefinitionHandle = Item->GetItemDefinitionHandle();
+	Entry->ItemInstanceId = Item->GetItemInstanceId();
+	Entry->InstanceState = Item->GetItemInstanceState();
+	Entry->PlacementState = Item->GetPlacementState();
+	Entry->bUseItemRarity = Item->IsItemRarityEnabled();
+	Entry->ItemRarityTag = Item->GetItemRarityTag();
+	MarkItemDirty(*Entry);
+	NotifyItemChanged(Item);
+}
+
 void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 {
-	// Remove an entry and mark the array dirty.
-	for (auto EntryIt { Entries.CreateIterator() }; EntryIt; ++EntryIt)
+	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
 	{
-		FINV_InventoryEntry& Entry { *EntryIt };
+		FINV_InventoryEntry& Entry = *EntryIt;
 		if (Entry.Item == Item)
 		{
 			NotifyItemRemoved(Entry.Item.Get());
-			UnregisterEntrySubObject(Entry.Item.Get());
 			EntryIt.RemoveCurrent();
 			MarkArrayDirty();
 			return;
@@ -154,20 +237,21 @@ void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 const UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag) const
 {
-	if (!Callbacks.MatchesItemByTypeAndRarity) return nullptr;
-
-	const auto* FoundItem { Entries.FindByPredicate([this, ItemType = ItemType, bUseItemRarity, ItemRarityTag](const FINV_InventoryEntry& Entry)
+	if (!Callbacks.MatchesItemByTypeAndRarity)
 	{
-		if (Entry.Item == nullptr) return false;
-		return Callbacks.MatchesItemByTypeAndRarity(Entry.Item, ItemType, bUseItemRarity, ItemRarityTag);
-	}) };
+		return nullptr;
+	}
+
+	const FINV_InventoryEntry* FoundItem = Entries.FindByPredicate([this, ItemType, bUseItemRarity, ItemRarityTag](const FINV_InventoryEntry& Entry)
+	{
+		return Entry.Item != nullptr && Callbacks.MatchesItemByTypeAndRarity(Entry.Item, ItemType, bUseItemRarity, ItemRarityTag);
+	});
 	return FoundItem ? FoundItem->Item : nullptr;
 }
 
 UINV_InventoryItem* FINV_InventoryFastArray::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag)
 {
-	// Delegate to const version and cast away const for mutable access
 	return const_cast<UINV_InventoryItem*>(
 		const_cast<const FINV_InventoryFastArray*>(this)->FindFirstItemByType(ItemType, bUseItemRarity, ItemRarityTag)
 	);

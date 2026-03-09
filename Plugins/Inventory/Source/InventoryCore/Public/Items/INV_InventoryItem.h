@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Items/INV_ItemDefinition.h"
 #include "Items/INV_ItemInstanceState.h"
+#include "Items/INV_ItemPlacementState.h"
 #include "Items/INV_ItemPresentationSnapshot.h"
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "UObject/Object.h"
@@ -29,17 +30,24 @@ class INVENTORYCORE_API UINV_InventoryItem : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool IsSupportedForNetworking() const override { return true; }
-	
 	// Store the item manifest inside this object.
 	void SetItemManifest(const FINV_ItemManifest& Manifest);
+	void InitializeFromReplicatedData(
+		const FGuid& InItemInstanceId,
+		const FINV_ItemDefinitionHandle& InDefinitionHandle,
+		const FINV_ItemInstanceState& InInstanceState,
+		const FINV_ItemPlacementState& InPlacementState,
+		bool bInUseItemRarity,
+		const FGameplayTag& InItemRarityTag);
 	// Access the legacy copied manifest for compatibility paths.
 	const FINV_ItemManifest& GetItemManifest() const { return ItemManifest.Get<FINV_ItemManifest>(); }
 	// Mutable manifest access for stack updates, consume effects, and drop flow.
 	FINV_ItemManifest& GetItemManifestMutable();
 	const UINV_ItemDefinition* GetItemDefinition() const { return ItemDefinition; }
 	const FINV_ItemDefinitionHandle& GetItemDefinitionHandle() const { return ItemDefinitionHandle; }
+	const FGuid& GetItemInstanceId() const { return ItemInstanceId; }
+	const FINV_ItemPlacementState& GetPlacementState() const { return PlacementState; }
+	void SetPlacementState(const FINV_ItemPlacementState& InPlacementState);
 	// True if this item has a stackable fragment.
 	bool IsStackable() const;
 	// True if this item has a consumable fragment.
@@ -83,16 +91,14 @@ public:
 	FINV_InventoryItemChangedNative& OnItemChanged() { return ItemChangedEvent; }
 	
 private:
-	UFUNCTION() void OnRep_ItemManifest();
-	UFUNCTION() void OnRep_TotalStackCount();
-	UFUNCTION() void OnRep_ItemRarityOptions();
 	void ResolveItemDefinition();
+	void ResolveItemDefinitionFromHandle();
 	const FINV_ItemManifest& GetDefinitionManifest() const;
 	void ResetFragmentCache();
 	void BroadcastItemChanged();
 
 	// Instanced manifest (fragments + tags).
-	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"), ReplicatedUsing = OnRep_ItemManifest)
+	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"))
 	FInstancedStruct ItemManifest;
 
 	UPROPERTY(Transient)
@@ -100,15 +106,21 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory")
 	FINV_ItemDefinitionHandle ItemDefinitionHandle;
+
+	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory")
+	FGuid ItemInstanceId;
+
+	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory")
+	FINV_ItemPlacementState PlacementState;
 	
 	// Total stacks stored for this item.
-	UPROPERTY(ReplicatedUsing = OnRep_TotalStackCount) int32 TotalStackCount { 0 };
+	UPROPERTY() int32 TotalStackCount { 0 };
 
 	// Enables per-item rarity styling support.
-	UPROPERTY(ReplicatedUsing = OnRep_ItemRarityOptions) bool bUseItemRarity { false };
+	UPROPERTY() bool bUseItemRarity { false };
 
 	// Rarity tag used for UI styling.
-	UPROPERTY(ReplicatedUsing = OnRep_ItemRarityOptions) FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
+	UPROPERTY() FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
 
 	// Fragment cache for frequently accessed fragments (not replicated, rebuilt on clients)
 	mutable const FINV_GridFragment* CachedGridFragment { nullptr };

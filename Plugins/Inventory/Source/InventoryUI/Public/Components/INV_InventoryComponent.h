@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Items/INV_ItemPlacementState.h"
 #include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "INV_InventoryComponent.generated.h"
 
@@ -38,11 +39,11 @@ public:
 	
 	// Server RPC: add a new runtime item entry from a pickup component.
 	UFUNCTION(Server, Reliable)
-	void Server_AddNewItem(UINV_ItemComponent* ItemComponent, int32 StackCount);
+	void Server_AddNewItem(UINV_ItemComponent* ItemComponent, int32 StackCount, const FINV_ItemPlacementState& PlacementState);
 	
 	// Server RPC: merge stacks into an existing item and handle pickup remainder.
 	UFUNCTION(Server, Reliable)
-	void Server_AddStacksToItem(UINV_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder);
+	void Server_AddStacksToItem(UINV_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder, const FINV_ItemPlacementState& PlacementState);
 	
 	// Server RPC: remove/adjust inventory item stacks and spawn dropped pickup actor.
 	UFUNCTION(Server, Reliable)

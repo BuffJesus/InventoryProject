@@ -3,6 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Items/INV_ItemDefinition.h"
+#include "Items/INV_ItemInstanceState.h"
+#include "Items/INV_ItemPlacementState.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "INV_FastArray.generated.h"
 
@@ -10,12 +13,14 @@ struct FGameplayTag;
 class AActor;
 class UINV_ItemComponent;
 class UINV_InventoryItem;
+enum class EINV_ItemCategory : uint8;
 
 struct FINV_FastArrayCallbacks
 {
 	// Runtime item construction and matching hooks.
 	TFunction<UINV_InventoryItem*(UINV_ItemComponent*, AActor*)> CreateItemFromPickup;
 	TFunction<bool(const UINV_InventoryItem*, const FGameplayTag&, bool, const FGameplayTag&)> MatchesItemByTypeAndRarity;
+	TFunction<UINV_InventoryItem*(UObject*, const FGuid&, const FINV_ItemDefinitionHandle&, const FINV_ItemInstanceState&, const FINV_ItemPlacementState&, bool, const FGameplayTag&)> CreateItemWrapperFromReplication;
 
 	// Item lifecycle notifications.
 	TFunction<void(UINV_InventoryItem*)> OnItemAdded;
@@ -37,8 +42,13 @@ struct INVENTORYCORE_API FINV_InventoryEntry : public FFastArraySerializerItem
 	
 private:
 	friend struct FINV_InventoryFastArray;
-	// The actual item object for this entry.
-	UPROPERTY() TObjectPtr<UINV_InventoryItem> Item { nullptr };
+	UPROPERTY() FGuid ItemInstanceId;
+	UPROPERTY() FINV_ItemDefinitionHandle DefinitionHandle;
+	UPROPERTY() FINV_ItemInstanceState InstanceState;
+	UPROPERTY() FINV_ItemPlacementState PlacementState;
+	UPROPERTY() bool bUseItemRarity { false };
+	UPROPERTY() FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
+	UPROPERTY(Transient) TObjectPtr<UINV_InventoryItem> Item { nullptr };
 };
 
 // Replicated list of inventory items.
@@ -70,18 +80,20 @@ struct INVENTORYCORE_API FINV_InventoryFastArray : public FFastArraySerializer
 	}
 	
 	// Creates a runtime inventory item from a pickup component manifest and adds it.
-	UINV_InventoryItem* AddEntry(UINV_ItemComponent* ItemComponent);
+	UINV_InventoryItem* AddEntry(UINV_ItemComponent* ItemComponent, const FINV_ItemPlacementState& PlacementState);
 	// Adds an already-created runtime inventory item.
-	UINV_InventoryItem* AddEntry(UINV_InventoryItem* Item);
+	UINV_InventoryItem* AddEntry(UINV_InventoryItem* Item, const FINV_ItemPlacementState& PlacementState);
 	// Removes the matching item entry from the replicated list.
 	void RemoveEntry(UINV_InventoryItem* Item);
 	// Finds first valid item entry whose item type/rarity matches.
 	UINV_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType, bool bUseItemRarity,
 		const FGameplayTag& ItemRarityTag);
+	void SyncItem(UINV_InventoryItem* Item);
 
 private:
-	void RegisterEntrySubObject(UINV_InventoryItem* Item) const;
-	void UnregisterEntrySubObject(UINV_InventoryItem* Item) const;
+	FINV_InventoryEntry* FindEntry(UINV_InventoryItem* Item);
+	const FINV_InventoryEntry* FindEntry(UINV_InventoryItem* Item) const;
+	UINV_InventoryItem* EnsureItemWrapper(FINV_InventoryEntry& Entry);
 	void NotifyItemAdded(UINV_InventoryItem* Item) const;
 	void NotifyItemRemoved(UINV_InventoryItem* Item) const;
 	void NotifyItemChanged(UINV_InventoryItem* Item) const;

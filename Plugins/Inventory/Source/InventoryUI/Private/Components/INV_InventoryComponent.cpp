@@ -166,6 +166,29 @@ void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
 	{
 		return UINV_InventoryItem::MatchesTypeAndRarity(Item, ItemType, bUseItemRarity, ItemRarityTag);
 	};
+	Callbacks.CreateItemWrapperFromReplication = [](UObject* Outer, const FGuid& ItemInstanceId, const FINV_ItemDefinitionHandle& DefinitionHandle,
+		const FINV_ItemInstanceState& InstanceState, const FINV_ItemPlacementState& PlacementState, const bool bUseItemRarity, const FGameplayTag& ItemRarityTag) -> UINV_InventoryItem*
+	{
+		if (!IsValid(Outer))
+		{
+			return nullptr;
+		}
+
+		UINV_InventoryItem* Item = NewObject<UINV_InventoryItem>(Outer, UINV_InventoryItem::StaticClass());
+		if (!IsValid(Item))
+		{
+			return nullptr;
+		}
+
+		Item->InitializeFromReplicatedData(
+			ItemInstanceId,
+			DefinitionHandle,
+			InstanceState,
+			PlacementState,
+			bUseItemRarity,
+			ItemRarityTag);
+		return Item;
+	};
 	Callbacks.OnItemAdded = [this](UINV_InventoryItem* Item)
 	{
 		OnItemAdded.Broadcast(Item);
@@ -329,6 +352,7 @@ void UINV_InventoryComponent::Server_DropItem_Implementation(UINV_InventoryItem*
 	else
 	{
 		Item->SetTotalStackCount(NewStackCount);
+		InventoryFastArray.SyncItem(Item);
 	}
 	
 	SpawnDroppedItem(Item, DroppedStackCount);
@@ -358,7 +382,7 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 		}
 		else
 		{
-			InventoryFastArray.AddEntry(Item);
+			InventoryFastArray.AddEntry(Item, Item->GetPlacementState());
 		}
 	};
 
@@ -452,11 +476,13 @@ void UINV_InventoryComponent::Server_EquipSlotClicked_Implementation(UINV_Invent
 
 	if (ApplyServerEquipState(ItemToEquip, true))
 	{
+		InventoryFastArray.SyncItem(ItemToEquip);
 		OnItemEquipped.Broadcast(ItemToEquip);
 	}
 
 	if (ApplyServerEquipState(ItemToUnequip, false))
 	{
+		InventoryFastArray.SyncItem(ItemToUnequip);
 		OnItemUnequipped.Broadcast(ItemToUnequip);
 	}
 }
@@ -474,6 +500,7 @@ void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryIt
 	else
 	{
 		Item->SetTotalStackCount(NewStackCount);
+		InventoryFastArray.SyncItem(Item);
 	}
 
 	if (FINV_ConsumableFragment* ConsumableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_ConsumableFragment>())
@@ -515,11 +542,29 @@ void UINV_InventoryComponent::TryAddItem(UINV_ItemComponent* ItemComponent)
 			StackResult.Item = FoundItem;
 			OnStackChange.Broadcast(StackResult);
 		}
-		Server_AddStacksToItem(ItemComponent, Decision.StackCountToAdd, Decision.Remainder);
+		{
+			FINV_ItemPlacementState PlacementState;
+			PlacementState.ContainerCategory = ItemComponent->GetItemManifest().GetItemCategory();
+			if (const FINV_SlotAvailability* EmptyAvailability = SpaceResult.SlotAvailabilities.FindByPredicate([](const FINV_SlotAvailability& Availability)
+			{
+				return !Availability.bItemAtIndex;
+			}))
+			{
+				PlacementState.AnchorIndex = EmptyAvailability->Index;
+			}
+			Server_AddStacksToItem(ItemComponent, Decision.StackCountToAdd, Decision.Remainder, PlacementState);
+		}
 		break;
 	case EINV_AddItemAction::AddNewItem:
-		// Create a new inventory entry.
-		Server_AddNewItem(ItemComponent, Decision.StackCountToAdd);
+		{
+			FINV_ItemPlacementState PlacementState;
+			PlacementState.ContainerCategory = ItemComponent->GetItemManifest().GetItemCategory();
+			if (SpaceResult.SlotAvailabilities.Num() > 0)
+			{
+				PlacementState.AnchorIndex = SpaceResult.SlotAvailabilities[0].Index;
+			}
+			Server_AddNewItem(ItemComponent, Decision.StackCountToAdd, PlacementState);
+		}
 		break;
 	case EINV_AddItemAction::None:
 	default:
@@ -611,14 +656,17 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	ApplyPointerInputMode(bIsOpen);
 }
 
-void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)
+void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount, const FINV_ItemPlacementState& PlacementState)
 {
 	if (!IsValid(ItemComponent)) return;
 	if (!HasAuthorityOnOwner()) return;
 	
 	// Create and replicate a new item.
-	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
+	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent, PlacementState) };
+	if (!IsValid(NewItem)) return;
 	NewItem->SetTotalStackCount(StackCount);
+	NewItem->SetPlacementState(PlacementState);
+	InventoryFastArray.SyncItem(NewItem);
 	
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
 	{
@@ -629,7 +677,7 @@ void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponen
 }
 
 void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount,
-	int32 Remainder)
+	int32 Remainder, const FINV_ItemPlacementState& PlacementState)
 {
 	if (!IsValid(ItemComponent)) return;
 	if (!HasAuthorityOnOwner()) return;
@@ -644,9 +692,11 @@ void UINV_InventoryComponent::Server_AddStacksToItem_Implementation(UINV_ItemCom
 
 	const int32 OldStackCount = Item->GetTotalStackCount();
 	Item->SetTotalStackCount(OldStackCount + StackCount);
-
-	// Mark the fast array as dirty so replication knows it changed
-	InventoryFastArray.MarkArrayDirty();
+	if (PlacementState.IsValid())
+	{
+		Item->SetPlacementState(PlacementState);
+	}
+	InventoryFastArray.SyncItem(Item);
 
 	if (Remainder == 0) ItemComponent->PickedUp();
 	else if (FINV_StackableFragment* StackableFragment = ItemComponent->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_StackableFragment>())

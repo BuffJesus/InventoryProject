@@ -303,8 +303,15 @@ void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
 void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
-	
-	// Compute placement and update UI.
+
+	const FINV_ItemPlacementState& PlacementState = Item->GetPlacementState();
+	if (PlacementState.IsValid() && PlacementState.ContainerCategory == ItemCategory)
+	{
+		PlaceItemAtIndex(Item, PlacementState.AnchorIndex, Item->IsStackable(), Item->GetTotalStackCount());
+		BindInventoryItemNotifications(Item);
+		return;
+	}
+
 	FINV_SlotAvailabilityResult Result { HasRoomForItem(Item) };
 	AddItemToIndices(Result, Item);
 	BindInventoryItemNotifications(Item);
@@ -473,6 +480,25 @@ void UINV_InventoryGrid::UnbindInventoryItemNotifications(UINV_InventoryItem* It
 void UINV_InventoryGrid::HandleInventoryItemChanged(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
+
+	const FINV_ItemPlacementState& PlacementState = Item->GetPlacementState();
+	const int32 CurrentAnchorIndex = FindUpperLeftIndexForItem(Item);
+	if (PlacementState.IsValid() && PlacementState.ContainerCategory == ItemCategory)
+	{
+		if (CurrentAnchorIndex == INDEX_NONE)
+		{
+			PlaceItemAtIndex(Item, PlacementState.AnchorIndex, Item->IsStackable(), Item->GetTotalStackCount());
+			return;
+		}
+
+		if (CurrentAnchorIndex != PlacementState.AnchorIndex)
+		{
+			RemoveItemFromGrid(Item, CurrentAnchorIndex);
+			PlaceItemAtIndex(Item, PlacementState.AnchorIndex, Item->IsStackable(), Item->GetTotalStackCount());
+			return;
+		}
+	}
+
 	RefreshItemVisuals(Item);
 }
 

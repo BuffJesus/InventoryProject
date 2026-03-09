@@ -52,6 +52,7 @@ public:
 
 	static FINV_ItemDefinitionHandle BuildHandleFromManifest(const FINV_ItemManifest& Manifest);
 	static UINV_ItemDefinition* FindOrCreateSharedDefinition(const FINV_ItemManifest& Manifest, UObject* OuterContext);
+	static UINV_ItemDefinition* FindSharedDefinitionByHandle(const FINV_ItemDefinitionHandle& Handle);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "INV|Definition", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"))

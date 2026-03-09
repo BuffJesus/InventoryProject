@@ -74,3 +74,21 @@ UINV_ItemDefinition* UINV_ItemDefinition::FindOrCreateSharedDefinition(const FIN
 	Registry.DefinitionsByKey.Add(Handle.DefinitionKey, NewDefinition);
 	return NewDefinition;
 }
+
+UINV_ItemDefinition* UINV_ItemDefinition::FindSharedDefinitionByHandle(const FINV_ItemDefinitionHandle& Handle)
+{
+	if (!Handle.IsValid())
+	{
+		return nullptr;
+	}
+
+	FINV_ItemDefinitionRegistry& Registry = FINV_ItemDefinitionRegistry::Get();
+	FScopeLock RegistryLock(&Registry.Mutex);
+
+	if (const TWeakObjectPtr<UINV_ItemDefinition>* ExistingDefinition = Registry.DefinitionsByKey.Find(Handle.DefinitionKey))
+	{
+		return ExistingDefinition->Get();
+	}
+
+	return nullptr;
+}

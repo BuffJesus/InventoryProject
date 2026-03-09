@@ -7,7 +7,6 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Fragments/INV_FragmentTags.h"
 #include "Internationalization/Text.h"
-#include "Net/UnrealNetwork.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
@@ -47,20 +46,13 @@ float ResolveRuntimeValueOrFallback(
 }
 }
 
-void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	// Replicate manifest data and stack count.
-	DOREPLIFETIME(ThisClass, ItemManifest);
-	DOREPLIFETIME(ThisClass, TotalStackCount);
-	DOREPLIFETIME(ThisClass, bUseItemRarity);
-	DOREPLIFETIME(ThisClass, ItemRarityTag);
-}
-
 void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 {
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
+	if (!ItemInstanceId.IsValid())
+	{
+		ItemInstanceId = FGuid::NewGuid();
+	}
 	ResolveItemDefinition();
 	ResetFragmentCache();
 	BuildFragmentCache();
@@ -69,10 +61,38 @@ void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 	BroadcastItemChanged();
 }
 
+void UINV_InventoryItem::InitializeFromReplicatedData(
+	const FGuid& InItemInstanceId,
+	const FINV_ItemDefinitionHandle& InDefinitionHandle,
+	const FINV_ItemInstanceState& InInstanceState,
+	const FINV_ItemPlacementState& InPlacementState,
+	const bool bInUseItemRarity,
+	const FGameplayTag& InItemRarityTag)
+{
+	ItemInstanceId = InItemInstanceId;
+	ItemDefinitionHandle = InDefinitionHandle;
+	PlacementState = InPlacementState;
+	bUseItemRarity = bInUseItemRarity;
+	ItemRarityTag = bUseItemRarity ? InItemRarityTag : FGameplayTag::EmptyTag;
+	CachedItemInstanceState = InInstanceState;
+	TotalStackCount = InInstanceState.StackCount;
+	bItemInstanceStateDirty = false;
+
+	ResolveItemDefinitionFromHandle();
+	if (IsValid(ItemDefinition))
+	{
+		ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(ItemDefinition->GetItemManifest());
+	}
+
+	ResetFragmentCache();
+	BuildFragmentCache();
+	RebuildPresentationSnapshot();
+	BroadcastItemChanged();
+}
+
 FINV_ItemManifest& UINV_InventoryItem::GetItemManifestMutable()
 {
 	ItemDefinition = nullptr;
-	ItemDefinitionHandle.Reset();
 	ResetFragmentCache();
 	return ItemManifest.GetMutable<FINV_ItemManifest>();
 }
@@ -81,6 +101,11 @@ void UINV_InventoryItem::ResolveItemDefinition()
 {
 	ItemDefinition = UINV_ItemDefinition::FindOrCreateSharedDefinition(GetItemManifest(), GetTransientPackage());
 	ItemDefinitionHandle = IsValid(ItemDefinition) ? ItemDefinition->GetDefinitionHandle() : FINV_ItemDefinitionHandle{};
+}
+
+void UINV_InventoryItem::ResolveItemDefinitionFromHandle()
+{
+	ItemDefinition = UINV_ItemDefinition::FindSharedDefinitionByHandle(ItemDefinitionHandle);
 }
 
 const FINV_ItemManifest& UINV_InventoryItem::GetDefinitionManifest() const
@@ -104,6 +129,19 @@ void UINV_InventoryItem::SetTotalStackCount(const int32 Count)
 	CachedItemInstanceState.StackCount = Count;
 	bItemInstanceStateDirty = false;
 	bPresentationSnapshotDirty = true;
+	BroadcastItemChanged();
+}
+
+void UINV_InventoryItem::SetPlacementState(const FINV_ItemPlacementState& InPlacementState)
+{
+	if (PlacementState.ContainerCategory == InPlacementState.ContainerCategory
+		&& PlacementState.AnchorIndex == InPlacementState.AnchorIndex
+		&& PlacementState.Rotation == InPlacementState.Rotation)
+	{
+		return;
+	}
+
+	PlacementState = InPlacementState;
 	BroadcastItemChanged();
 }
 
@@ -418,30 +456,6 @@ void UINV_InventoryItem::SetEquippedState(const bool bEquipped)
 bool UINV_InventoryItem::IsEquipped() const
 {
 	return GetItemInstanceState().bEquipped;
-}
-
-void UINV_InventoryItem::OnRep_ItemManifest()
-{
-	ResolveItemDefinition();
-	ResetFragmentCache();
-	BuildFragmentCache();
-	RebuildItemInstanceState();
-	RebuildPresentationSnapshot();
-	BroadcastItemChanged();
-}
-
-void UINV_InventoryItem::OnRep_TotalStackCount()
-{
-	CachedItemInstanceState.StackCount = TotalStackCount;
-	bItemInstanceStateDirty = false;
-	bPresentationSnapshotDirty = true;
-	BroadcastItemChanged();
-}
-
-void UINV_InventoryItem::OnRep_ItemRarityOptions()
-{
-	bPresentationSnapshotDirty = true;
-	BroadcastItemChanged();
 }
 
 void UINV_InventoryItem::ResetFragmentCache()
