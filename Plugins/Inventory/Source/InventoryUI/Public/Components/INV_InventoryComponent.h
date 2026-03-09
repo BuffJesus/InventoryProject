@@ -64,6 +64,7 @@ public:
 	
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
+	FInventoryItemChange OnItemChanged;
 	FNoRoomInInventory OnNoRoomInInventory;
 	FStackChange OnStackChange;
 	FItemEquipStatusChanged OnItemEquipped;

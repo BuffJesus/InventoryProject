@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Delegates/Delegate.h"
 #include "Types/INV_GridTypes.h"
 
 class UINV_ItemPopUp;
@@ -46,6 +47,8 @@ public:
 	UFUNCTION()
 	// Adds a replicated item to the UI grid.
 	void AddItem(UINV_InventoryItem* Item);
+	UFUNCTION() void RemoveItem(UINV_InventoryItem* Item);
+	UFUNCTION() void HandleInventoryItemChanged(UINV_InventoryItem* Item);
 	
 	void ShowCursor();
 	void HideCursor();
@@ -91,6 +94,10 @@ private:
 		const int32 Index);
 	void ReleaseSlottedItem(UINV_SlottedItem* SlottedItem);
 	void BindSlottedItemDelegates(UINV_SlottedItem* SlottedItem);
+	void BindInventoryItemNotifications(UINV_InventoryItem* Item);
+	void UnbindInventoryItemNotifications(UINV_InventoryItem* Item);
+	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
+	void RefreshItemVisuals(UINV_InventoryItem* Item);
 	
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void PlaceItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
@@ -187,6 +194,7 @@ private:
 	
 	UPROPERTY() TMap<int32, TObjectPtr<UINV_SlottedItem>> SlottedItems;
 	UPROPERTY() TArray<TObjectPtr<UINV_SlottedItem>> SlottedItemPool;
+	TMap<UINV_InventoryItem*, FDelegateHandle> ItemChangedDelegateHandles;
 	UPROPERTY(EditAnywhere, Category = "INV|Grid", meta = (ClampMin = "0", UIMin = "0"))
 	int32 MaxPooledSlottedItems { 128 };
 	

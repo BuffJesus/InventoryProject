@@ -14,6 +14,9 @@ struct FINV_GridFragment;
 struct FINV_ImageFragment;
 struct FINV_StackableFragment;
 struct FINV_ConsumableFragment;
+class UINV_InventoryItem;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FINV_InventoryItemChangedNative, UINV_InventoryItem*);
 
 UCLASS()
 class INVENTORYCORE_API UINV_InventoryItem : public UObject
@@ -36,7 +39,7 @@ public:
 	bool IsConsumable() const;
 	// Total stack count across all slots.
 	FORCEINLINE int32 GetTotalStackCount() const { return TotalStackCount; }
-	FORCEINLINE void SetTotalStackCount(int32 Count) { TotalStackCount = Count; }
+	void SetTotalStackCount(int32 Count);
 	// Whether this item exposes rarity styling data.
 	FORCEINLINE bool IsItemRarityEnabled() const { return bUseItemRarity; }
 	// Item rarity tag used by UI.
@@ -63,20 +66,27 @@ public:
 	const FINV_ConsumableFragment* GetCachedConsumableFragment() const;
 	// Call this after setting the manifest to build the cache
 	void BuildFragmentCache();
+	FINV_InventoryItemChangedNative& OnItemChanged() { return ItemChangedEvent; }
 	
 private:
+	UFUNCTION() void OnRep_ItemManifest();
+	UFUNCTION() void OnRep_TotalStackCount();
+	UFUNCTION() void OnRep_ItemRarityOptions();
+	void ResetFragmentCache();
+	void BroadcastItemChanged();
+
 	// Instanced manifest (fragments + tags).
-	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"), Replicated)
+	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"), ReplicatedUsing = OnRep_ItemManifest)
 	FInstancedStruct ItemManifest;
 	
 	// Total stacks stored for this item.
-	UPROPERTY(Replicated) int32 TotalStackCount { 0 };
+	UPROPERTY(ReplicatedUsing = OnRep_TotalStackCount) int32 TotalStackCount { 0 };
 
 	// Enables per-item rarity styling support.
-	UPROPERTY(Replicated) bool bUseItemRarity { false };
+	UPROPERTY(ReplicatedUsing = OnRep_ItemRarityOptions) bool bUseItemRarity { false };
 
 	// Rarity tag used for UI styling.
-	UPROPERTY(Replicated) FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
+	UPROPERTY(ReplicatedUsing = OnRep_ItemRarityOptions) FGameplayTag ItemRarityTag { FGameplayTag::EmptyTag };
 
 	// Fragment cache for frequently accessed fragments (not replicated, rebuilt on clients)
 	mutable const FINV_GridFragment* CachedGridFragment { nullptr };
@@ -84,6 +94,7 @@ private:
 	mutable const FINV_StackableFragment* CachedStackableFragment { nullptr };
 	mutable const FINV_ConsumableFragment* CachedConsumableFragment { nullptr };
 	mutable FGameplayTag CachedItemType { FGameplayTag::EmptyTag };
+	FINV_InventoryItemChangedNative ItemChangedEvent;
 };
 
 template <typename FragmentType>

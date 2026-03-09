@@ -10,6 +10,11 @@ public class InventoryUI : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
+				"Engine",
+				"Slate",
+				"SlateCore",
+				"UMG",
 				"InventoryCore"
 			}
 		);
@@ -17,13 +22,8 @@ public class InventoryUI : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"CoreUObject",
-				"Engine",
 				"InputCore",
-				"Slate",
-				"SlateCore",
 				"GameplayTags",
-				"UMG",
 				"EnhancedInput",
 				"NetCore"
 			}

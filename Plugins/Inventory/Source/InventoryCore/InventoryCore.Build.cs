@@ -12,7 +12,8 @@ public class InventoryCore : ModuleRules
 				"Core",
 				"CoreUObject",
 				"GameplayTags",
-				"NetCore"
+				"NetCore",
+				"StructUtils"
 			}
 		);
 

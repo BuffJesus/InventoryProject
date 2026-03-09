@@ -33,6 +33,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/PlatformTime.h"
+#include "Delegates/Delegate.h"
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -73,7 +74,9 @@ void UINV_InventoryGrid::NativeOnInitialized()
 	if (InventoryComponent.IsValid())
 	{
 		InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
+		InventoryComponent->OnItemRemoved.AddDynamic(this, &ThisClass::RemoveItem);
 		InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
+		InventoryComponent->OnItemChanged.AddDynamic(this, &ThisClass::HandleInventoryItemChanged);
 	}
 }
 
@@ -304,6 +307,20 @@ void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 	// Compute placement and update UI.
 	FINV_SlotAvailabilityResult Result { HasRoomForItem(Item) };
 	AddItemToIndices(Result, Item);
+	BindInventoryItemNotifications(Item);
+}
+
+void UINV_InventoryGrid::RemoveItem(UINV_InventoryItem* Item)
+{
+	if (!MatchesCategory(Item)) return;
+
+	const int32 UpperLeftIndex = FindUpperLeftIndexForItem(Item);
+	if (UpperLeftIndex != INDEX_NONE)
+	{
+		RemoveItemFromGrid(Item, UpperLeftIndex);
+	}
+
+	UnbindInventoryItemNotifications(Item);
 }
 
 void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem)
@@ -419,6 +436,95 @@ void UINV_InventoryGrid::BindSlottedItemDelegates(UINV_SlottedItem* SlottedItem)
 	SlottedItem->OnSlottedItemClicked.AddDynamic(this, &ThisClass::OnSlottedItemClicked);
 	SlottedItem->OnSlottedItemHovered.AddDynamic(this, &ThisClass::OnSlottedItemHovered);
 	SlottedItem->OnSlottedItemUnhovered.AddDynamic(this, &ThisClass::OnSlottedItemUnhovered);
+}
+
+void UINV_InventoryGrid::BindInventoryItemNotifications(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	if (ItemChangedDelegateHandles.Contains(Item))
+	{
+		return;
+	}
+
+	const FDelegateHandle DelegateHandle = Item->OnItemChanged().AddUObject(this, &ThisClass::HandleInventoryItemChanged);
+	ItemChangedDelegateHandles.Add(Item, DelegateHandle);
+}
+
+void UINV_InventoryGrid::UnbindInventoryItemNotifications(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	FDelegateHandle DelegateHandle;
+	if (!ItemChangedDelegateHandles.RemoveAndCopyValue(Item, DelegateHandle))
+	{
+		return;
+	}
+
+	Item->OnItemChanged().Remove(DelegateHandle);
+}
+
+void UINV_InventoryGrid::HandleInventoryItemChanged(UINV_InventoryItem* Item)
+{
+	if (!MatchesCategory(Item)) return;
+	RefreshItemVisuals(Item);
+}
+
+int32 UINV_InventoryGrid::FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const
+{
+	if (!IsValid(Item))
+	{
+		return INDEX_NONE;
+	}
+
+	for (const TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
+	{
+		if (!IsValid(GridSlot)) continue;
+		if (GridSlot->GetInventoryItem().Get() != Item) continue;
+		return GridSlot->GetUpperLeftIndex();
+	}
+
+	return INDEX_NONE;
+}
+
+void UINV_InventoryGrid::RefreshItemVisuals(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	const int32 UpperLeftIndex = FindUpperLeftIndexForItem(Item);
+	if (UpperLeftIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	if (TObjectPtr<UINV_SlottedItem>* SlottedItemPtr = SlottedItems.Find(UpperLeftIndex))
+	{
+		if (IsValid(*SlottedItemPtr))
+		{
+			(*SlottedItemPtr)->UpdateStackCount(Item->IsStackable() ? Item->GetTotalStackCount() : 0);
+		}
+	}
+
+	const FINV_GridFragment* GridFragment = Item->GetCachedGridFragment();
+	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	FINV_GridIteration::ForEach2D(GridSlots, UpperLeftIndex, Dimensions, GridSize.X,
+		[](UINV_GridSlot* GridSlot)
+	{
+		if (!IsValid(GridSlot)) return;
+		if (GridSlot->GetGridSlotState() == EINV_GridSlotState::Occupied)
+		{
+			GridSlot->SetOccupiedTexture();
+		}
+	});
 }
 
 void UINV_InventoryGrid::AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable,
@@ -906,6 +1012,8 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 			PlaceItemAtIndex(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
 		}
 	}
+
+	BindInventoryItemNotifications(Result.Item.Get());
 }
 
 FINV_StackDetails UINV_InventoryGrid::CalculateStackDetails(int32 GridIndex, UINV_InventoryItem* ClickedInventoryItem)

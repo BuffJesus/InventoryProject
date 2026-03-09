@@ -19,6 +19,48 @@ TArray<UINV_InventoryItem*> FINV_InventoryFastArray::GetAllItems() const
 	return Results;
 }
 
+void FINV_InventoryFastArray::RegisterEntrySubObject(UINV_InventoryItem* Item) const
+{
+	if (!IsValid(Item)) return;
+	if (Callbacks.RegisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
+	{
+		Callbacks.RegisterReplicatedSubObject(static_cast<UObject*>(Item));
+	}
+}
+
+void FINV_InventoryFastArray::UnregisterEntrySubObject(UINV_InventoryItem* Item) const
+{
+	if (!IsValid(Item)) return;
+	if (Callbacks.UnregisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
+	{
+		Callbacks.UnregisterReplicatedSubObject(static_cast<UObject*>(Item));
+	}
+}
+
+void FINV_InventoryFastArray::NotifyItemAdded(UINV_InventoryItem* Item) const
+{
+	if (Callbacks.OnItemAdded)
+	{
+		Callbacks.OnItemAdded(Item);
+	}
+}
+
+void FINV_InventoryFastArray::NotifyItemRemoved(UINV_InventoryItem* Item) const
+{
+	if (Callbacks.OnItemRemoved)
+	{
+		Callbacks.OnItemRemoved(Item);
+	}
+}
+
+void FINV_InventoryFastArray::NotifyItemChanged(UINV_InventoryItem* Item) const
+{
+	if (Callbacks.OnItemChanged)
+	{
+		Callbacks.OnItemChanged(Item);
+	}
+}
+
 void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
 	// Notify about items that are being removed.
@@ -27,14 +69,8 @@ void FINV_InventoryFastArray::PreReplicatedRemove(const TArrayView<int32> Remove
 		if (!Entries.IsValidIndex(Index)) continue;
 		if (UINV_InventoryItem* RemovedItem = Entries[Index].Item)
 		{
-			if (Callbacks.OnItemRemoved)
-			{
-				Callbacks.OnItemRemoved(RemovedItem);
-			}
-			if (Callbacks.UnregisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
-			{
-				Callbacks.UnregisterReplicatedSubObject(static_cast<UObject*>(RemovedItem));
-			}
+			NotifyItemRemoved(RemovedItem);
+			UnregisterEntrySubObject(RemovedItem);
 		}
 	}
 }
@@ -44,9 +80,22 @@ void FINV_InventoryFastArray::PostReplicatedAdd(const TArrayView<int32> AddedInd
 	// Notify about items that were added.
 	for (int32 Index : AddedIndices)
 	{
-		if (Callbacks.OnItemAdded)
+		if (!Entries.IsValidIndex(Index)) continue;
+		if (UINV_InventoryItem* AddedItem = Entries[Index].Item)
 		{
-			Callbacks.OnItemAdded(Entries[Index].Item);
+			NotifyItemAdded(AddedItem);
+		}
+	}
+}
+
+void FINV_InventoryFastArray::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+{
+	for (int32 Index : ChangedIndices)
+	{
+		if (!Entries.IsValidIndex(Index)) continue;
+		if (UINV_InventoryItem* ChangedItem = Entries[Index].Item)
+		{
+			NotifyItemChanged(ChangedItem);
 		}
 	}
 }
@@ -64,10 +113,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemCo
 	NewEntry.Item = Callbacks.CreateItemFromPickup(ItemComponent, OwningActor);
 	checkf(NewEntry.Item != nullptr, TEXT("CreateItemFromPickup callback returned null"));
 
-	if (Callbacks.RegisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
-	{
-		Callbacks.RegisterReplicatedSubObject(static_cast<UObject*>(NewEntry.Item.Get()));
-	}
+	RegisterEntrySubObject(NewEntry.Item.Get());
 	MarkItemDirty(NewEntry);
 
 	return NewEntry.Item;
@@ -82,6 +128,7 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_InventoryItem* Item)
 	
 	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
 	NewEntry.Item = Item;
+	RegisterEntrySubObject(NewEntry.Item.Get());
 	
 	MarkItemDirty(NewEntry);
 	return Item;
@@ -95,8 +142,11 @@ void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 		FINV_InventoryEntry& Entry { *EntryIt };
 		if (Entry.Item == Item)
 		{
+			NotifyItemRemoved(Entry.Item.Get());
+			UnregisterEntrySubObject(Entry.Item.Get());
 			EntryIt.RemoveCurrent();
 			MarkArrayDirty();
+			return;
 		}
 	}
 }
