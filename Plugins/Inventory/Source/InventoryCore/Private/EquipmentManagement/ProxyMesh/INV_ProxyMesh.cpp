@@ -9,9 +9,13 @@ AINV_ProxyMesh::AINV_ProxyMesh()
 	PrimaryActorTick.bCanEverTick = false;
 	
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(RootComponent);
+	
 	EquipmentComponent = CreateDefaultSubobject<UINV_EquipmentComponent>(TEXT("Equipment"));
+	EquipmentComponent->SetOwningSkeletalMesh(Mesh);
+	EquipmentComponent->SetIsProxy(true);
 }
 
 void AINV_ProxyMesh::BeginPlay()

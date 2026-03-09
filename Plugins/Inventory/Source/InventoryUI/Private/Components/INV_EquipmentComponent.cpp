@@ -10,6 +10,11 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
+void UINV_EquipmentComponent::SetOwningSkeletalMesh(USkeletalMeshComponent* OwningMesh)
+{
+	OwningSkeletalMesh = OwningMesh;
+}
+
 void UINV_EquipmentComponent::BeginPlay()
 {
 	Super::BeginPlay();

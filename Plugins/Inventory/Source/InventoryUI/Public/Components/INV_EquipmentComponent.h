@@ -19,7 +19,8 @@ class INVENTORYUI_API UINV_EquipmentComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	
+	void SetOwningSkeletalMesh(USkeletalMeshComponent* OwningMesh);
+	void SetIsProxy(bool bProxy) { bIsProxy = bProxy; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -41,4 +42,6 @@ private:
 	AINV_EquipActor* FindEquippedActor(const FGameplayTag& EquipmentTypeTag);
 	
 	UPROPERTY() TArray<TObjectPtr<AINV_EquipActor>> EquippedActors;
+	
+	bool bIsProxy { false };
 };
