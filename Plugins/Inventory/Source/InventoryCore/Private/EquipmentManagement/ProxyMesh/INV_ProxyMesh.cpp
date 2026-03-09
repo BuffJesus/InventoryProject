@@ -1,9 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "EquipmentManagement/ProxyMesh/INV_ProxyMesh.h"
-
 #include "GameFramework/Character.h"
 #include "InventoryUI/Public/Components/INV_EquipmentComponent.h"
+#include "TimerManager.h"
 
 AINV_ProxyMesh::AINV_ProxyMesh()
 {
@@ -15,56 +15,91 @@ AINV_ProxyMesh::AINV_ProxyMesh()
 	Mesh->SetupAttachment(RootComponent);
 	
 	EquipmentComponent = CreateDefaultSubobject<UINV_EquipmentComponent>(TEXT("Equipment"));
-	EquipmentComponent->SetOwningSkeletalMesh(Mesh);
-	EquipmentComponent->SetIsProxy(true);
+	EquipmentComponent->InitializeEquipmentContext(nullptr, Mesh, true);
+}
+
+void AINV_ProxyMesh::InitializeProxy(APlayerController* PlayerController)
+{
+	ObservedPlayerController = PlayerController;
+	InitializationAttempts = 0;
+	ScheduleInitializationRetry();
 }
 
 void AINV_ProxyMesh::BeginPlay()
 {
 	Super::BeginPlay();
-	DelayedInitialization();
+	ScheduleInitializationRetry();
 }
 
-void AINV_ProxyMesh::DelayedInitializeOwner()
+void AINV_ProxyMesh::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TimerForNextTick);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void AINV_ProxyMesh::AttemptInitialization()
+{
+	if (TryInitializeFromPlayerController(ResolvePlayerController()))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(TimerForNextTick);
+		}
+		return;
+	}
+
+	++InitializationAttempts;
+	if (InitializationAttempts < MaxInitializationAttempts)
+	{
+		ScheduleInitializationRetry();
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Proxy mesh failed to initialize after %d attempts."), MaxInitializationAttempts);
+}
+
+void AINV_ProxyMesh::ScheduleInitializationRetry()
 {
 	UWorld* World = GetWorld();
-	if (!IsValid(World))
-	{
-		DelayedInitialization();
-		return;
-	}
-	
-	APlayerController* PC { World->GetFirstPlayerController() };
-	if (!IsValid(PC))
-	{
-		DelayedInitialization();
-		return;
-	}
-	
-	ACharacter* Character { Cast<ACharacter>(PC->GetPawn()) };
-	if (!IsValid(Character))
-	{
-		DelayedInitialization();
-		return;
-	}
-	
-	USkeletalMeshComponent* CharacterMesh { Character->GetMesh() };
-	if (!IsValid(CharacterMesh))
-	{
-		DelayedInitialization();
-		return;
-	}
-	
-	SourceMesh = CharacterMesh;
-	Mesh->SetSkeletalMesh(SourceMesh->GetSkeletalMeshAsset());
-	Mesh->SetAnimInstanceClass(SourceMesh->GetAnimInstance()->GetClass());
-	
-	EquipmentComponent->InitializeOwner(PC);
+	if (!IsValid(World)) return;
+
+	World->GetTimerManager().SetTimerForNextTick(this, &ThisClass::AttemptInitialization);
 }
 
-void AINV_ProxyMesh::DelayedInitialization()
+APlayerController* AINV_ProxyMesh::ResolvePlayerController() const
 {
-	FTimerDelegate Delegate;
-	Delegate.BindUObject(this, &ThisClass::DelayedInitializeOwner);
-	GetWorld()->GetTimerManager().SetTimerForNextTick(Delegate);
+	if (ObservedPlayerController.IsValid())
+	{
+		return ObservedPlayerController.Get();
+	}
+
+	UWorld* World = GetWorld();
+	return IsValid(World) ? World->GetFirstPlayerController() : nullptr;
+}
+
+bool AINV_ProxyMesh::TryInitializeFromPlayerController(APlayerController* PlayerController)
+{
+	if (!IsValid(PlayerController)) return false;
+
+	ACharacter* Character { Cast<ACharacter>(PlayerController->GetPawn()) };
+	if (!IsValid(Character)) return false;
+
+	USkeletalMeshComponent* CharacterMesh { Character->GetMesh() };
+	if (!IsValid(CharacterMesh)) return false;
+
+	ObservedPlayerController = PlayerController;
+	SourceMesh = CharacterMesh;
+	Mesh->SetSkeletalMesh(SourceMesh->GetSkeletalMeshAsset());
+
+	if (UAnimInstance* SourceAnimInstance = SourceMesh->GetAnimInstance())
+	{
+		Mesh->SetAnimInstanceClass(SourceAnimInstance->GetClass());
+	}
+
+	EquipmentComponent->InitializeEquipmentContext(PlayerController, Mesh, true);
+	return true;
 }

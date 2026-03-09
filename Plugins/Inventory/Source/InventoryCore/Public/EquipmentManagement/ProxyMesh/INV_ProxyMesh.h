@@ -15,13 +15,16 @@ class INVENTORYCORE_API AINV_ProxyMesh : public AActor
 
 public:
 	AINV_ProxyMesh();
+	void InitializeProxy(APlayerController* PlayerController);
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	// This is the mesh on the player controlled character
 	TWeakObjectPtr<USkeletalMeshComponent> SourceMesh;
+	TWeakObjectPtr<APlayerController> ObservedPlayerController;
 	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UINV_EquipmentComponent> EquipmentComponent;
@@ -31,7 +34,11 @@ private:
 	TObjectPtr<USkeletalMeshComponent> Mesh;
 	
 	FTimerHandle TimerForNextTick;
+	int32 InitializationAttempts { 0 };
+	int32 MaxInitializationAttempts { 30 };
 	
-	void DelayedInitializeOwner();
-	void DelayedInitialization();
+	void AttemptInitialization();
+	void ScheduleInitializationRetry();
+	APlayerController* ResolvePlayerController() const;
+	bool TryInitializeFromPlayerController(APlayerController* PlayerController);
 };

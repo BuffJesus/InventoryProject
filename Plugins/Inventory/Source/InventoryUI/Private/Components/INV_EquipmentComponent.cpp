@@ -10,17 +10,14 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 
-void UINV_EquipmentComponent::SetOwningSkeletalMesh(USkeletalMeshComponent* OwningMesh)
+void UINV_EquipmentComponent::InitializeEquipmentContext(
+	APlayerController* PlayerController,
+	USkeletalMeshComponent* AttachMesh,
+	const bool bProxy)
 {
-	OwningSkeletalMesh = OwningMesh;
-}
-
-void UINV_EquipmentComponent::InitializeOwner(APlayerController* PlayerController)
-{
-	if (IsValid(PlayerController))
-	{
-		OwningPlayerController = PlayerController;
-	}
+	OwningPlayerController = PlayerController;
+	OwningSkeletalMesh = AttachMesh;
+	bIsProxy = bProxy;
 	InitInventoryComponent();
 }
 
@@ -28,15 +25,26 @@ void UINV_EquipmentComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	RefreshOwningReferences();
+	ResolveOwnerContext();
 	if (OwningPlayerController.IsValid())
 	{
 		InitInventoryComponent();
 	}
 }
 
-void UINV_EquipmentComponent::RefreshOwningReferences()
+void UINV_EquipmentComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	UnbindInventoryComponent();
+	Super::EndPlay(EndPlayReason);
+}
+
+void UINV_EquipmentComponent::ResolveOwnerContext()
+{
+	if (bIsProxy)
+	{
+		return;
+	}
+
 	AActor* OwnerActor = GetOwner();
 	if (!IsValid(OwnerActor))
 	{
@@ -70,6 +78,8 @@ void UINV_EquipmentComponent::RefreshOwningReferences()
 
 void UINV_EquipmentComponent::InitInventoryComponent()
 {
+	if (!OwningPlayerController.IsValid()) return;
+
 	InventoryComponent = UINV_InventoryStatics::GetInventoryComponent(OwningPlayerController.Get());
 	if (!InventoryComponent.IsValid()) return;
 	
@@ -77,41 +87,31 @@ void UINV_EquipmentComponent::InitInventoryComponent()
 	InventoryComponent->OnItemUnequipped.AddUniqueDynamic(this, &ThisClass::OnItemUnequipped);
 }
 
+void UINV_EquipmentComponent::UnbindInventoryComponent()
+{
+	if (!InventoryComponent.IsValid()) return;
+
+	InventoryComponent->OnItemEquipped.RemoveDynamic(this, &ThisClass::OnItemEquipped);
+	InventoryComponent->OnItemUnequipped.RemoveDynamic(this, &ThisClass::OnItemUnequipped);
+}
+
 void UINV_EquipmentComponent::RemoveEquippedActor(const FGameplayTag& EquipmentTypeTag)
 {
 	AINV_EquipActor* EquippedActor { FindEquippedActor(EquipmentTypeTag) };
 	if (!EquippedActor) return;
-	EquippedActors.Remove(EquippedActor);
+
+	EquippedActors.Remove(EquipmentTypeTag);
 	EquippedActor->Destroy();
 }
 
 void UINV_EquipmentComponent::OnItemEquipped(UINV_InventoryItem* EquippedItem)
 {
-	RefreshOwningReferences();
-
-	FINV_EquipmentFragment* EquipmentFragment { nullptr };
-	if (!TryGetEquipmentFragment(EquippedItem, EquipmentFragment)) return;
-
-	ProcessEquipmentItem(EquippedItem, true);
-	if (!OwningSkeletalMesh.IsValid()) return;
-	if (!OwningPlayerController.IsValid()) return;
-	if (!OwningPlayerController->HasAuthority()) return;
-
-	AINV_EquipActor* SpawnedEquipActor { SpawnEquippedActor(EquipmentFragment, OwningSkeletalMesh.Get()) };
-	if (!IsValid(SpawnedEquipActor)) return;
-	
-	EquippedActors.Add(SpawnedEquipActor);
+	HandleEquipmentItem(EquippedItem, true);
 }
 
 void UINV_EquipmentComponent::OnItemUnequipped(UINV_InventoryItem* UnequippedItem)
 {
-	RefreshOwningReferences();
-	ProcessEquipmentItem(UnequippedItem, false);
-
-	FINV_EquipmentFragment* EquipmentFragment { nullptr };
-	if (!TryGetEquipmentFragment(UnequippedItem, EquipmentFragment)) return;
-
-	RemoveEquippedActor(EquipmentFragment->GetEquipmentType());
+	HandleEquipmentItem(UnequippedItem, false);
 }
 
 bool UINV_EquipmentComponent::TryGetEquipmentFragment(UINV_InventoryItem* Item, FINV_EquipmentFragment*& OutEquipmentFragment)
@@ -128,24 +128,64 @@ bool UINV_EquipmentComponent::TryGetEquipmentFragment(UINV_InventoryItem* Item, 
 	return true;
 }
 
-void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip)
+void UINV_EquipmentComponent::HandleEquipmentItem(UINV_InventoryItem* Item, const bool bEquip)
 {
-	RefreshOwningReferences();
-
-	if (bIsProxy) return;
-	if (!OwningPlayerController.IsValid()) return;
-	if (!OwningPlayerController->HasAuthority()) return;
+	ResolveOwnerContext();
 
 	FINV_EquipmentFragment* EquipmentFragment { nullptr };
 	if (!TryGetEquipmentFragment(Item, EquipmentFragment)) return;
+
+	ApplyGameplayEquipState(EquipmentFragment, bEquip);
+	ApplyVisualEquipState(EquipmentFragment, bEquip);
+}
+
+void UINV_EquipmentComponent::ApplyGameplayEquipState(FINV_EquipmentFragment* EquipmentFragment, const bool bEquip)
+{
+	if (!ShouldProcessGameplayState()) return;
+	if (!EquipmentFragment) return;
 
 	if (bEquip) { EquipmentFragment->OnEquip(OwningPlayerController.Get()); }
 	else { EquipmentFragment->OnUnequip(OwningPlayerController.Get()); }
 }
 
-AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment, USkeletalMeshComponent* AttachMesh)
+void UINV_EquipmentComponent::ApplyVisualEquipState(FINV_EquipmentFragment* EquipmentFragment, const bool bEquip)
 {
-	AINV_EquipActor* SpawnedEquipActor { EquipmentFragment->SpawnAttachedActor(AttachMesh) };
+	if (!ShouldProcessVisualState()) return;
+	if (!EquipmentFragment) return;
+
+	const FGameplayTag EquipmentTypeTag = EquipmentFragment->GetEquipmentType();
+	if (!bEquip)
+	{
+		RemoveEquippedActor(EquipmentTypeTag);
+		return;
+	}
+
+	RemoveEquippedActor(EquipmentTypeTag);
+	AINV_EquipActor* SpawnedEquipActor { SpawnEquippedActor(EquipmentFragment) };
+	if (!IsValid(SpawnedEquipActor)) return;
+
+	EquippedActors.Add(EquipmentTypeTag, SpawnedEquipActor);
+}
+
+bool UINV_EquipmentComponent::ShouldProcessGameplayState() const
+{
+	return !bIsProxy && OwningPlayerController.IsValid() && OwningPlayerController->HasAuthority();
+}
+
+bool UINV_EquipmentComponent::ShouldProcessVisualState() const
+{
+	if (!OwningSkeletalMesh.IsValid()) return false;
+	if (bIsProxy) return true;
+
+	return OwningPlayerController.IsValid() && OwningPlayerController->HasAuthority();
+}
+
+AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment)
+{
+	if (!EquipmentFragment) return nullptr;
+	if (!OwningSkeletalMesh.IsValid()) return nullptr;
+
+	AINV_EquipActor* SpawnedEquipActor { EquipmentFragment->SpawnAttachedActor(OwningSkeletalMesh.Get()) };
 	if (!IsValid(SpawnedEquipActor)) return nullptr;
 
 	SpawnedEquipActor->SetEquipmentType(EquipmentFragment->GetEquipmentType());
@@ -154,11 +194,8 @@ AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragm
 	return SpawnedEquipActor;	
 }
 
-AINV_EquipActor* UINV_EquipmentComponent::FindEquippedActor(const FGameplayTag& EquipmentTypeTag)
+AINV_EquipActor* UINV_EquipmentComponent::FindEquippedActor(const FGameplayTag& EquipmentTypeTag) const
 {
-	auto FoundActor { EquippedActors.FindByPredicate([&EquipmentTypeTag](const AINV_EquipActor* EquippedActor)
-	{
-		return EquippedActor->GetEquipmentType().MatchesTagExact(EquipmentTypeTag);
-	}) };
-	return FoundActor ? *FoundActor : nullptr;
+	const TObjectPtr<AINV_EquipActor>* FoundActor = EquippedActors.Find(EquipmentTypeTag);
+	return FoundActor ? FoundActor->Get() : nullptr;
 }

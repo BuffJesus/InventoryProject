@@ -19,30 +19,34 @@ class INVENTORYUI_API UINV_EquipmentComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	void SetOwningSkeletalMesh(USkeletalMeshComponent* OwningMesh);
-	void SetIsProxy(bool bProxy) { bIsProxy = bProxy; }
-	void InitializeOwner(APlayerController* PlayerController);
+	void InitializeEquipmentContext(APlayerController* PlayerController, USkeletalMeshComponent* AttachMesh, bool bProxy);
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
 	TWeakObjectPtr<APlayerController> OwningPlayerController { nullptr };
 	TWeakObjectPtr<USkeletalMeshComponent> OwningSkeletalMesh { nullptr };
 	
-	void RefreshOwningReferences();
+	void ResolveOwnerContext();
+	void HandleEquipmentItem(UINV_InventoryItem* Item, bool bEquip);
 	UFUNCTION() void OnItemEquipped(UINV_InventoryItem* EquippedItem);
 	UFUNCTION() void OnItemUnequipped(UINV_InventoryItem* UnequippedItem);
 	bool TryGetEquipmentFragment(UINV_InventoryItem* Item, FINV_EquipmentFragment*& OutEquipmentFragment);
-	void ProcessEquipmentItem(UINV_InventoryItem* Item, bool bEquip);
+	void ApplyGameplayEquipState(FINV_EquipmentFragment* EquipmentFragment, bool bEquip);
+	void ApplyVisualEquipState(FINV_EquipmentFragment* EquipmentFragment, bool bEquip);
+	bool ShouldProcessGameplayState() const;
+	bool ShouldProcessVisualState() const;
 	void InitInventoryComponent();
+	void UnbindInventoryComponent();
 	void RemoveEquippedActor(const FGameplayTag& EquipmentTypeTag);
 	
-	AINV_EquipActor* SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment, USkeletalMeshComponent* AttachMesh);
-	AINV_EquipActor* FindEquippedActor(const FGameplayTag& EquipmentTypeTag);
+	AINV_EquipActor* SpawnEquippedActor(FINV_EquipmentFragment* EquipmentFragment);
+	AINV_EquipActor* FindEquippedActor(const FGameplayTag& EquipmentTypeTag) const;
 	
-	UPROPERTY() TArray<TObjectPtr<AINV_EquipActor>> EquippedActors;
+	UPROPERTY() TMap<FGameplayTag, TObjectPtr<AINV_EquipActor>> EquippedActors;
 	
 	bool bIsProxy { false };
 };
