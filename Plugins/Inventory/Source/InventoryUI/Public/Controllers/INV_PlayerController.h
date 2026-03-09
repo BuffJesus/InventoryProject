@@ -23,6 +23,7 @@ public:
 	AINV_PlayerController();
 	virtual void Tick(float DeltaTime) override;
 	bool WasLastInputGamepad() const { return bLastInputWasGamepad; }
+	void SetHUDWidgetVisible(bool bVisible);
 	
 	UFUNCTION(BlueprintCallable, Category="INV|Input")
 	// Toggle the inventory UI.

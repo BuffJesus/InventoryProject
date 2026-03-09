@@ -12,6 +12,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
+#include "Controllers/INV_PlayerController.h"
 #include "UI/Base/INV_InventoryBase.h"
 
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
@@ -495,6 +496,10 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	// Update visibility and input mode.
 	Inventory->SetVisibility(Visibility);
 	bInventoryMenuOpen = bIsOpen;
+	if (AINV_PlayerController* InventoryPlayerController = Cast<AINV_PlayerController>(OwningController.Get()); IsValid(InventoryPlayerController))
+	{
+		InventoryPlayerController->SetHUDWidgetVisible(!bIsOpen);
+	}
 	if (bIsOpen)
 	{
 		EnsureProxyMeshSpawned();

@@ -81,6 +81,12 @@ void AINV_PlayerController::ToggleInventory()
 	InventoryComponent->ToggleInventoryMenu();
 }
 
+void AINV_PlayerController::SetHUDWidgetVisible(const bool bVisible)
+{
+	if (!IsValid(HUDWidget)) return;
+	HUDWidget->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
 void AINV_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
