@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Delegates/Delegate.h"
 #include "Types/INV_GridTypes.h"
 
 class UINV_ItemPopUp;
@@ -88,6 +89,9 @@ private:
 	void RebuildDisplayedItems();
 	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
 	bool TryQuickTransfer(UINV_InventoryItem* Item, const FPointerEvent& MouseEvent) const;
+	void BindItemChangedEvent(UINV_InventoryItem* Item);
+	void UnbindItemChangedEvent(UINV_InventoryItem* Item);
+	void UnbindAllItemChangedEvents();
 
 	// Private overloads for internal use
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
@@ -221,6 +225,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_HoverItem> HoverItemClass;
 	UPROPERTY() TObjectPtr<UINV_HoverItem> HoverItem;
 	bool bReadOnly { false };
+	TMap<TWeakObjectPtr<UINV_InventoryItem>, FDelegateHandle> ItemChangedDelegateHandles;
 	
 	FINV_TileParams TileParams;
 	FINV_TileParams LastTileParams;

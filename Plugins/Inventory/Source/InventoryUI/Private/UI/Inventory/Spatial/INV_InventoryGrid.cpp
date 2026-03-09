@@ -102,6 +102,7 @@ void UINV_InventoryGrid::ClearBoundDataSource()
 {
 	UnbindInventoryEvents();
 	UnbindContainerEvents();
+	UnbindAllItemChangedEvents();
 	InventoryComponent = nullptr;
 	ContainerComponent = nullptr;
 	ResetDisplayedItems();
@@ -167,6 +168,7 @@ void UINV_InventoryGrid::UnbindContainerEvents()
 void UINV_InventoryGrid::ResetDisplayedItems()
 {
 	ClearHoverItem();
+	UnbindAllItemChangedEvents();
 
 	for (TPair<int32, TObjectPtr<UINV_SlottedItem>>& Entry : SlottedItems)
 	{
@@ -207,6 +209,53 @@ void UINV_InventoryGrid::RebuildDisplayedItems()
 	{
 		AddItem(Item);
 	}
+}
+
+void UINV_InventoryGrid::BindItemChangedEvent(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<UINV_InventoryItem> WeakItem(Item);
+	if (ItemChangedDelegateHandles.Contains(WeakItem))
+	{
+		return;
+	}
+
+	const FDelegateHandle DelegateHandle = Item->OnItemChanged().AddUObject(this, &ThisClass::RefreshItem);
+	ItemChangedDelegateHandles.Add(WeakItem, DelegateHandle);
+}
+
+void UINV_InventoryGrid::UnbindItemChangedEvent(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<UINV_InventoryItem> WeakItem(Item);
+	FDelegateHandle DelegateHandle;
+	if (!ItemChangedDelegateHandles.RemoveAndCopyValue(WeakItem, DelegateHandle))
+	{
+		return;
+	}
+
+	Item->OnItemChanged().Remove(DelegateHandle);
+}
+
+void UINV_InventoryGrid::UnbindAllItemChangedEvents()
+{
+	for (TPair<TWeakObjectPtr<UINV_InventoryItem>, FDelegateHandle>& Entry : ItemChangedDelegateHandles)
+	{
+		if (Entry.Key.IsValid())
+		{
+			Entry.Key->OnItemChanged().Remove(Entry.Value);
+		}
+	}
+
+	ItemChangedDelegateHandles.Reset();
 }
 
 int32 UINV_InventoryGrid::FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const
@@ -460,6 +509,7 @@ void UINV_InventoryGrid::RefreshGridSlotVisualsFromAvailability()
 void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
+	BindItemChangedEvent(Item);
 	
 	// Compute placement and update UI.
 	FINV_SlotAvailabilityResult Result { HasRoomForItem(Item) };
@@ -472,6 +522,8 @@ void UINV_InventoryGrid::RemoveItem(UINV_InventoryItem* Item)
 	{
 		return;
 	}
+
+	UnbindItemChangedEvent(Item);
 
 	const int32 UpperLeftIndex = FindUpperLeftIndexForItem(Item);
 	if (UpperLeftIndex == INDEX_NONE)
@@ -1302,7 +1354,7 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		return;
 	}
 
-	if (TryQuickTransfer(ClickedInventoryItem, MouseEvent))
+	if (MouseEvent.IsShiftDown() && TryQuickTransfer(ClickedInventoryItem, MouseEvent))
 	{
 		return;
 	}

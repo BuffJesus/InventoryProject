@@ -21,13 +21,40 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 {
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
+	ResetFragmentCache();
 	BuildFragmentCache();
+	BroadcastItemChanged();
+}
+
+FINV_ItemManifest& UINV_InventoryItem::GetItemManifestMutable()
+{
+	ResetFragmentCache();
+	return ItemManifest.GetMutable<FINV_ItemManifest>();
+}
+
+void UINV_InventoryItem::SetTotalStackCount(const int32 Count)
+{
+	if (TotalStackCount == Count)
+	{
+		return;
+	}
+
+	TotalStackCount = Count;
+	BroadcastItemChanged();
 }
 
 void UINV_InventoryItem::SetItemRarityOptions(bool bEnabled, const FGameplayTag& InItemRarityTag)
 {
-	bUseItemRarity = bEnabled;
-	ItemRarityTag = bUseItemRarity ? InItemRarityTag : FGameplayTag::EmptyTag;
+	const bool bNewUseItemRarity = bEnabled;
+	const FGameplayTag NewItemRarityTag = bNewUseItemRarity ? InItemRarityTag : FGameplayTag::EmptyTag;
+	if (bUseItemRarity == bNewUseItemRarity && ItemRarityTag.MatchesTagExact(NewItemRarityTag))
+	{
+		return;
+	}
+
+	bUseItemRarity = bNewUseItemRarity;
+	ItemRarityTag = NewItemRarityTag;
+	BroadcastItemChanged();
 }
 
 bool UINV_InventoryItem::MatchesTypeAndRarity(
@@ -133,4 +160,35 @@ const FGameplayTag& UINV_InventoryItem::GetCachedItemType() const
 		const_cast<UINV_InventoryItem*>(this)->BuildFragmentCache();
 	}
 	return CachedItemType;
+}
+
+void UINV_InventoryItem::OnRep_ItemManifest()
+{
+	ResetFragmentCache();
+	BuildFragmentCache();
+	BroadcastItemChanged();
+}
+
+void UINV_InventoryItem::OnRep_TotalStackCount()
+{
+	BroadcastItemChanged();
+}
+
+void UINV_InventoryItem::OnRep_ItemRarityData()
+{
+	BroadcastItemChanged();
+}
+
+void UINV_InventoryItem::ResetFragmentCache()
+{
+	CachedGridFragment = nullptr;
+	CachedImageFragment = nullptr;
+	CachedStackableFragment = nullptr;
+	CachedConsumableFragment = nullptr;
+	CachedItemType = FGameplayTag::EmptyTag;
+}
+
+void UINV_InventoryItem::BroadcastItemChanged()
+{
+	ItemChangedEvent.Broadcast(this);
 }

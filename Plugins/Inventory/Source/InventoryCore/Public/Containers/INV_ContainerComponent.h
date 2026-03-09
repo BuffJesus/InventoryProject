@@ -24,6 +24,7 @@ public:
 
 	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
@@ -31,6 +32,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	FText GetDisplayName() const { return ContainerMetadata.DisplayName; }
+
+	UFUNCTION(BlueprintCallable, Category = "INV|Container")
+	FName GetPersistentContainerId() const { return PersistentContainerId; }
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	const FIntPoint& GetGridSize() const { return GridSize; }
@@ -83,6 +87,9 @@ private:
 
 	UPROPERTY(Replicated, EditAnywhere, Category = "INV|Container")
 	FIntPoint GridSize { 6, 6 };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Container|Persistence")
+	FName PersistentContainerId { NAME_None };
 
 	UPROPERTY(Replicated)
 	FINV_InventoryFastArray InventoryFastArray;

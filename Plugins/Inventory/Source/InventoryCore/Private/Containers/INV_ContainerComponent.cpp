@@ -31,6 +31,12 @@ void UINV_ContainerComponent::BeginPlay()
 	}
 }
 
+void UINV_ContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	InventoryFastArray.ClearCallbacks();
+	Super::EndPlay(EndPlayReason);
+}
+
 void UINV_ContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

@@ -93,6 +93,7 @@ public:
 protected:
 	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	void ConfigureFastArrayCallbacks();
@@ -106,6 +107,8 @@ private:
 	FTransform BuildProxyMeshSpawnTransform() const;
 	UINV_ContainerComponent* ResolveContainerFromActor(AActor* ContainerActor) const;
 	void SetActiveContainerLocal(UINV_ContainerComponent* NewContainer);
+	void BindActiveContainerLifecycle(UINV_ContainerComponent* Container);
+	void UnbindActiveContainerLifecycle();
 	void OpenInventoryMenuIfClosed();
 	FIntPoint GetPlayerGridSize(EINV_ItemCategory Category) const;
 	TArray<UINV_InventoryItem*> GetItemsForCategory(EINV_ItemCategory Category, const UINV_InventoryItem* IgnoredItem = nullptr) const;
@@ -114,6 +117,7 @@ private:
 	bool TransferItemBetweenStores(UINV_InventoryItem* Item, int32 RequestedQuantity, bool bSourceIsPlayer);
 	void BroadcastPlayerItemChanged(UINV_InventoryItem* Item);
 	bool ShouldBroadcastLocalInventoryEvents() const;
+	UFUNCTION() void HandleActiveContainerOwnerDestroyed(AActor* DestroyedActor);
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
@@ -155,6 +159,7 @@ private:
 	TObjectPtr<UINV_EquipmentComponent> LiveEquipmentComponent { nullptr };
 
 	TWeakObjectPtr<UINV_ContainerComponent> ActiveContainer { nullptr };
+	TWeakObjectPtr<AActor> BoundActiveContainerOwner { nullptr };
 	
 	// Tracks menu state for toggle logic.
 	bool bInventoryMenuOpen = false;

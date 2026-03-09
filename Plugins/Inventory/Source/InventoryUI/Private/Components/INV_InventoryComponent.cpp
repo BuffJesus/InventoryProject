@@ -19,6 +19,22 @@
 #include "Controllers/INV_PlayerController.h"
 #include "UI/Base/INV_InventoryBase.h"
 
+namespace
+{
+void SyncLegacyStackCount(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	if (FINV_StackableFragment* StackableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_StackableFragment>())
+	{
+		StackableFragment->SetStackCount(Item->GetTotalStackCount());
+	}
+}
+}
+
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
 {
 	const AActor* OwnerActor = GetOwner();
@@ -110,6 +126,17 @@ void UINV_InventoryComponent::BeginPlay()
 	EnsureLiveEquipmentComponent();
 	
 	ConstructInventory();
+}
+
+void UINV_InventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnbindActiveContainerLifecycle();
+	if (ActiveContainer.IsValid())
+	{
+		SetActiveContainerLocal(nullptr);
+	}
+	InventoryFastArray.ClearCallbacks();
+	Super::EndPlay(EndPlayReason);
 }
 
 void UINV_InventoryComponent::EnsureLiveEquipmentComponent()
@@ -362,6 +389,8 @@ void UINV_InventoryComponent::SetActiveContainerLocal(UINV_ContainerComponent* N
 		return;
 	}
 
+	UnbindActiveContainerLifecycle();
+
 	if (IsValid(PreviousContainer))
 	{
 		OnContainerClosed.Broadcast(PreviousContainer);
@@ -371,8 +400,38 @@ void UINV_InventoryComponent::SetActiveContainerLocal(UINV_ContainerComponent* N
 
 	if (IsValid(NewContainer))
 	{
+		BindActiveContainerLifecycle(NewContainer);
 		OnContainerOpened.Broadcast(NewContainer);
 	}
+}
+
+void UINV_InventoryComponent::BindActiveContainerLifecycle(UINV_ContainerComponent* Container)
+{
+	if (!IsValid(Container))
+	{
+		return;
+	}
+
+	AActor* ContainerOwner = Container->GetOwner();
+	if (!IsValid(ContainerOwner))
+	{
+		return;
+	}
+
+	BoundActiveContainerOwner = ContainerOwner;
+	ContainerOwner->OnDestroyed.RemoveDynamic(this, &ThisClass::HandleActiveContainerOwnerDestroyed);
+	ContainerOwner->OnDestroyed.AddDynamic(this, &ThisClass::HandleActiveContainerOwnerDestroyed);
+}
+
+void UINV_InventoryComponent::UnbindActiveContainerLifecycle()
+{
+	if (!BoundActiveContainerOwner.IsValid())
+	{
+		return;
+	}
+
+	BoundActiveContainerOwner->OnDestroyed.RemoveDynamic(this, &ThisClass::HandleActiveContainerOwnerDestroyed);
+	BoundActiveContainerOwner = nullptr;
 }
 
 FIntPoint UINV_InventoryComponent::GetPlayerGridSize(const EINV_ItemCategory Category) const
@@ -428,6 +487,7 @@ UINV_InventoryItem* UINV_InventoryComponent::CloneItemForOwner(UINV_InventoryIte
 
 	ClonedItem->SetItemRarityOptions(SourceItem->IsItemRarityEnabled(), SourceItem->GetItemRarityTag());
 	ClonedItem->SetTotalStackCount(StackCount);
+	SyncLegacyStackCount(ClonedItem);
 	return ClonedItem;
 }
 
@@ -584,6 +644,7 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	if (PendingMergeAmount > 0)
 	{
 		MergeTarget->SetTotalStackCount(MergeTarget->GetTotalStackCount() + PendingMergeAmount);
+		SyncLegacyStackCount(MergeTarget);
 		if (bSourceIsPlayer)
 		{
 			Container->NotifyItemChanged(MergeTarget);
@@ -613,6 +674,7 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	else
 	{
 		Item->SetTotalStackCount(NewSourceStackCount);
+		SyncLegacyStackCount(Item);
 		if (bSourceIsPlayer)
 		{
 			BroadcastPlayerItemChanged(Item);
@@ -632,6 +694,16 @@ void UINV_InventoryComponent::OpenInventoryMenuIfClosed()
 	{
 		HandleInventoryMenu(ESlateVisibility::Visible, true);
 	}
+}
+
+void UINV_InventoryComponent::HandleActiveContainerOwnerDestroyed(AActor* DestroyedActor)
+{
+	if (!BoundActiveContainerOwner.IsValid() || BoundActiveContainerOwner.Get() != DestroyedActor)
+	{
+		return;
+	}
+
+	SetActiveContainerLocal(nullptr);
 }
 
 void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
