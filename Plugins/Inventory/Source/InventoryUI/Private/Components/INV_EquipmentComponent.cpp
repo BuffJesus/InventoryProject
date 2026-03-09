@@ -3,6 +3,7 @@
 
 #include "Components/INV_EquipmentComponent.h"
 #include "Components/INV_InventoryComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "EquipmentManagement/INV_EquipActor.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
@@ -192,6 +193,14 @@ AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragm
 	{
 		SpawnedEquipActor->SetReplicates(false);
 		SpawnedEquipActor->SetActorEnableCollision(false);
+
+		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		SpawnedEquipActor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			if (!IsValid(PrimitiveComponent)) continue;
+			PrimitiveComponent->SetCastShadow(false);
+		}
 	}
 
 	SpawnedEquipActor->SetEquipmentType(EquipmentFragment->GetEquipmentType());
