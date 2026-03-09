@@ -3,6 +3,7 @@
 #include "Components/INV_InventoryComponent.h"
 #include "Components/INV_EquipmentComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Interaction/INV_ContainerProvider.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
@@ -199,6 +200,38 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 		: HandleInventoryMenu(ESlateVisibility::Visible, true);
 }
 
+void UINV_InventoryComponent::RequestOpenContainer(AActor* ContainerActor)
+{
+	if (!IsValid(ContainerActor))
+	{
+		return;
+	}
+
+	if (HasAuthorityOnOwner())
+	{
+		Server_RequestOpenContainer_Implementation(ContainerActor);
+		return;
+	}
+
+	Server_RequestOpenContainer(ContainerActor);
+}
+
+void UINV_InventoryComponent::CloseActiveContainer()
+{
+	if (!ActiveContainer.IsValid())
+	{
+		return;
+	}
+
+	if (HasAuthorityOnOwner())
+	{
+		Server_CloseActiveContainer_Implementation();
+		return;
+	}
+
+	Server_CloseActiveContainer();
+}
+
 void UINV_InventoryComponent::OnInputMethodChanged(const bool bIsGamepadInput)
 {
 	if (!bInventoryMenuOpen) return;
@@ -289,6 +322,50 @@ FTransform UINV_InventoryComponent::BuildProxyMeshSpawnTransform() const
 		: LookDirection.Rotation();
 
 	return FTransform(SpawnRotation, SpawnLocation);
+}
+
+UINV_ContainerComponent* UINV_InventoryComponent::ResolveContainerFromActor(AActor* ContainerActor) const
+{
+	if (!IsValid(ContainerActor))
+	{
+		return nullptr;
+	}
+
+	if (ContainerActor->GetClass()->ImplementsInterface(UINV_ContainerProvider::StaticClass()))
+	{
+		return IINV_ContainerProvider::Execute_GetContainerComponent(ContainerActor);
+	}
+
+	return ContainerActor->FindComponentByClass<UINV_ContainerComponent>();
+}
+
+void UINV_InventoryComponent::SetActiveContainerLocal(UINV_ContainerComponent* NewContainer)
+{
+	UINV_ContainerComponent* PreviousContainer = ActiveContainer.Get();
+	if (PreviousContainer == NewContainer)
+	{
+		return;
+	}
+
+	if (IsValid(PreviousContainer))
+	{
+		OnContainerClosed.Broadcast(PreviousContainer);
+	}
+
+	ActiveContainer = NewContainer;
+
+	if (IsValid(NewContainer))
+	{
+		OnContainerOpened.Broadcast(NewContainer);
+	}
+}
+
+void UINV_InventoryComponent::OpenInventoryMenuIfClosed()
+{
+	if (!bInventoryMenuOpen)
+	{
+		HandleInventoryMenu(ESlateVisibility::Visible, true);
+	}
 }
 
 void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
@@ -543,6 +620,14 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	if (!bIsOpen)
 	{
 		Inventory->ReturnActiveHoverItemToSource();
+		if (ActiveContainer.IsValid())
+		{
+			if (!HasAuthorityOnOwner())
+			{
+				Server_CloseActiveContainer();
+			}
+			SetActiveContainerLocal(nullptr);
+		}
 	}
 	
 	// Update visibility and input mode.
@@ -604,6 +689,55 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	}
 	
 	ApplyPointerInputMode(bIsOpen);
+}
+
+void UINV_InventoryComponent::Server_RequestOpenContainer_Implementation(AActor* ContainerActor)
+{
+	UINV_ContainerComponent* ContainerComponent = ResolveContainerFromActor(ContainerActor);
+	AController* RequestingController = Cast<AController>(GetOwner());
+	if (!IsValid(ContainerComponent) || !ContainerComponent->CanAccess(RequestingController))
+	{
+		Client_CloseContainer();
+		return;
+	}
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetOwner()); IsValid(PlayerController) && PlayerController->IsLocalController())
+	{
+		SetActiveContainerLocal(ContainerComponent);
+		OpenInventoryMenuIfClosed();
+		return;
+	}
+
+	Client_OpenContainer(ContainerActor);
+}
+
+void UINV_InventoryComponent::Server_CloseActiveContainer_Implementation()
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetOwner()); IsValid(PlayerController) && PlayerController->IsLocalController())
+	{
+		SetActiveContainerLocal(nullptr);
+		return;
+	}
+
+	Client_CloseContainer();
+}
+
+void UINV_InventoryComponent::Client_OpenContainer_Implementation(AActor* ContainerActor)
+{
+	UINV_ContainerComponent* ContainerComponent = ResolveContainerFromActor(ContainerActor);
+	if (!IsValid(ContainerComponent))
+	{
+		SetActiveContainerLocal(nullptr);
+		return;
+	}
+
+	SetActiveContainerLocal(ContainerComponent);
+	OpenInventoryMenuIfClosed();
+}
+
+void UINV_InventoryComponent::Client_CloseContainer_Implementation()
+{
+	SetActiveContainerLocal(nullptr);
 }
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)

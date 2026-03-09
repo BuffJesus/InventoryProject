@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Containers/INV_ContainerComponent.h"
 #include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "INV_InventoryComponent.generated.h"
 
@@ -14,11 +15,13 @@ class UINV_InventoryBase;
 class UINV_EquipmentComponent;
 class APawn;
 class AINV_ProxyMesh;
+class AActor;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryItemChange, UINV_InventoryItem*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNoRoomInInventory);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FStackChange, const FINV_SlotAvailabilityResult&, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FItemEquipStatusChanged, UINV_InventoryItem*, Item);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActiveContainerChanged, UINV_ContainerComponent*, Container);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class INVENTORYUI_API UINV_InventoryComponent : public UActorComponent
@@ -59,9 +62,17 @@ public:
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
 	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	FORCEINLINE AINV_ProxyMesh* GetCachedProxyMesh() const { return CachedProxyMesh; }
+	UFUNCTION(BlueprintCallable, Category = "INV|Container")
+	UINV_ContainerComponent* GetActiveContainer() const { return ActiveContainer.Get(); }
+	void RequestOpenContainer(AActor* ContainerActor);
+	void CloseActiveContainer();
 	bool HasAuthorityOnOwner() const;
 	
 	UFUNCTION(Server, Reliable) void Server_EquipSlotClicked(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
+	UFUNCTION(Server, Reliable) void Server_RequestOpenContainer(AActor* ContainerActor);
+	UFUNCTION(Server, Reliable) void Server_CloseActiveContainer();
+	UFUNCTION(Client, Reliable) void Client_OpenContainer(AActor* ContainerActor);
+	UFUNCTION(Client, Reliable) void Client_CloseContainer();
 	
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
@@ -69,6 +80,8 @@ public:
 	FStackChange OnStackChange;
 	FItemEquipStatusChanged OnItemEquipped;
 	FItemEquipStatusChanged OnItemUnequipped;
+	FActiveContainerChanged OnContainerOpened;
+	FActiveContainerChanged OnContainerClosed;
 
 protected:
 	virtual void OnRegister() override;
@@ -84,6 +97,9 @@ private:
 	void EnsureLiveEquipmentComponent();
 	void UpdateProxyMeshVisibility(bool bVisible);
 	FTransform BuildProxyMeshSpawnTransform() const;
+	UINV_ContainerComponent* ResolveContainerFromActor(AActor* ContainerActor) const;
+	void SetActiveContainerLocal(UINV_ContainerComponent* NewContainer);
+	void OpenInventoryMenuIfClosed();
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
@@ -114,6 +130,8 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UINV_EquipmentComponent> LiveEquipmentComponent { nullptr };
+
+	TWeakObjectPtr<UINV_ContainerComponent> ActiveContainer { nullptr };
 	
 	// Tracks menu state for toggle logic.
 	bool bInventoryMenuOpen = false;

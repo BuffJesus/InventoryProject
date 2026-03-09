@@ -5,7 +5,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputKeyEventArgs.h"
+#include "Containers/INV_ContainerComponent.h"
 #include "Interaction/INV_Highlightable.h"
+#include "Interaction/INV_ContainerProvider.h"
 #include "Components/INV_InventoryComponent.h"
 #include "Items/INV_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -339,9 +341,18 @@ void AINV_PlayerController::PrimaryInteract()
 	// Try to pick up the item we are looking at.
 	if (!ThisActor.IsValid()) return;
 	UINV_ItemComponent* ItemComponent { ThisActor->FindComponentByClass<UINV_ItemComponent>() };
-	if (!IsValid(ItemComponent) || !InventoryComponent.IsValid()) return;
-	
-	InventoryComponent->TryAddItem(ItemComponent);
+	if (!InventoryComponent.IsValid()) return;
+
+	if (IsValid(ItemComponent))
+	{
+		InventoryComponent->TryAddItem(ItemComponent);
+		return;
+	}
+
+	if (UINV_ContainerComponent* ContainerComponent = ResolveContainerForActor(ThisActor.Get()); IsValid(ContainerComponent))
+	{
+		InventoryComponent->RequestOpenContainer(ThisActor.Get());
+	}
 }
 
 void AINV_PlayerController::CreateHUDWidget()
@@ -394,11 +405,20 @@ void AINV_PlayerController::TraceForItem()
 		}
 			
 		UINV_ItemComponent* ItemComponent { ThisActor->FindComponentByClass<UINV_ItemComponent>() };
-		if (!IsValid(ItemComponent)) return;
-		
-		if (IsValid(HUDWidget))
+		if (IsValid(ItemComponent))
 		{
-			HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(ItemComponent->GetPickupMessage()));
+			if (IsValid(HUDWidget))
+			{
+				HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(ItemComponent->GetPickupMessage()));
+			}
+		}
+		else if (UINV_ContainerComponent* ContainerComponent = ResolveContainerForActor(ThisActor.Get()); IsValid(ContainerComponent))
+		{
+			if (IsValid(HUDWidget))
+			{
+				const FString DisplayName = ContainerComponent->GetDisplayName().ToString();
+				HUDWidget->ShowPickupMessage(BuildPickupPromptForCurrentInput(FString::Printf(TEXT("Open %s"), *DisplayName)));
+			}
 		}
 	}
 	
@@ -455,4 +475,19 @@ FString AINV_PlayerController::BuildPickupPromptForCurrentInput(const FString& R
 
 	// Fallback when the message has no explicit key text.
 	return FString::Printf(TEXT("Press %s %s"), *InteractKeyLabel, *RawPickupMessage);
+}
+
+UINV_ContainerComponent* AINV_PlayerController::ResolveContainerForActor(AActor* Actor) const
+{
+	if (!IsValid(Actor))
+	{
+		return nullptr;
+	}
+
+	if (Actor->GetClass()->ImplementsInterface(UINV_ContainerProvider::StaticClass()))
+	{
+		return IINV_ContainerProvider::Execute_GetContainerComponent(Actor);
+	}
+
+	return Actor->FindComponentByClass<UINV_ContainerComponent>();
 }

@@ -7,6 +7,7 @@
 #include "INV_PlayerController.generated.h"
 
 class UINV_InventoryComponent;
+class UINV_ContainerComponent;
 class UINV_HUDWidget;
 class UInputAction;
 class UInputMappingContext;
@@ -49,6 +50,7 @@ private:
 	// Trace forward to find highlightable items.
 	void TraceForItem();
 	FString BuildPickupPromptForCurrentInput(const FString& RawPickupMessage) const;
+	UINV_ContainerComponent* ResolveContainerForActor(AActor* Actor) const;
 	
 	// Cached inventory component.
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };

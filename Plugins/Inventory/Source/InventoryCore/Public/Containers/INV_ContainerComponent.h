@@ -30,6 +30,9 @@ public:
 	const FINV_ContainerMetadata& GetContainerMetadata() const { return ContainerMetadata; }
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
+	FText GetDisplayName() const { return ContainerMetadata.DisplayName; }
+
+	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	const FIntPoint& GetGridSize() const { return GridSize; }
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
