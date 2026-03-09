@@ -575,7 +575,6 @@ UINV_ItemDescription* UINV_SpatialInventory::GetItemDescription()
 void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const FVector2D& OpenPosition)
 {
 	if (!IsValid(Item) || !IsValid(CanvasPanel.Get())) return;
-	const auto& Manifest { Item->GetItemManifest() };
 
 	UINV_ItemDescription* DescriptionWidget = GetItemDescription();
 	if (!IsValid(DescriptionWidget)) return;
@@ -586,7 +585,7 @@ void UINV_SpatialInventory::OpenItemDescription(UINV_InventoryItem* Item, const 
 	{
 		Widget->SetItemRarityTag(ItemRarityTag);
 	});
-	FINV_ItemPresentationUtils::AssimilateInventoryFragments(Manifest, DescriptionWidget);
+	FINV_ItemPresentationUtils::AssimilateInventoryItem(*Item, DescriptionWidget);
 	
 	SetItemDescriptionSizeAndPosition(DescriptionWidget, CanvasPanel, OpenPosition);
 	DescriptionWidget->SetVisibility(ESlateVisibility::Visible);

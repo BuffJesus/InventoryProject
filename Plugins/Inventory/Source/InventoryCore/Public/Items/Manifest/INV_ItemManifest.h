@@ -41,6 +41,10 @@ struct INVENTORYCORE_API FINV_ItemManifest
 	// Collect all fragments of type T.
 	template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 	TArray<const T*> GetFragmentsOfType() const;
+
+	// Allocation-free fragment traversal for UI and runtime read paths.
+	template <typename T, typename FuncType> requires std::derived_from<T, FInv_ItemFragment>
+	void ForEachFragment(FuncType&& Func) const;
 	
 private:
 	// Item fragments that describe behavior and UI.
@@ -105,14 +109,23 @@ template <typename T> requires std::derived_from<T, FInv_ItemFragment>
 TArray<const T*> FINV_ItemManifest::GetFragmentsOfType() const
 {
 	TArray<const T*> Results;
+	ForEachFragment<T>([&Results](const T& Fragment)
+	{
+		Results.Add(&Fragment);
+	});
+	return Results;
+}
+
+template <typename T, typename FuncType> requires std::derived_from<T, FInv_ItemFragment>
+void FINV_ItemManifest::ForEachFragment(FuncType&& Func) const
+{
 	for (const TInstancedStruct<FInv_ItemFragment>& Fragment : Fragments)
 	{
 		if (const T* FragmentPtr { Fragment.GetPtr<T>() })
 		{
-			Results.Add(FragmentPtr);
+			Func(*FragmentPtr);
 		}
 	}
-	return Results;
 }
 
 

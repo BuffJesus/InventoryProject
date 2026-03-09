@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Items/INV_ItemPresentationSnapshot.h"
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "UObject/Object.h"
 #include "StructUtils/InstancedStruct.h"
@@ -14,6 +15,7 @@ struct FINV_GridFragment;
 struct FINV_ImageFragment;
 struct FINV_StackableFragment;
 struct FINV_ConsumableFragment;
+struct FINV_EquipmentFragment;
 class UINV_InventoryItem;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FINV_InventoryItemChangedNative, UINV_InventoryItem*);
@@ -64,8 +66,11 @@ public:
 	const FINV_ImageFragment* GetCachedImageFragment() const;
 	const FINV_StackableFragment* GetCachedStackableFragment() const;
 	const FINV_ConsumableFragment* GetCachedConsumableFragment() const;
+	const FINV_EquipmentFragment* GetCachedEquipmentFragment() const;
+	const FINV_ItemPresentationSnapshot& GetPresentationSnapshot() const;
 	// Call this after setting the manifest to build the cache
 	void BuildFragmentCache();
+	void RebuildPresentationSnapshot();
 	FINV_InventoryItemChangedNative& OnItemChanged() { return ItemChangedEvent; }
 	
 private:
@@ -93,7 +98,10 @@ private:
 	mutable const FINV_ImageFragment* CachedImageFragment { nullptr };
 	mutable const FINV_StackableFragment* CachedStackableFragment { nullptr };
 	mutable const FINV_ConsumableFragment* CachedConsumableFragment { nullptr };
+	mutable const FINV_EquipmentFragment* CachedEquipmentFragment { nullptr };
 	mutable FGameplayTag CachedItemType { FGameplayTag::EmptyTag };
+	mutable FINV_ItemPresentationSnapshot CachedPresentationSnapshot;
+	mutable bool bPresentationSnapshotDirty { true };
 	FINV_InventoryItemChangedNative ItemChangedEvent;
 };
 
