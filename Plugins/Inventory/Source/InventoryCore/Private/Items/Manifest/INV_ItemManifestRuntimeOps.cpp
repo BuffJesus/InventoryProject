@@ -17,6 +17,8 @@ UINV_InventoryItem* FINV_ItemManifestRuntimeOps::CreateItemFromManifest(FINV_Ite
 	{
 		Fragment.GetMutable().InitializeRuntimeState();
 	}
+	Item->RebuildItemInstanceState();
+	Item->RebuildPresentationSnapshot();
 
 	// Source pickup manifest is consumed after runtime item creation.
 	SourceManifest.GetFragmentsMutable().Empty();

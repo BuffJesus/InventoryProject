@@ -402,6 +402,8 @@ void UINV_InventoryComponent::Server_EquipSlotClicked_Implementation(UINV_Invent
 		{
 			EquipmentFragment->OnUnequip(OwningController.Get());
 		}
+
+		Item->SetEquippedState(bEquip);
 	};
 
 	ApplyServerEquipState(ItemToEquip, true);

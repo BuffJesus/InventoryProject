@@ -8,6 +8,43 @@
 #include "Internationalization/Text.h"
 #include "Net/UnrealNetwork.h"
 
+namespace
+{
+const FINV_ItemRuntimeStatValue* FindNextRuntimeStatValue(
+	const FINV_ItemInstanceState& InstanceState,
+	const FGameplayTag& FragmentTag,
+	int32& InOutSearchStartIndex)
+{
+	for (int32 Index = InOutSearchStartIndex; Index < InstanceState.RuntimeStatValues.Num(); ++Index)
+	{
+		const FINV_ItemRuntimeStatValue& RuntimeValue = InstanceState.RuntimeStatValues[Index];
+		if (!RuntimeValue.FragmentTag.MatchesTagExact(FragmentTag))
+		{
+			continue;
+		}
+
+		InOutSearchStartIndex = Index + 1;
+		return &RuntimeValue;
+	}
+
+	return nullptr;
+}
+
+float ResolveRuntimeValueOrFallback(
+	const FINV_ItemInstanceState& InstanceState,
+	const FGameplayTag& FragmentTag,
+	int32& InOutSearchStartIndex,
+	const float FallbackValue)
+{
+	if (const FINV_ItemRuntimeStatValue* RuntimeValue = FindNextRuntimeStatValue(InstanceState, FragmentTag, InOutSearchStartIndex))
+	{
+		return RuntimeValue->Value;
+	}
+
+	return FallbackValue;
+}
+}
+
 void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -24,6 +61,7 @@ void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
 	ResetFragmentCache();
 	BuildFragmentCache();
+	RebuildItemInstanceState();
 	RebuildPresentationSnapshot();
 	BroadcastItemChanged();
 }
@@ -42,6 +80,8 @@ void UINV_InventoryItem::SetTotalStackCount(const int32 Count)
 	}
 
 	TotalStackCount = Count;
+	CachedItemInstanceState.StackCount = Count;
+	bItemInstanceStateDirty = false;
 	bPresentationSnapshotDirty = true;
 	BroadcastItemChanged();
 }
@@ -166,6 +206,15 @@ const FINV_EquipmentFragment* UINV_InventoryItem::GetCachedEquipmentFragment() c
 	return CachedEquipmentFragment;
 }
 
+const FINV_ItemInstanceState& UINV_InventoryItem::GetItemInstanceState() const
+{
+	if (bItemInstanceStateDirty)
+	{
+		const_cast<UINV_InventoryItem*>(this)->RebuildItemInstanceState();
+	}
+	return CachedItemInstanceState;
+}
+
 const FGameplayTag& UINV_InventoryItem::GetCachedItemType() const
 {
 	if (!CachedItemType.IsValid())
@@ -185,14 +234,61 @@ const FINV_ItemPresentationSnapshot& UINV_InventoryItem::GetPresentationSnapshot
 	return CachedPresentationSnapshot;
 }
 
+void UINV_InventoryItem::RebuildItemInstanceState()
+{
+	CachedItemInstanceState.Reset();
+
+	const FINV_ItemManifest& Manifest = GetItemManifest();
+	if (const FINV_StackableFragment* StackableFragment = GetCachedStackableFragment())
+	{
+		CachedItemInstanceState.StackCount = TotalStackCount > 0 ? TotalStackCount : StackableFragment->GetStackCount();
+	}
+	else
+	{
+		CachedItemInstanceState.StackCount = TotalStackCount;
+	}
+
+	if (const FINV_EquipmentFragment* EquipmentFragment = GetCachedEquipmentFragment())
+	{
+		CachedItemInstanceState.bEquipped = EquipmentFragment->IsEquipped();
+	}
+
+	Manifest.ForEachFragment<FINV_LabeledNumberFragment>([this](const FINV_LabeledNumberFragment& Fragment)
+	{
+		CachedItemInstanceState.AddRuntimeStatValue(Fragment.GetFragmentTag(), Fragment.GetValue());
+	});
+
+	Manifest.ForEachFragment<FINV_ConsumableFragment>([this](const FINV_ConsumableFragment& Fragment)
+	{
+		for (const TInstancedStruct<FINV_ConsumeModifier>& Modifier : Fragment.GetConsumeModifiers())
+		{
+			const FINV_ConsumeModifier& ConsumeModifier = Modifier.Get();
+			CachedItemInstanceState.AddRuntimeStatValue(ConsumeModifier.GetFragmentTag(), ConsumeModifier.GetValue());
+		}
+	});
+
+	Manifest.ForEachFragment<FINV_EquipmentFragment>([this](const FINV_EquipmentFragment& Fragment)
+	{
+		for (const TInstancedStruct<FINV_EquipModifier>& Modifier : Fragment.GetEquipModifiers())
+		{
+			const FINV_EquipModifier& EquipModifier = Modifier.Get();
+			CachedItemInstanceState.AddRuntimeStatValue(EquipModifier.GetFragmentTag(), EquipModifier.GetValue());
+		}
+	});
+
+	bItemInstanceStateDirty = false;
+}
+
 void UINV_InventoryItem::RebuildPresentationSnapshot()
 {
 	CachedPresentationSnapshot.Reset();
 
 	const FINV_ItemManifest& Manifest = GetItemManifest();
+	const FINV_ItemInstanceState& InstanceState = GetItemInstanceState();
+	int32 RuntimeValueSearchStartIndex = 0;
 	CachedPresentationSnapshot.ItemType = GetCachedItemType();
 	CachedPresentationSnapshot.ItemRarityTag = bUseItemRarity ? ItemRarityTag : FGameplayTag::EmptyTag;
-	CachedPresentationSnapshot.StackCount = TotalStackCount;
+	CachedPresentationSnapshot.StackCount = InstanceState.StackCount;
 	CachedPresentationSnapshot.bStackable = GetCachedStackableFragment() != nullptr;
 	CachedPresentationSnapshot.bConsumable = GetCachedConsumableFragment() != nullptr;
 	CachedPresentationSnapshot.bEquippable = GetCachedEquipmentFragment() != nullptr;
@@ -232,7 +328,9 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 		FNumberFormattingOptions Options;
 		Options.MinimumFractionalDigits = Fragment.GetMinFractionalDigits();
 		Options.MaximumFractionalDigits = Fragment.GetMaxFractionalDigits();
-		StatLine.Value = FText::AsNumber(Fragment.GetValue(), &Options);
+		StatLine.Value = FText::AsNumber(
+			ResolveRuntimeValueOrFallback(InstanceState, Fragment.GetFragmentTag(), RuntimeValueSearchStartIndex, Fragment.GetValue()),
+			&Options);
 	});
 
 	Manifest.ForEachFragment<FINV_ConsumableFragment>([this](const FINV_ConsumableFragment& Fragment)
@@ -249,7 +347,9 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 			FNumberFormattingOptions Options;
 			Options.MinimumFractionalDigits = ConsumeModifier.GetMinFractionalDigits();
 			Options.MaximumFractionalDigits = ConsumeModifier.GetMaxFractionalDigits();
-			StatLine.Value = FText::AsNumber(ConsumeModifier.GetValue(), &Options);
+			StatLine.Value = FText::AsNumber(
+				ResolveRuntimeValueOrFallback(InstanceState, ConsumeModifier.GetFragmentTag(), RuntimeValueSearchStartIndex, ConsumeModifier.GetValue()),
+				&Options);
 		}
 	});
 
@@ -267,7 +367,9 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 			FNumberFormattingOptions Options;
 			Options.MinimumFractionalDigits = EquipModifier.GetMinFractionalDigits();
 			Options.MaximumFractionalDigits = EquipModifier.GetMaxFractionalDigits();
-			StatLine.Value = FText::AsNumber(EquipModifier.GetValue(), &Options);
+			StatLine.Value = FText::AsNumber(
+				ResolveRuntimeValueOrFallback(InstanceState, EquipModifier.GetFragmentTag(), RuntimeValueSearchStartIndex, EquipModifier.GetValue()),
+				&Options);
 		}
 	});
 
@@ -279,16 +381,37 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 	bPresentationSnapshotDirty = false;
 }
 
+void UINV_InventoryItem::SetEquippedState(const bool bEquipped)
+{
+	if (GetItemInstanceState().bEquipped == bEquipped)
+	{
+		return;
+	}
+
+	CachedItemInstanceState.bEquipped = bEquipped;
+	bItemInstanceStateDirty = false;
+	bPresentationSnapshotDirty = true;
+	BroadcastItemChanged();
+}
+
+bool UINV_InventoryItem::IsEquipped() const
+{
+	return GetItemInstanceState().bEquipped;
+}
+
 void UINV_InventoryItem::OnRep_ItemManifest()
 {
 	ResetFragmentCache();
 	BuildFragmentCache();
+	RebuildItemInstanceState();
 	RebuildPresentationSnapshot();
 	BroadcastItemChanged();
 }
 
 void UINV_InventoryItem::OnRep_TotalStackCount()
 {
+	CachedItemInstanceState.StackCount = TotalStackCount;
+	bItemInstanceStateDirty = false;
 	bPresentationSnapshotDirty = true;
 	BroadcastItemChanged();
 }
@@ -307,6 +430,7 @@ void UINV_InventoryItem::ResetFragmentCache()
 	CachedConsumableFragment = nullptr;
 	CachedEquipmentFragment = nullptr;
 	CachedItemType = FGameplayTag::EmptyTag;
+	bItemInstanceStateDirty = true;
 	bPresentationSnapshotDirty = true;
 }
 

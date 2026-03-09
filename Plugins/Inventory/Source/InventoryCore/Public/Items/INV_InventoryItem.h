@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Items/INV_ItemInstanceState.h"
 #include "Items/INV_ItemPresentationSnapshot.h"
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "UObject/Object.h"
@@ -67,10 +68,14 @@ public:
 	const FINV_StackableFragment* GetCachedStackableFragment() const;
 	const FINV_ConsumableFragment* GetCachedConsumableFragment() const;
 	const FINV_EquipmentFragment* GetCachedEquipmentFragment() const;
+	const FINV_ItemInstanceState& GetItemInstanceState() const;
 	const FINV_ItemPresentationSnapshot& GetPresentationSnapshot() const;
 	// Call this after setting the manifest to build the cache
 	void BuildFragmentCache();
+	void RebuildItemInstanceState();
 	void RebuildPresentationSnapshot();
+	void SetEquippedState(bool bEquipped);
+	bool IsEquipped() const;
 	FINV_InventoryItemChangedNative& OnItemChanged() { return ItemChangedEvent; }
 	
 private:
@@ -100,7 +105,9 @@ private:
 	mutable const FINV_ConsumableFragment* CachedConsumableFragment { nullptr };
 	mutable const FINV_EquipmentFragment* CachedEquipmentFragment { nullptr };
 	mutable FGameplayTag CachedItemType { FGameplayTag::EmptyTag };
+	mutable FINV_ItemInstanceState CachedItemInstanceState;
 	mutable FINV_ItemPresentationSnapshot CachedPresentationSnapshot;
+	mutable bool bItemInstanceStateDirty { true };
 	mutable bool bPresentationSnapshotDirty { true };
 	FINV_InventoryItemChangedNative ItemChangedEvent;
 };
