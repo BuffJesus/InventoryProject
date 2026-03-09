@@ -114,13 +114,13 @@ private:
 	bool bInventoryMenuOpen = false;
 
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
-	float ProxyPreviewForwardOffset { 150.f };
+	float ProxyPreviewForwardOffset { 0.f };
 
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
-	float ProxyPreviewLeftOffset { 100.f };
+	float ProxyPreviewLeftOffset { 0.f };
 
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
-	float ProxyPreviewVerticalOffset { 0.f };
+	float ProxyPreviewVerticalOffset { 10000.f };
 	
 	// Min/max angular offset (degrees) used for randomized drop direction from pawn forward.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
