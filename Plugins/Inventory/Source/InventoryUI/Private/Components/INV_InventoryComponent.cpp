@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/INV_InventoryComponent.h"
+#include "Components/INV_EquipmentComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
@@ -102,8 +104,49 @@ void UINV_InventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	ConfigureFastArrayCallbacks();
+	OwningController = Cast<APlayerController>(GetOwner());
+	EnsureLiveEquipmentComponent();
 	
 	ConstructInventory();
+}
+
+void UINV_InventoryComponent::EnsureLiveEquipmentComponent()
+{
+	if (!OwningController.IsValid())
+	{
+		return;
+	}
+
+	AActor* OwnerActor = GetOwner();
+	if (!IsValid(OwnerActor))
+	{
+		return;
+	}
+
+	if (!IsValid(LiveEquipmentComponent))
+	{
+		LiveEquipmentComponent = OwnerActor->FindComponentByClass<UINV_EquipmentComponent>();
+	}
+
+	if (!IsValid(LiveEquipmentComponent))
+	{
+		LiveEquipmentComponent = NewObject<UINV_EquipmentComponent>(OwnerActor, TEXT("LiveEquipmentComponent"));
+		if (!IsValid(LiveEquipmentComponent))
+		{
+			return;
+		}
+
+		OwnerActor->AddInstanceComponent(LiveEquipmentComponent);
+		LiveEquipmentComponent->RegisterComponent();
+	}
+
+	USkeletalMeshComponent* AttachMesh = nullptr;
+	if (ACharacter* Character = Cast<ACharacter>(OwningController->GetPawn()))
+	{
+		AttachMesh = Character->GetMesh();
+	}
+
+	LiveEquipmentComponent->InitializeEquipmentContext(OwningController.Get(), AttachMesh, false);
 }
 
 void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
@@ -400,8 +443,17 @@ void UINV_InventoryComponent::Server_EquipSlotClicked_Implementation(UINV_Invent
 		}
 	};
 
-	ApplyServerEquipState(ItemToEquip, true);
-	ApplyServerEquipState(ItemToUnequip, false);
+	if (IsValid(ItemToEquip))
+	{
+		ApplyServerEquipState(ItemToEquip, true);
+		OnItemEquipped.Broadcast(ItemToEquip);
+	}
+
+	if (IsValid(ItemToUnequip))
+	{
+		ApplyServerEquipState(ItemToUnequip, false);
+		OnItemUnequipped.Broadcast(ItemToUnequip);
+	}
 }
 
 void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)
