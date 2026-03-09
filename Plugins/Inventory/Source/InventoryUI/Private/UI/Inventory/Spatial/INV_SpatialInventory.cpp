@@ -482,7 +482,7 @@ void UINV_SpatialInventory::BroadcastEquipState(
 	if (!IsValid(OwningPlayer)) return;
 
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
-	if (OwningPlayer->GetNetMode() == NM_DedicatedServer) return;
+	if (InventoryComponent->HasAuthorityOnOwner()) return;
 
 	InventoryComponent->OnItemEquipped.Broadcast(ItemToEquip);
 	if (IsValid(ItemToUnequip))

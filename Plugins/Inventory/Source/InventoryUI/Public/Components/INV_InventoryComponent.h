@@ -58,9 +58,9 @@ public:
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
 	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	FORCEINLINE AINV_ProxyMesh* GetCachedProxyMesh() const { return CachedProxyMesh; }
+	bool HasAuthorityOnOwner() const;
 	
 	UFUNCTION(Server, Reliable) void Server_EquipSlotClicked(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
-	UFUNCTION(NetMulticast, Reliable) void Multicast_EquipSlotClicked(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
 	
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
@@ -75,7 +75,6 @@ protected:
 
 private:
 	void ConfigureFastArrayCallbacks();
-	bool HasAuthorityOnOwner() const;
 	FVector ResolveVisualDropSeparation(const FVector& ProposedLocation);
 	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	void TrimRecentDropLocations();
