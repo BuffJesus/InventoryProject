@@ -82,6 +82,11 @@ UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_InventoryItem* Item)
 	
 	FINV_InventoryEntry& NewEntry { Entries.AddDefaulted_GetRef() };
 	NewEntry.Item = Item;
+
+	if (Callbacks.RegisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
+	{
+		Callbacks.RegisterReplicatedSubObject(static_cast<UObject*>(NewEntry.Item.Get()));
+	}
 	
 	MarkItemDirty(NewEntry);
 	return Item;
@@ -95,8 +100,13 @@ void FINV_InventoryFastArray::RemoveEntry(UINV_InventoryItem* Item)
 		FINV_InventoryEntry& Entry { *EntryIt };
 		if (Entry.Item == Item)
 		{
+			if (Callbacks.UnregisterReplicatedSubObject && Callbacks.CanUseReplicationSubObjectList && Callbacks.CanUseReplicationSubObjectList())
+			{
+				Callbacks.UnregisterReplicatedSubObject(static_cast<UObject*>(Entry.Item.Get()));
+			}
 			EntryIt.RemoveCurrent();
 			MarkArrayDirty();
+			return;
 		}
 	}
 }
