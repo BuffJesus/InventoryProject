@@ -96,6 +96,7 @@ bool AINV_ProxyMesh::TryInitializeFromPlayerController(APlayerController* Player
 	ObservedPlayerController = PlayerController;
 	SourceMesh = CharacterMesh;
 	Mesh->SetSkeletalMesh(SourceMesh->GetSkeletalMeshAsset());
+	Mesh->SetRelativeTransform(SourceMesh->GetRelativeTransform());
 
 	if (UAnimInstance* SourceAnimInstance = SourceMesh->GetAnimInstance())
 	{
