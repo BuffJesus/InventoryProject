@@ -5,6 +5,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemPresentationSnapshot.h"
 #include "Items/Manifest/INV_ItemManifest.h"
+#include "Internationalization/Text.h"
 #include "UI/Widgets/Composite/INV_Composite_Base.h"
 #include "UI/Widgets/Composite/INV_Leaf_Image.h"
 #include "UI/Widgets/Composite/INV_Leaf_LabeledValue.h"
@@ -12,6 +13,22 @@
 
 namespace
 {
+FINV_ItemStatLine MakeStatLine(
+	const FGameplayTag& FragmentTag,
+	const FText& Label,
+	const FText& Value,
+	const bool bCollapseLabel,
+	const bool bCollapseValue)
+{
+	FINV_ItemStatLine StatLine;
+	StatLine.FragmentTag = FragmentTag;
+	StatLine.Label = Label;
+	StatLine.Value = Value;
+	StatLine.bCollapseLabel = bCollapseLabel;
+	StatLine.bCollapseValue = bCollapseValue;
+	return StatLine;
+}
+
 template <typename ApplyFn>
 void ApplyToMatchingWidgets(const FGameplayTag& FragmentTag, UINV_Composite_Base* Composite, ApplyFn&& Apply)
 {
@@ -78,13 +95,12 @@ void FINV_ItemPresentationUtils::AssimilateInventoryFragments(const FINV_ItemMan
 		Options.MinimumFractionalDigits = Fragment.GetMinFractionalDigits();
 		Options.MaximumFractionalDigits = Fragment.GetMaxFractionalDigits();
 
-		const FINV_ItemStatLine StatLine {
+		const FINV_ItemStatLine StatLine = MakeStatLine(
 			Fragment.GetFragmentTag(),
 			Fragment.GetLabelText(),
 			FText::AsNumber(Fragment.GetValue(), &Options),
 			Fragment.GetCollapseLabel(),
-			Fragment.GetCollapseValue()
-		};
+			Fragment.GetCollapseValue());
 		ApplyStatLine(StatLine, Composite);
 	});
 
@@ -97,13 +113,12 @@ void FINV_ItemPresentationUtils::AssimilateInventoryFragments(const FINV_ItemMan
 			Options.MinimumFractionalDigits = ConsumeModifier.GetMinFractionalDigits();
 			Options.MaximumFractionalDigits = ConsumeModifier.GetMaxFractionalDigits();
 
-			const FINV_ItemStatLine StatLine {
+			const FINV_ItemStatLine StatLine = MakeStatLine(
 				ConsumeModifier.GetFragmentTag(),
 				ConsumeModifier.GetLabelText(),
 				FText::AsNumber(ConsumeModifier.GetValue(), &Options),
 				ConsumeModifier.GetCollapseLabel(),
-				ConsumeModifier.GetCollapseValue()
-			};
+				ConsumeModifier.GetCollapseValue());
 			ApplyStatLine(StatLine, Composite);
 		}
 	});
@@ -117,13 +132,12 @@ void FINV_ItemPresentationUtils::AssimilateInventoryFragments(const FINV_ItemMan
 			Options.MinimumFractionalDigits = EquipModifier.GetMinFractionalDigits();
 			Options.MaximumFractionalDigits = EquipModifier.GetMaxFractionalDigits();
 
-			const FINV_ItemStatLine StatLine {
+			const FINV_ItemStatLine StatLine = MakeStatLine(
 				EquipModifier.GetFragmentTag(),
 				EquipModifier.GetLabelText(),
 				FText::AsNumber(EquipModifier.GetValue(), &Options),
 				EquipModifier.GetCollapseLabel(),
-				EquipModifier.GetCollapseValue()
-			};
+				EquipModifier.GetCollapseValue());
 			ApplyStatLine(StatLine, Composite);
 		}
 	});

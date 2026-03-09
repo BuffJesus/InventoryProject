@@ -28,6 +28,12 @@ void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 	BroadcastItemChanged();
 }
 
+FINV_ItemManifest& UINV_InventoryItem::GetItemManifestMutable()
+{
+	ResetFragmentCache();
+	return ItemManifest.GetMutable<FINV_ItemManifest>();
+}
+
 void UINV_InventoryItem::SetTotalStackCount(const int32 Count)
 {
 	if (TotalStackCount == Count)
@@ -187,9 +193,9 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 	CachedPresentationSnapshot.ItemType = GetCachedItemType();
 	CachedPresentationSnapshot.ItemRarityTag = bUseItemRarity ? ItemRarityTag : FGameplayTag::EmptyTag;
 	CachedPresentationSnapshot.StackCount = TotalStackCount;
-	CachedPresentationSnapshot.bStackable = CachedStackableFragment != nullptr;
-	CachedPresentationSnapshot.bConsumable = CachedConsumableFragment != nullptr;
-	CachedPresentationSnapshot.bEquippable = CachedEquipmentFragment != nullptr;
+	CachedPresentationSnapshot.bStackable = GetCachedStackableFragment() != nullptr;
+	CachedPresentationSnapshot.bConsumable = GetCachedConsumableFragment() != nullptr;
+	CachedPresentationSnapshot.bEquippable = GetCachedEquipmentFragment() != nullptr;
 
 	if (const FINV_ImageFragment* ImageFragment = GetCachedImageFragment())
 	{
