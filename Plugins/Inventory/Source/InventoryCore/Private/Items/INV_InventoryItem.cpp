@@ -3,6 +3,7 @@
 
 #include "Items/INV_InventoryItem.h"
 
+#include "Items/INV_ItemDefinition.h"
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Fragments/INV_FragmentTags.h"
 #include "Internationalization/Text.h"
@@ -59,6 +60,7 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 {
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
+	ResolveItemDefinition();
 	ResetFragmentCache();
 	BuildFragmentCache();
 	RebuildItemInstanceState();
@@ -70,6 +72,22 @@ FINV_ItemManifest& UINV_InventoryItem::GetItemManifestMutable()
 {
 	ResetFragmentCache();
 	return ItemManifest.GetMutable<FINV_ItemManifest>();
+}
+
+void UINV_InventoryItem::ResolveItemDefinition()
+{
+	ItemDefinition = UINV_ItemDefinition::FindOrCreateSharedDefinition(GetItemManifest(), GetTransientPackage());
+	ItemDefinitionHandle = IsValid(ItemDefinition) ? ItemDefinition->GetDefinitionHandle() : FINV_ItemDefinitionHandle{};
+}
+
+const FINV_ItemManifest& UINV_InventoryItem::GetDefinitionManifest() const
+{
+	if (IsValid(ItemDefinition))
+	{
+		return ItemDefinition->GetItemManifest();
+	}
+
+	return GetItemManifest();
 }
 
 void UINV_InventoryItem::SetTotalStackCount(const int32 Count)
@@ -148,7 +166,7 @@ bool UINV_InventoryItem::IsConsumable() const
 void UINV_InventoryItem::BuildFragmentCache()
 {
 	// Cache frequently accessed fragments to avoid repeated linear searches
-	const FINV_ItemManifest& Manifest = GetItemManifest();
+	const FINV_ItemManifest& Manifest = GetDefinitionManifest();
 	CachedItemType = Manifest.GetItemType();
 	CachedGridFragment = Manifest.GetFragmentOfTypeWithTag<FINV_GridFragment>(FragmentTags::GridFragment);
 	CachedImageFragment = Manifest.GetFragmentOfTypeWithTag<FINV_ImageFragment>(FragmentTags::IconFragment);
@@ -283,7 +301,7 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 {
 	CachedPresentationSnapshot.Reset();
 
-	const FINV_ItemManifest& Manifest = GetItemManifest();
+	const FINV_ItemManifest& Manifest = GetDefinitionManifest();
 	const FINV_ItemInstanceState& InstanceState = GetItemInstanceState();
 	int32 RuntimeValueSearchStartIndex = 0;
 	CachedPresentationSnapshot.ItemType = GetCachedItemType();
@@ -401,6 +419,7 @@ bool UINV_InventoryItem::IsEquipped() const
 
 void UINV_InventoryItem::OnRep_ItemManifest()
 {
+	ResolveItemDefinition();
 	ResetFragmentCache();
 	BuildFragmentCache();
 	RebuildItemInstanceState();

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Items/INV_ItemDefinition.h"
 #include "Items/INV_ItemInstanceState.h"
 #include "Items/INV_ItemPresentationSnapshot.h"
 #include "Items/Manifest/INV_ItemManifest.h"
@@ -18,6 +19,7 @@ struct FINV_StackableFragment;
 struct FINV_ConsumableFragment;
 struct FINV_EquipmentFragment;
 class UINV_InventoryItem;
+class UINV_ItemDefinition;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FINV_InventoryItemChangedNative, UINV_InventoryItem*);
 
@@ -32,10 +34,12 @@ public:
 	
 	// Store the item manifest inside this object.
 	void SetItemManifest(const FINV_ItemManifest& Manifest);
-	// Access the stored manifest.
+	// Access the legacy copied manifest for compatibility paths.
 	const FINV_ItemManifest& GetItemManifest() const { return ItemManifest.Get<FINV_ItemManifest>(); }
 	// Mutable manifest access for stack updates, consume effects, and drop flow.
 	FINV_ItemManifest& GetItemManifestMutable();
+	const UINV_ItemDefinition* GetItemDefinition() const { return ItemDefinition; }
+	const FINV_ItemDefinitionHandle& GetItemDefinitionHandle() const { return ItemDefinitionHandle; }
 	// True if this item has a stackable fragment.
 	bool IsStackable() const;
 	// True if this item has a consumable fragment.
@@ -82,12 +86,20 @@ private:
 	UFUNCTION() void OnRep_ItemManifest();
 	UFUNCTION() void OnRep_TotalStackCount();
 	UFUNCTION() void OnRep_ItemRarityOptions();
+	void ResolveItemDefinition();
+	const FINV_ItemManifest& GetDefinitionManifest() const;
 	void ResetFragmentCache();
 	void BroadcastItemChanged();
 
 	// Instanced manifest (fragments + tags).
 	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"), ReplicatedUsing = OnRep_ItemManifest)
 	FInstancedStruct ItemManifest;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UINV_ItemDefinition> ItemDefinition { nullptr };
+
+	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory")
+	FINV_ItemDefinitionHandle ItemDefinitionHandle;
 	
 	// Total stacks stored for this item.
 	UPROPERTY(ReplicatedUsing = OnRep_TotalStackCount) int32 TotalStackCount { 0 };
