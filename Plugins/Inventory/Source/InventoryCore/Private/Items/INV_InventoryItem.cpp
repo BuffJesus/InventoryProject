@@ -8,6 +8,7 @@
 #include "Items/Fragments/INV_FragmentTags.h"
 #include "Internationalization/Text.h"
 #include "Net/UnrealNetwork.h"
+#include "UObject/UObjectGlobals.h"
 
 namespace
 {
@@ -70,6 +71,8 @@ void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 
 FINV_ItemManifest& UINV_InventoryItem::GetItemManifestMutable()
 {
+	ItemDefinition = nullptr;
+	ItemDefinitionHandle.Reset();
 	ResetFragmentCache();
 	return ItemManifest.GetMutable<FINV_ItemManifest>();
 }
@@ -256,8 +259,8 @@ void UINV_InventoryItem::RebuildItemInstanceState()
 {
 	CachedItemInstanceState.Reset();
 
-	const FINV_ItemManifest& Manifest = GetItemManifest();
-	if (const FINV_StackableFragment* StackableFragment = GetCachedStackableFragment())
+	const FINV_ItemManifest& LegacyManifest = GetItemManifest();
+	if (const FINV_StackableFragment* StackableFragment = LegacyManifest.GetFragmentOfTypeWithTag<FINV_StackableFragment>(FragmentTags::StackableFragment))
 	{
 		CachedItemInstanceState.StackCount = TotalStackCount > 0 ? TotalStackCount : StackableFragment->GetStackCount();
 	}
@@ -266,17 +269,17 @@ void UINV_InventoryItem::RebuildItemInstanceState()
 		CachedItemInstanceState.StackCount = TotalStackCount;
 	}
 
-	if (const FINV_EquipmentFragment* EquipmentFragment = GetCachedEquipmentFragment())
+	if (const FINV_EquipmentFragment* EquipmentFragment = LegacyManifest.GetFragmentOfTypeWithTag<FINV_EquipmentFragment>(FragmentTags::EquipmentFragment))
 	{
 		CachedItemInstanceState.bEquipped = EquipmentFragment->IsEquipped();
 	}
 
-	Manifest.ForEachFragment<FINV_LabeledNumberFragment>([this](const FINV_LabeledNumberFragment& Fragment)
+	LegacyManifest.ForEachFragment<FINV_LabeledNumberFragment>([this](const FINV_LabeledNumberFragment& Fragment)
 	{
 		CachedItemInstanceState.AddRuntimeStatValue(Fragment.GetFragmentTag(), Fragment.GetValue());
 	});
 
-	Manifest.ForEachFragment<FINV_ConsumableFragment>([this](const FINV_ConsumableFragment& Fragment)
+	LegacyManifest.ForEachFragment<FINV_ConsumableFragment>([this](const FINV_ConsumableFragment& Fragment)
 	{
 		for (const TInstancedStruct<FINV_ConsumeModifier>& Modifier : Fragment.GetConsumeModifiers())
 		{
@@ -285,7 +288,7 @@ void UINV_InventoryItem::RebuildItemInstanceState()
 		}
 	});
 
-	Manifest.ForEachFragment<FINV_EquipmentFragment>([this](const FINV_EquipmentFragment& Fragment)
+	LegacyManifest.ForEachFragment<FINV_EquipmentFragment>([this](const FINV_EquipmentFragment& Fragment)
 	{
 		for (const TInstancedStruct<FINV_EquipModifier>& Modifier : Fragment.GetEquipModifiers())
 		{
