@@ -37,6 +37,7 @@ protected:
 private:
 	bool SimulateMouseButtonFromGamepad(const FKey& MouseButton, EInputEvent InputEvent);
 	void UpdateVirtualCursor(float DeltaTime);
+	void ClearCurrentTraceTarget();
 	// Evaluate view-change thresholds and execute trace when conditions are met.
 	void AttemptTrace(float ElapsedSinceLastCheck);
 	// Timer callback for interval-based tracing.

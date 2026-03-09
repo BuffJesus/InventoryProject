@@ -38,6 +38,7 @@ void AINV_PlayerController::Tick(float DeltaTime)
 void AINV_PlayerController::AttemptTrace(const float ElapsedSinceLastCheck)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_PlayerController_AttemptTrace);
+	if (InventoryComponent.IsValid() && InventoryComponent->IsInventoryMenuOpen()) return;
 
 	if (bOnlyTraceOnViewChange)
 	{
@@ -79,12 +80,37 @@ void AINV_PlayerController::ToggleInventory()
 {
 	if (!InventoryComponent.IsValid()) return;
 	InventoryComponent->ToggleInventoryMenu();
+	if (InventoryComponent->IsInventoryMenuOpen())
+	{
+		ClearCurrentTraceTarget();
+	}
 }
 
 void AINV_PlayerController::SetHUDWidgetVisible(const bool bVisible)
 {
 	if (!IsValid(HUDWidget)) return;
 	HUDWidget->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
+void AINV_PlayerController::ClearCurrentTraceTarget()
+{
+	if (ThisActor.IsValid())
+	{
+		if (UActorComponent* HighlightableComponent { ThisActor->FindComponentByInterface(UINV_Highlightable::StaticClass()) }; IsValid(HighlightableComponent))
+		{
+			IINV_Highlightable::Execute_UnHighlight(HighlightableComponent);
+		}
+	}
+
+	ThisActor = nullptr;
+	LastActor = nullptr;
+	IdleRetraceAccumulator = 0.f;
+	bHasLastTraceView = false;
+
+	if (IsValid(HUDWidget))
+	{
+		HUDWidget->HidePickupMessage();
+	}
 }
 
 void AINV_PlayerController::BeginPlay()
@@ -333,6 +359,7 @@ void AINV_PlayerController::CreateHUDWidget()
 void AINV_PlayerController::TraceForItem()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_PlayerController_TraceForItem);
+	if (InventoryComponent.IsValid() && InventoryComponent->IsInventoryMenuOpen()) return;
 
 	// Trace from the center of the viewport.
 	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
