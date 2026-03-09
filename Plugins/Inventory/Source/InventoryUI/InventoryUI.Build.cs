@@ -28,5 +28,12 @@ public class InventoryUI : ModuleRules
 				"NetCore"
 			}
 		);
+
+		CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+				"InventoryCore"
+			}
+		);
 	}
 }

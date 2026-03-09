@@ -4,10 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "INV_EquipmentComponent.generated.h"
 
-struct FGameplayTag;
-struct FINV_ItemManifest;
 struct FINV_EquipmentFragment;
 class AINV_EquipActor;
 class UINV_InventoryItem;
