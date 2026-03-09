@@ -15,6 +15,15 @@ void UINV_EquipmentComponent::SetOwningSkeletalMesh(USkeletalMeshComponent* Owni
 	OwningSkeletalMesh = OwningMesh;
 }
 
+void UINV_EquipmentComponent::InitializeOwner(APlayerController* PlayerController)
+{
+	if (IsValid(PlayerController))
+	{
+		OwningPlayerController = PlayerController;
+	}
+	InitInventoryComponent();
+}
+
 void UINV_EquipmentComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -123,6 +132,7 @@ void UINV_EquipmentComponent::ProcessEquipmentItem(UINV_InventoryItem* Item, boo
 {
 	RefreshOwningReferences();
 
+	if (bIsProxy) return;
 	if (!OwningPlayerController.IsValid()) return;
 	if (!OwningPlayerController->HasAuthority()) return;
 
