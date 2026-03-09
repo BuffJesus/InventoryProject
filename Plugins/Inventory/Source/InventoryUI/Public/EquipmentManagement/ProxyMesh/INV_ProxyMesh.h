@@ -7,6 +7,7 @@
 #include "INV_ProxyMesh.generated.h"
 
 class UINV_EquipmentComponent;
+class UINV_InventoryItem;
 
 UCLASS()
 class INVENTORYUI_API AINV_ProxyMesh : public AActor
@@ -18,6 +19,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "INV|Proxy")
 	void InitializeProxy(APlayerController* PlayerController);
 	void SetPreviewVisible(bool bVisible);
+	void PreviewEquipItem(UINV_InventoryItem* Item);
+	void PreviewUnequipItem(UINV_InventoryItem* Item);
 	
 	USkeletalMeshComponent* GetMesh() const { return Mesh; }
 

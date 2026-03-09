@@ -381,11 +381,26 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 void UINV_InventoryComponent::Server_EquipSlotClicked_Implementation(UINV_InventoryItem* ItemToEquip,
 	UINV_InventoryItem* ItemToUnequip)
 {
-	OnItemEquipped.Broadcast(ItemToEquip);
-	if (IsValid(ItemToUnequip))
+	const auto ApplyServerEquipState = [this](UINV_InventoryItem* Item, const bool bEquip)
 	{
-		OnItemUnequipped.Broadcast(ItemToUnequip);
-	}
+		if (!IsValid(Item)) return;
+
+		FINV_ItemManifest& ItemManifest = Item->GetItemManifestMutable();
+		FINV_EquipmentFragment* EquipmentFragment = ItemManifest.GetFragmentOfTypeMutable<FINV_EquipmentFragment>();
+		if (!EquipmentFragment) return;
+
+		if (bEquip)
+		{
+			EquipmentFragment->OnEquip(OwningController.Get());
+		}
+		else
+		{
+			EquipmentFragment->OnUnequip(OwningController.Get());
+		}
+	};
+
+	ApplyServerEquipState(ItemToEquip, true);
+	ApplyServerEquipState(ItemToUnequip, false);
 }
 
 void UINV_InventoryComponent::Server_ConsumeItem_Implementation(UINV_InventoryItem* Item)

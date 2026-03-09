@@ -19,6 +19,7 @@ class INVENTORYUI_API UINV_EquipmentComponent : public UActorComponent
 
 public:
 	void InitializeEquipmentContext(APlayerController* PlayerController, USkeletalMeshComponent* AttachMesh, bool bProxy);
+	void ApplyPreviewItem(UINV_InventoryItem* Item, bool bEquip);
 
 protected:
 	virtual void BeginPlay() override;

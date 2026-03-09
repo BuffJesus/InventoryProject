@@ -5,6 +5,7 @@
 #include "Animation/AnimInstance.h"
 #include "Components/INV_EquipmentComponent.h"
 #include "GameFramework/Character.h"
+#include "Items/INV_InventoryItem.h"
 #include "TimerManager.h"
 
 AINV_ProxyMesh::AINV_ProxyMesh()
@@ -42,6 +43,18 @@ void AINV_ProxyMesh::SetPreviewVisible(const bool bVisible)
 		AttachedActor->SetActorHiddenInGame(!bVisible);
 		AttachedActor->SetActorEnableCollision(false);
 	}
+}
+
+void AINV_ProxyMesh::PreviewEquipItem(UINV_InventoryItem* Item)
+{
+	if (!IsValid(EquipmentComponent)) return;
+	EquipmentComponent->ApplyPreviewItem(Item, true);
+}
+
+void AINV_ProxyMesh::PreviewUnequipItem(UINV_InventoryItem* Item)
+{
+	if (!IsValid(EquipmentComponent)) return;
+	EquipmentComponent->ApplyPreviewItem(Item, false);
 }
 
 void AINV_ProxyMesh::BeginPlay()

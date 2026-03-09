@@ -9,6 +9,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/INV_InventoryComponent.h"
 #include "Components/WidgetSwitcher.h"
+#include "EquipmentManagement/ProxyMesh/INV_ProxyMesh.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 #include "Items/INV_InventoryItem.h"
@@ -482,12 +483,12 @@ void UINV_SpatialInventory::BroadcastEquipState(
 	if (!IsValid(OwningPlayer)) return;
 
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
-	if (InventoryComponent->HasAuthorityOnOwner()) return;
+	if (OwningPlayer->GetNetMode() == NM_DedicatedServer) return;
 
-	InventoryComponent->OnItemEquipped.Broadcast(ItemToEquip);
-	if (IsValid(ItemToUnequip))
+	if (AINV_ProxyMesh* ProxyMesh = InventoryComponent->GetCachedProxyMesh(); IsValid(ProxyMesh))
 	{
-		InventoryComponent->OnItemUnequipped.Broadcast(ItemToUnequip);
+		ProxyMesh->PreviewEquipItem(ItemToEquip);
+		ProxyMesh->PreviewUnequipItem(ItemToUnequip);
 	}
 }
 

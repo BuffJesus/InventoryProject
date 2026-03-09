@@ -22,6 +22,11 @@ void UINV_EquipmentComponent::InitializeEquipmentContext(
 	InitInventoryComponent();
 }
 
+void UINV_EquipmentComponent::ApplyPreviewItem(UINV_InventoryItem* Item, const bool bEquip)
+{
+	HandleEquipmentItem(Item, bEquip);
+}
+
 void UINV_EquipmentComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -79,6 +84,7 @@ void UINV_EquipmentComponent::ResolveOwnerContext()
 
 void UINV_EquipmentComponent::InitInventoryComponent()
 {
+	if (bIsProxy) return;
 	if (!OwningPlayerController.IsValid()) return;
 
 	InventoryComponent = UINV_InventoryStatics::GetInventoryComponent(OwningPlayerController.Get());
