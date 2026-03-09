@@ -19,15 +19,7 @@ public class InventoryCore : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Engine",
-				"InventoryUI"
-			}
-		);
-
-		CircularlyReferencedDependentModules.AddRange(
-			new string[]
-			{
-				"InventoryUI"
+				"Engine"
 			}
 		);
 	}
