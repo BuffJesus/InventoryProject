@@ -7,6 +7,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/INV_InventoryComponent.h"
+#include "UI/Inventory/Placement/INV_GridOccupancyModel.h"
 #include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Utils/INV_InventoryStatics.h"
@@ -50,8 +51,7 @@ FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const FINV_ItemMa
 	const FGameplayTag& ItemRarityTag)
 {
 	if (!Manifest) return FINV_SlotAvailabilityResult {};
-	// Delegate to the placement engine for pure logic computation
-	return FINV_GridPlacementEngine::HasRoomForItem(GridSlots, GridSize, *Manifest, bUseItemRarity, ItemRarityTag);
+	return FINV_GridPlacementEngine::HasRoomForItem(OccupancyModel, *Manifest, bUseItemRarity, ItemRarityTag);
 }
 
 // NOTE: Core placement methods have been moved to FINV_GridPlacementEngine for reusability
@@ -216,7 +216,7 @@ void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 	ItemDropIndex = UINV_WidgetUtils::GetIndexFromPosition(StartingCoord, GridSize.X);
 
 	// Check hover position - delegate to placement engine
-	CurrentQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(GridSlots, GridSize, StartingCoord, Dimensions);
+	CurrentQueryResult = FINV_GridPlacementEngine::CheckHoverPosition(OccupancyModel, StartingCoord, Dimensions);
 
 	ApplyHoverPlacementVisuals(Dimensions);
 }
@@ -478,19 +478,7 @@ void UINV_InventoryGrid::HandleInventoryItemChanged(UINV_InventoryItem* Item)
 
 int32 UINV_InventoryGrid::FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const
 {
-	if (!IsValid(Item))
-	{
-		return INDEX_NONE;
-	}
-
-	for (const TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
-	{
-		if (!IsValid(GridSlot)) continue;
-		if (GridSlot->GetInventoryItem().Get() != Item) continue;
-		return GridSlot->GetUpperLeftIndex();
-	}
-
-	return INDEX_NONE;
+	return OccupancyModel.FindAnchorForItem(Item);
 }
 
 void UINV_InventoryGrid::RefreshItemVisuals(UINV_InventoryItem* Item)
@@ -513,6 +501,8 @@ void UINV_InventoryGrid::RefreshItemVisuals(UINV_InventoryItem* Item)
 			(*SlottedItemPtr)->UpdateStackCount(Item->IsStackable() ? Item->GetTotalStackCount() : 0);
 		}
 	}
+
+	UpdateItemOccupancyStack(Item);
 
 	const FINV_GridFragment* GridFragment = Item->GetCachedGridFragment();
 	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
@@ -549,6 +539,7 @@ void UINV_InventoryGrid::PlaceItemAtIndex(UINV_InventoryItem* Item, const int32 
 {
 	AddItemAtIndex(Item, Index, bStackable, StackAmount);
 	UpdateGridSlots(Item, Index, bStackable, StackAmount);
+	RegisterItemOccupancy(Item, Index, bStackable ? StackAmount : 0);
 }
 
 void UINV_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FINV_GridFragment* GridFragment,
@@ -598,6 +589,7 @@ void UINV_InventoryGrid::ConstructGrid()
 		}
 	}
 
+	OccupancyModel.Initialize(GridSize);
 }
 
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
@@ -731,6 +723,8 @@ void UINV_InventoryGrid::SwapWithHoverItem(UINV_InventoryItem* ClickedInventoryI
 		HoverPreviousIndex,
 		BuildGridSwapCallbacks());
 	if (!bSwapExecuted) return;
+
+	RebuildOccupancyModel();
 }
 
 void UINV_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
@@ -994,6 +988,7 @@ void UINV_InventoryGrid::RemoveItemFromGrid(const UINV_InventoryItem* InventoryI
 		ReleaseSlottedItem(PooledSlottedItem);
 	}
 
+	ClearItemOccupancy(GridIndex);
 	FINV_GridItemOperations::RemoveItemFromGrid(GridSlots, InventoryItem, GridIndex, GridSize.X);
 }
 
@@ -1010,6 +1005,10 @@ void UINV_InventoryGrid::AddStacks(const FINV_SlotAvailabilityResult& Result)
 		if (!Availability.bItemAtIndex)
 		{
 			PlaceItemAtIndex(Result.Item.Get(), Availability.Index, Result.bStackable, Availability.AmountToFill);
+		}
+		else if (IsValid(Result.Item.Get()))
+		{
+			OccupancyModel.UpdateStackCountForAnchor(Availability.Index, Result.Item->GetTotalStackCount());
 		}
 	}
 
@@ -1254,6 +1253,45 @@ bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 {
 	if (!IsValid(Item)) return false;
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
+}
+
+void UINV_InventoryGrid::RebuildOccupancyModel()
+{
+	OccupancyModel.RebuildFromGridSlots(GridSlots, GridSize);
+}
+
+void UINV_InventoryGrid::RegisterItemOccupancy(UINV_InventoryItem* Item, const int32 AnchorIndex, const int32 StackAmount)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	const FINV_GridFragment* GridFragment = Item->GetCachedGridFragment();
+	const FIntPoint Dimensions = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	const int32 ResolvedStackCount = Item->IsStackable() ? FMath::Max(StackAmount, Item->GetTotalStackCount()) : 0;
+	OccupancyModel.SetItemAtAnchor(Item, AnchorIndex, Dimensions, ResolvedStackCount);
+}
+
+void UINV_InventoryGrid::ClearItemOccupancy(const int32 AnchorIndex)
+{
+	OccupancyModel.ClearAnchor(AnchorIndex);
+}
+
+void UINV_InventoryGrid::UpdateItemOccupancyStack(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	const int32 AnchorIndex = OccupancyModel.FindAnchorForItem(Item);
+	if (AnchorIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	OccupancyModel.UpdateStackCountForAnchor(AnchorIndex, Item->IsStackable() ? Item->GetTotalStackCount() : 0);
 }
 
 bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize,

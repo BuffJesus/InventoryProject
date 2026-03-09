@@ -7,6 +7,7 @@
 
 class UINV_GridSlot;
 class UINV_InventoryItem;
+struct FINV_GridOccupancyModel;
 struct FINV_ItemManifest;
 struct FGameplayTag;
 
@@ -43,6 +44,11 @@ public:
 		const FINV_ItemManifest& Manifest,
 		bool bUseItemRarity,
 		const FGameplayTag& ItemRarityTag);
+	static FINV_SlotAvailabilityResult HasRoomForItem(
+		const FINV_GridOccupancyModel& OccupancyModel,
+		const FINV_ItemManifest& Manifest,
+		bool bUseItemRarity,
+		const FGameplayTag& ItemRarityTag);
 
 	/**
 	 * Check if space at a position is free or contains a single swappable item.
@@ -56,6 +62,10 @@ public:
 	static FINV_SpaceQueryResult CheckHoverPosition(
 		const TArray<TObjectPtr<UINV_GridSlot>>& GridSlots,
 		const FIntPoint& GridSize,
+		const FIntPoint& Position,
+		const FIntPoint& Dimensions);
+	static FINV_SpaceQueryResult CheckHoverPosition(
+		const FINV_GridOccupancyModel& OccupancyModel,
 		const FIntPoint& Position,
 		const FIntPoint& Dimensions);
 

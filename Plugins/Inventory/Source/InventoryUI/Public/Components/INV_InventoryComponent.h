@@ -11,6 +11,7 @@ struct FINV_SlotAvailabilityResult;
 struct FINV_InventoryFastArray;
 class UINV_ItemComponent;
 class UINV_InventoryBase;
+class UINV_EquipmentComponent;
 class APawn;
 class AINV_ProxyMesh;
 
@@ -81,6 +82,7 @@ private:
 	void TrimRecentDropLocations();
 	void ApplyPointerInputMode(bool bIsOpen) const;
 	void EnsureProxyMeshSpawned();
+	void EnsureLiveEquipmentComponent();
 	void UpdateProxyMeshVisibility(bool bVisible);
 	FTransform BuildProxyMeshSpawnTransform() const;
 
@@ -110,6 +112,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AINV_ProxyMesh> CachedProxyMesh { nullptr };
+
+	UPROPERTY()
+	TObjectPtr<UINV_EquipmentComponent> LiveEquipmentComponent { nullptr };
 	
 	// Tracks menu state for toggle logic.
 	bool bInventoryMenuOpen = false;

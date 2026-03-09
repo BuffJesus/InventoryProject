@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Delegates/Delegate.h"
 #include "Types/INV_GridTypes.h"
+#include "UI/Inventory/Placement/INV_GridOccupancyModel.h"
 
 class UINV_ItemPopUp;
 enum class EINV_GridSlotState : uint8;
@@ -98,6 +99,10 @@ private:
 	void UnbindInventoryItemNotifications(UINV_InventoryItem* Item);
 	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
 	void RefreshItemVisuals(UINV_InventoryItem* Item);
+	void RebuildOccupancyModel();
+	void RegisterItemOccupancy(UINV_InventoryItem* Item, int32 AnchorIndex, int32 StackAmount);
+	void ClearItemOccupancy(int32 AnchorIndex);
+	void UpdateItemOccupancyStack(UINV_InventoryItem* Item);
 	
 	void AddItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
 	void PlaceItemAtIndex(UINV_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
@@ -199,6 +204,7 @@ private:
 	int32 MaxPooledSlottedItems { 128 };
 	
 	UPROPERTY() TArray<TObjectPtr<UINV_GridSlot>> GridSlots;
+	FINV_GridOccupancyModel OccupancyModel;
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_GridSlot> SlotClass;
 	

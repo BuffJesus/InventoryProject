@@ -5,6 +5,7 @@
 #include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifest.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
+#include "UI/Inventory/Placement/INV_GridOccupancyModel.h"
 #include "UI/Inventory/GridSlots/INV_GridSlot.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
@@ -15,50 +16,48 @@ FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 	const bool bUseItemRarity,
 	const FGameplayTag& ItemRarityTag)
 {
+	FINV_GridOccupancyModel OccupancyModel;
+	OccupancyModel.RebuildFromGridSlots(GridSlots, GridSize);
+	return HasRoomForItem(OccupancyModel, Manifest, bUseItemRarity, ItemRarityTag);
+}
+
+FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
+	const FINV_GridOccupancyModel& OccupancyModel,
+	const FINV_ItemManifest& Manifest,
+	const bool bUseItemRarity,
+	const FGameplayTag& ItemRarityTag)
+{
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridPlacementEngine_HasRoomForItem);
-	// Walk the grid and compute how much space we can fill.
 	FINV_SlotAvailabilityResult Result;
 
-	// Determine if item is stackable
 	const FINV_StackableFragment* StackableFragment { Manifest.GetFragmentOfType<FINV_StackableFragment>() };
 	Result.bStackable = StackableFragment != nullptr;
-
-	// Determine how many stacks to add
 	const int32 MaxStackSize { StackableFragment ? StackableFragment->GetMaxStackSize() : 1 };
 	int32 AmountToFill { StackableFragment ? StackableFragment->GetStackCount() : 1 };
+	TSet<int32> CheckedAnchors;
+	const FIntPoint GridSize = OccupancyModel.GetGridSize();
 
-	TSet<int32> CheckedIndices;
-
-	// For stackable items, top off existing matching stacks before searching for empty slots.
 	if (Result.bStackable)
 	{
-		for (int32 GridIndex = 0; GridIndex < GridSlots.Num(); ++GridIndex)
+		TArray<int32> SortedAnchors;
+		OccupancyModel.GetSortedAnchors(SortedAnchors);
+		for (const int32 AnchorIndex : SortedAnchors)
 		{
-			const TObjectPtr<UINV_GridSlot> GridSlot = GridSlots[GridIndex];
-			if (!IsValid(GridSlot)) continue;
-			if (!HasValidItem(GridSlot)) continue;
-
-			const UINV_InventoryItem* ExistingItem = GridSlot->GetInventoryItem().Get();
+			const UINV_InventoryItem* ExistingItem = OccupancyModel.GetItemAtAnchor(AnchorIndex);
 			if (!IsValid(ExistingItem)) continue;
 			if (!IsStackCompatible(ExistingItem, Manifest.GetItemType(), bUseItemRarity, ItemRarityTag)) continue;
+			if (CheckedAnchors.Contains(AnchorIndex)) continue;
 
-			// Get the upper-left index to avoid checking the same stack multiple times
-			const int32 UpperLeftIndex = GridSlot->GetUpperLeftIndex();
-			if (CheckedIndices.Contains(UpperLeftIndex))
-			{
-				// Already checked this stack
-				continue;
-			}
-
-			const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlots, GridSlot);
+			const int32 CurrentStackCount = OccupancyModel.GetStackCountForAnchor(AnchorIndex);
+			const int32 AmountToFillInSlot = Result.bStackable ? FMath::Min(AmountToFill, MaxStackSize - CurrentStackCount) : 1;
 			if (AmountToFillInSlot <= 0) continue;
 
-			CheckedIndices.Add(UpperLeftIndex);
+			CheckedAnchors.Add(AnchorIndex);
 
 			Result.TotalRoomToFill += AmountToFillInSlot;
 			Result.SlotAvailabilities.Emplace(
 				FINV_SlotAvailability{
-					UpperLeftIndex,
+					AnchorIndex,
 					Result.bStackable ? AmountToFillInSlot : 0,
 					true
 				}
@@ -71,41 +70,83 @@ FINV_SlotAvailabilityResult FINV_GridPlacementEngine::HasRoomForItem(
 		}
 	}
 
-	// For each GridSlot, check if we can place a new item
 	const FIntPoint ItemDimensions = GetItemDimensions(Manifest);
-	for (const auto& GridSlot : GridSlots)
+	for (int32 TileIndex = 0; TileIndex < GridSize.X * GridSize.Y; ++TileIndex)
 	{
-	    // if no more to fill, break from loop
-	    if (AmountToFill == 0) break;
-		if (!IsValid(GridSlot)) continue;
+		if (AmountToFill == 0) break;
+		if (CheckedAnchors.Contains(TileIndex)) continue;
+		if (!IsInGridBounds(TileIndex, ItemDimensions, GridSize)) continue;
 
-	    // is index claimed?
-		if (IsIndexClaimed(CheckedIndices, GridSlot->GetTileIndex())) continue;
-
-		// is the item inside grid bounds?
-		if (!IsInGridBounds(GridSlot->GetTileIndex(), ItemDimensions, GridSize)) continue;
-
-	    // can item fit (i.e., no obstructions)?
-		TSet<int32> TentativelyClaimed;
-		if (!HasRoomAtIndex(GridSlots, GridSize, GridSlot, ItemDimensions, CheckedIndices, TentativelyClaimed,
-			Manifest.GetItemType(), bUseItemRarity, ItemRarityTag, MaxStackSize))
+		bool bHasRoomAtIndex = true;
+		int32 StackableAnchorAtIndex = INDEX_NONE;
+		const int32 StartX = TileIndex % GridSize.X;
+		const int32 StartY = TileIndex / GridSize.X;
+		for (int32 Y = 0; Y < ItemDimensions.Y && bHasRoomAtIndex; ++Y)
 		{
-			continue;
-		}
+			for (int32 X = 0; X < ItemDimensions.X; ++X)
+			{
+				const int32 SubIndex = (StartY + Y) * GridSize.X + (StartX + X);
+				const int32 OccupiedAnchor = OccupancyModel.GetAnchorAtTile(SubIndex);
+				if (OccupiedAnchor == INDEX_NONE)
+				{
+					continue;
+				}
 
-	    // how much to fill?
-		const int32 AmountToFillInSlot = DetermineFillAmountForSlot(Result.bStackable, MaxStackSize, AmountToFill, GridSlots, GridSlot);
+				if (CheckedAnchors.Contains(OccupiedAnchor))
+				{
+					bHasRoomAtIndex = false;
+					break;
+				}
+
+				if (OccupiedAnchor != SubIndex)
+				{
+					bHasRoomAtIndex = false;
+					break;
+				}
+
+				const UINV_InventoryItem* ExistingItem = OccupancyModel.GetItemAtAnchor(OccupiedAnchor);
+				if (!IsValid(ExistingItem) || !ExistingItem->IsStackable())
+				{
+					bHasRoomAtIndex = false;
+					break;
+				}
+
+				if (!IsStackCompatible(ExistingItem, Manifest.GetItemType(), bUseItemRarity, ItemRarityTag))
+				{
+					bHasRoomAtIndex = false;
+					break;
+				}
+
+				if (OccupancyModel.GetStackCountForAnchor(OccupiedAnchor) >= MaxStackSize)
+				{
+					bHasRoomAtIndex = false;
+					break;
+				}
+
+				if (StackableAnchorAtIndex != INDEX_NONE && StackableAnchorAtIndex != OccupiedAnchor)
+				{
+					bHasRoomAtIndex = false;
+					break;
+				}
+
+				StackableAnchorAtIndex = OccupiedAnchor;
+			}
+		}
+		if (!bHasRoomAtIndex) continue;
+
+		const int32 TargetIndex = StackableAnchorAtIndex != INDEX_NONE ? StackableAnchorAtIndex : TileIndex;
+		const int32 CurrentStackCount = StackableAnchorAtIndex != INDEX_NONE ? OccupancyModel.GetStackCountForAnchor(StackableAnchorAtIndex) : 0;
+		const int32 AmountToFillInSlot = Result.bStackable ? FMath::Min(AmountToFill, MaxStackSize - CurrentStackCount) : 1;
 		if (AmountToFillInSlot == 0) continue;
 
-		CheckedIndices.Append(TentativelyClaimed);
+		CheckedAnchors.Add(TargetIndex);
 
-	    // update amount left to fill
 		Result.TotalRoomToFill += AmountToFillInSlot;
 		Result.SlotAvailabilities.Emplace(
 			FINV_SlotAvailability{
-				HasValidItem(GridSlot) ? GridSlot->GetUpperLeftIndex() : GridSlot->GetTileIndex(),
+				TargetIndex,
 				Result.bStackable ? AmountToFillInSlot : 0,
-				HasValidItem(GridSlot)
+				StackableAnchorAtIndex != INDEX_NONE
 			}
 		);
 
@@ -123,37 +164,51 @@ FINV_SpaceQueryResult FINV_GridPlacementEngine::CheckHoverPosition(
 	const FIntPoint& Position,
 	const FIntPoint& Dimensions)
 {
+	FINV_GridOccupancyModel OccupancyModel;
+	OccupancyModel.RebuildFromGridSlots(GridSlots, GridSize);
+	return CheckHoverPosition(OccupancyModel, Position, Dimensions);
+}
+
+FINV_SpaceQueryResult FINV_GridPlacementEngine::CheckHoverPosition(
+	const FINV_GridOccupancyModel& OccupancyModel,
+	const FIntPoint& Position,
+	const FIntPoint& Dimensions)
+{
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_GridPlacementEngine_CheckHoverPosition);
 	FINV_SpaceQueryResult Result;
+	const FIntPoint& GridSize = OccupancyModel.GetGridSize();
 
-	// Convert position to index
 	const int32 StartIndex = Position.Y * GridSize.X + Position.X;
-
-	// in grid bounds?
 	if (!IsInGridBounds(StartIndex, Dimensions, GridSize)) return Result;
 
 	Result.bHasSpace = true;
-
-	// if more than one of the indices is occupied with the same item, need to check if all have same upper left index
 	TSet<int32> OccupiedUpperLeftIndices;
-	FINV_GridIteration::ForEach2D(GridSlots, StartIndex, Dimensions, GridSize.X,
-		[&](const UINV_GridSlot* GridSlot)
+
+	const int32 StartX = StartIndex % GridSize.X;
+	const int32 StartY = StartIndex / GridSize.X;
+	for (int32 Y = 0; Y < Dimensions.Y; ++Y)
 	{
-		if (GridSlot->GetInventoryItem().IsValid())
+		for (int32 X = 0; X < Dimensions.X; ++X)
 		{
-			OccupiedUpperLeftIndices.Add(GridSlot->GetUpperLeftIndex());
+			const int32 TileIndex = (StartY + Y) * GridSize.X + (StartX + X);
+			const int32 AnchorIndex = OccupancyModel.GetAnchorAtTile(TileIndex);
+			if (AnchorIndex == INDEX_NONE)
+			{
+				continue;
+			}
+
+			OccupiedUpperLeftIndices.Add(AnchorIndex);
 			Result.bHasSpace = false;
 		}
-	});
+	}
 
-	// if yes, only one item in the way? (can we swap?)
 	if (OccupiedUpperLeftIndices.Num() == 1) // single item at position, valid for swapping/combining
 	{
 		const int32 Index = *OccupiedUpperLeftIndices.CreateIterator();
-		if (GridSlots.IsValidIndex(Index) && IsValid(GridSlots[Index]))
+		if (UINV_InventoryItem* BlockingItem = OccupancyModel.GetItemAtAnchor(Index); IsValid(BlockingItem))
 		{
-			Result.ValidItem = GridSlots[Index]->GetInventoryItem();
-			Result.UpperLeftIndex = GridSlots[Index]->GetUpperLeftIndex();
+			Result.ValidItem = BlockingItem;
+			Result.UpperLeftIndex = Index;
 		}
 	}
 
