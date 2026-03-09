@@ -17,6 +17,7 @@ public:
 	AINV_ProxyMesh();
 	UFUNCTION(BlueprintCallable, Category = "INV|Proxy")
 	void InitializeProxy(APlayerController* PlayerController);
+	void SetPreviewVisible(bool bVisible);
 
 protected:
 	virtual void BeginPlay() override;

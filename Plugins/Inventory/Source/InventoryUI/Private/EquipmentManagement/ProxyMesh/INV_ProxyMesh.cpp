@@ -24,14 +24,30 @@ void AINV_ProxyMesh::InitializeProxy(APlayerController* PlayerController)
 {
 	ObservedPlayerController = PlayerController;
 	InitializationAttempts = 0;
-	SetActorHiddenInGame(false);
+	SetPreviewVisible(true);
 	ScheduleInitializationRetry();
+}
+
+void AINV_ProxyMesh::SetPreviewVisible(const bool bVisible)
+{
+	SetActorHiddenInGame(!bVisible);
+	SetActorEnableCollision(bVisible);
+
+	TArray<AActor*> AttachedActors;
+	GetAttachedActors(AttachedActors, true);
+	for (AActor* AttachedActor : AttachedActors)
+	{
+		if (!IsValid(AttachedActor)) continue;
+
+		AttachedActor->SetActorHiddenInGame(!bVisible);
+		AttachedActor->SetActorEnableCollision(false);
+	}
 }
 
 void AINV_ProxyMesh::BeginPlay()
 {
 	Super::BeginPlay();
-	SetActorHiddenInGame(!HasAssignedTarget());
+	SetPreviewVisible(HasAssignedTarget());
 
 	if (HasAssignedTarget())
 	{

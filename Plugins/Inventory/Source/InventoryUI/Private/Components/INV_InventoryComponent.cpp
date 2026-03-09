@@ -211,13 +211,11 @@ void UINV_InventoryComponent::UpdateProxyMeshVisibility(const bool bVisible)
 	if (bVisible)
 	{
 		CachedProxyMesh->SetActorTransform(BuildProxyMeshSpawnTransform());
-		CachedProxyMesh->SetActorHiddenInGame(false);
-		CachedProxyMesh->SetActorEnableCollision(true);
+		CachedProxyMesh->SetPreviewVisible(true);
 		return;
 	}
 
-	CachedProxyMesh->SetActorHiddenInGame(true);
-	CachedProxyMesh->SetActorEnableCollision(false);
+	CachedProxyMesh->SetPreviewVisible(false);
 }
 
 FTransform UINV_InventoryComponent::BuildProxyMeshSpawnTransform() const
