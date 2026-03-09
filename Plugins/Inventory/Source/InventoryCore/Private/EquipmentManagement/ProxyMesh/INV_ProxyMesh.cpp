@@ -1,6 +1,5 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "EquipmentManagement/ProxyMesh/INV_ProxyMesh.h"
 #include "InventoryUI/Public/Components/INV_EquipmentComponent.h"
 
