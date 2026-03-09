@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Containers/INV_ContainerComponent.h"
+#include "Types/INV_GridTypes.h"
 #include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "INV_InventoryComponent.generated.h"
 
@@ -64,6 +65,8 @@ public:
 	FORCEINLINE AINV_ProxyMesh* GetCachedProxyMesh() const { return CachedProxyMesh; }
 	UFUNCTION(BlueprintCallable, Category = "INV|Inventory")
 	TArray<UINV_InventoryItem*> GetAllItems() const;
+	UFUNCTION(BlueprintCallable, Category = "INV|Inventory")
+	bool HasItem(UINV_InventoryItem* Item) const;
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	UINV_ContainerComponent* GetActiveContainer() const { return ActiveContainer.Get(); }
 	void RequestOpenContainer(AActor* ContainerActor);
@@ -73,11 +76,13 @@ public:
 	UFUNCTION(Server, Reliable) void Server_EquipSlotClicked(UINV_InventoryItem* ItemToEquip, UINV_InventoryItem* ItemToUnequip);
 	UFUNCTION(Server, Reliable) void Server_RequestOpenContainer(AActor* ContainerActor);
 	UFUNCTION(Server, Reliable) void Server_CloseActiveContainer();
+	UFUNCTION(Server, Reliable) void Server_TransferItemWithActiveContainer(UINV_InventoryItem* Item, int32 RequestedQuantity);
 	UFUNCTION(Client, Reliable) void Client_OpenContainer(AActor* ContainerActor);
 	UFUNCTION(Client, Reliable) void Client_CloseContainer();
 	
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
+	FInventoryItemChange OnItemChanged;
 	FNoRoomInInventory OnNoRoomInInventory;
 	FStackChange OnStackChange;
 	FItemEquipStatusChanged OnItemEquipped;
@@ -102,6 +107,13 @@ private:
 	UINV_ContainerComponent* ResolveContainerFromActor(AActor* ContainerActor) const;
 	void SetActiveContainerLocal(UINV_ContainerComponent* NewContainer);
 	void OpenInventoryMenuIfClosed();
+	FIntPoint GetPlayerGridSize(EINV_ItemCategory Category) const;
+	TArray<UINV_InventoryItem*> GetItemsForCategory(EINV_ItemCategory Category, const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	UINV_InventoryItem* CloneItemForOwner(UINV_InventoryItem* SourceItem, UObject* NewOuter, int32 StackCount) const;
+	bool CanTransferItem(UINV_InventoryItem* Item) const;
+	bool TransferItemBetweenStores(UINV_InventoryItem* Item, int32 RequestedQuantity, bool bSourceIsPlayer);
+	void BroadcastPlayerItemChanged(UINV_InventoryItem* Item);
+	bool ShouldBroadcastLocalInventoryEvents() const;
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
@@ -119,6 +131,15 @@ private:
 	// Widget class used to build the inventory UI.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")
 	TSubclassOf<UINV_InventoryBase> InventoryClass { nullptr };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Layout")
+	FIntPoint EquippableGridSize { 8, 4 };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Layout")
+	FIntPoint ConsumableGridSize { 8, 4 };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Layout")
+	FIntPoint CraftableGridSize { 8, 4 };
 	
 	// Actual widget instance for this component.
 	UPROPERTY()

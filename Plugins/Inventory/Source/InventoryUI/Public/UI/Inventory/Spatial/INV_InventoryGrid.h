@@ -87,6 +87,7 @@ private:
 	void ResetDisplayedItems();
 	void RebuildDisplayedItems();
 	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
+	bool TryQuickTransfer(UINV_InventoryItem* Item, const FPointerEvent& MouseEvent) const;
 
 	// Private overloads for internal use
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);

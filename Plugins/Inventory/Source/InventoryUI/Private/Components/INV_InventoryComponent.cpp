@@ -7,6 +7,7 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
+#include "InventoryManagement/Transfer/INV_StorageTransferUtils.h"
 #include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
 #include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
@@ -175,6 +176,10 @@ void UINV_InventoryComponent::ConfigureFastArrayCallbacks()
 	{
 		OnItemRemoved.Broadcast(Item);
 	};
+	Callbacks.OnItemChanged = [this](UINV_InventoryItem* Item)
+	{
+		OnItemChanged.Broadcast(Item);
+	};
 	Callbacks.RegisterReplicatedSubObject = [this](UObject* SubObj)
 	{
 		AddRepSubObj(SubObj);
@@ -203,6 +208,11 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 TArray<UINV_InventoryItem*> UINV_InventoryComponent::GetAllItems() const
 {
 	return InventoryFastArray.GetAllItems();
+}
+
+bool UINV_InventoryComponent::HasItem(UINV_InventoryItem* Item) const
+{
+	return IsValid(Item) && InventoryFastArray.GetAllItems().Contains(Item);
 }
 
 void UINV_InventoryComponent::RequestOpenContainer(AActor* ContainerActor)
@@ -363,6 +373,257 @@ void UINV_InventoryComponent::SetActiveContainerLocal(UINV_ContainerComponent* N
 	{
 		OnContainerOpened.Broadcast(NewContainer);
 	}
+}
+
+FIntPoint UINV_InventoryComponent::GetPlayerGridSize(const EINV_ItemCategory Category) const
+{
+	switch (Category)
+	{
+	case EINV_ItemCategory::Equippable:
+		return EquippableGridSize;
+	case EINV_ItemCategory::Consumable:
+		return ConsumableGridSize;
+	case EINV_ItemCategory::Craftable:
+		return CraftableGridSize;
+	case EINV_ItemCategory::None:
+	default:
+		return EquippableGridSize;
+	}
+}
+
+TArray<UINV_InventoryItem*> UINV_InventoryComponent::GetItemsForCategory(const EINV_ItemCategory Category, const UINV_InventoryItem* IgnoredItem) const
+{
+	TArray<UINV_InventoryItem*> Results;
+	for (UINV_InventoryItem* Item : InventoryFastArray.GetAllItems())
+	{
+		if (!IsValid(Item) || Item == IgnoredItem)
+		{
+			continue;
+		}
+
+		if (Item->GetItemManifest().GetItemCategory() != Category)
+		{
+			continue;
+		}
+
+		Results.Add(Item);
+	}
+
+	return Results;
+}
+
+UINV_InventoryItem* UINV_InventoryComponent::CloneItemForOwner(UINV_InventoryItem* SourceItem, UObject* NewOuter, const int32 StackCount) const
+{
+	if (!IsValid(SourceItem) || !IsValid(NewOuter))
+	{
+		return nullptr;
+	}
+
+	FINV_ItemManifest ManifestCopy = SourceItem->GetItemManifest();
+	UINV_InventoryItem* ClonedItem = FINV_ItemManifestRuntimeOps::CreateItemFromManifest(ManifestCopy, NewOuter);
+	if (!IsValid(ClonedItem))
+	{
+		return nullptr;
+	}
+
+	ClonedItem->SetItemRarityOptions(SourceItem->IsItemRarityEnabled(), SourceItem->GetItemRarityTag());
+	ClonedItem->SetTotalStackCount(StackCount);
+	return ClonedItem;
+}
+
+bool UINV_InventoryComponent::CanTransferItem(UINV_InventoryItem* Item) const
+{
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	const FINV_EquipmentFragment* EquipmentFragment = Item->GetItemManifest().GetFragmentOfType<FINV_EquipmentFragment>();
+	return !EquipmentFragment || !EquipmentFragment->bEquipped;
+}
+
+void UINV_InventoryComponent::BroadcastPlayerItemChanged(UINV_InventoryItem* Item)
+{
+	if (ShouldBroadcastLocalInventoryEvents() && IsValid(Item))
+	{
+		OnItemChanged.Broadcast(Item);
+	}
+}
+
+bool UINV_InventoryComponent::ShouldBroadcastLocalInventoryEvents() const
+{
+	const AActor* OwnerActor = GetOwner();
+	return IsValid(OwnerActor) && (OwnerActor->GetNetMode() == NM_ListenServer || OwnerActor->GetNetMode() == NM_Standalone);
+}
+
+bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item, const int32 RequestedQuantity, const bool bSourceIsPlayer)
+{
+	UINV_ContainerComponent* Container = ActiveContainer.Get();
+	if (!IsValid(Container) || !IsValid(Item) || !CanTransferItem(Item))
+	{
+		return false;
+	}
+
+	if (bSourceIsPlayer ? !HasItem(Item) : !Container->HasItem(Item))
+	{
+		return false;
+	}
+
+	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	TArray<UINV_InventoryItem*> SourceItems = bSourceIsPlayer
+		? GetItemsForCategory(ItemCategory)
+		: Container->GetAllItems();
+	TArray<UINV_InventoryItem*> DestinationItems = bSourceIsPlayer
+		? Container->GetAllItems()
+		: GetItemsForCategory(ItemCategory);
+
+	const FIntPoint SourceGridSize = bSourceIsPlayer ? GetPlayerGridSize(ItemCategory) : Container->GetGridSize();
+	const FIntPoint DestinationGridSize = bSourceIsPlayer ? Container->GetGridSize() : GetPlayerGridSize(ItemCategory);
+	const int32 SourceStackCount = Item->IsStackable() ? FMath::Max(Item->GetTotalStackCount(), 1) : 1;
+	const int32 QuantityToTransfer = Item->IsStackable()
+		? FMath::Clamp(RequestedQuantity, 1, SourceStackCount)
+		: 1;
+	const bool bFullTransfer = !Item->IsStackable() || QuantityToTransfer >= SourceStackCount;
+
+	UINV_InventoryItem* MergeTarget = FINV_StorageTransferUtils::FindFirstMergeTarget(DestinationItems, Item);
+	const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment();
+	const int32 MaxStackSize = StackableFragment ? StackableFragment->GetMaxStackSize() : SourceStackCount;
+	const int32 PendingMergeAmount = IsValid(MergeTarget)
+		? FMath::Min(QuantityToTransfer, FMath::Max(0, MaxStackSize - MergeTarget->GetTotalStackCount()))
+		: 0;
+	int32 RemainingQuantity = QuantityToTransfer - PendingMergeAmount;
+
+	if (RemainingQuantity > 0)
+	{
+		UINV_InventoryItem* SwapCandidate = nullptr;
+		if (bFullTransfer && RemainingQuantity == SourceStackCount)
+		{
+			SwapCandidate = FINV_StorageTransferUtils::FindSwapCandidate(
+				SourceItems,
+				SourceGridSize,
+				DestinationItems,
+				DestinationGridSize,
+				Item);
+		}
+
+		if (IsValid(SwapCandidate))
+		{
+			UObject* SourceOuter = bSourceIsPlayer ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(Container->GetOwner());
+			UObject* DestinationOuter = bSourceIsPlayer ? static_cast<UObject*>(Container->GetOwner()) : static_cast<UObject*>(GetOwner());
+			UINV_InventoryItem* ItemForDestination = CloneItemForOwner(Item, DestinationOuter, SourceStackCount);
+			UINV_InventoryItem* SwapForSource = CloneItemForOwner(SwapCandidate, SourceOuter, SwapCandidate->GetTotalStackCount());
+			if (!IsValid(ItemForDestination) || !IsValid(SwapForSource))
+			{
+				return false;
+			}
+
+			if (bSourceIsPlayer)
+			{
+				if (!Container->RemoveItem(SwapCandidate))
+				{
+					return false;
+				}
+
+				InventoryFastArray.RemoveEntry(Item);
+				Container->AddItem(ItemForDestination);
+				InventoryFastArray.AddEntry(SwapForSource);
+
+				if (ShouldBroadcastLocalInventoryEvents())
+				{
+					OnItemRemoved.Broadcast(Item);
+					OnItemAdded.Broadcast(SwapForSource);
+				}
+			}
+			else
+			{
+				if (!Container->RemoveItem(Item))
+				{
+					return false;
+				}
+
+				InventoryFastArray.RemoveEntry(SwapCandidate);
+				InventoryFastArray.AddEntry(ItemForDestination);
+				Container->AddItem(SwapForSource);
+
+				if (ShouldBroadcastLocalInventoryEvents())
+				{
+					OnItemRemoved.Broadcast(SwapCandidate);
+					OnItemAdded.Broadcast(ItemForDestination);
+				}
+			}
+
+			return true;
+		}
+
+		if (!FINV_StorageTransferUtils::CanInventoryFitItem(DestinationItems, DestinationGridSize, Item))
+		{
+			return false;
+		}
+
+		UObject* DestinationOuter = bSourceIsPlayer ? static_cast<UObject*>(Container->GetOwner()) : static_cast<UObject*>(GetOwner());
+		UINV_InventoryItem* NewDestinationItem = CloneItemForOwner(Item, DestinationOuter, RemainingQuantity);
+		if (!IsValid(NewDestinationItem))
+		{
+			return false;
+		}
+
+		if (bSourceIsPlayer)
+		{
+			Container->AddItem(NewDestinationItem);
+		}
+		else
+		{
+			InventoryFastArray.AddEntry(NewDestinationItem);
+			if (ShouldBroadcastLocalInventoryEvents())
+			{
+				OnItemAdded.Broadcast(NewDestinationItem);
+			}
+		}
+	}
+
+	if (PendingMergeAmount > 0)
+	{
+		MergeTarget->SetTotalStackCount(MergeTarget->GetTotalStackCount() + PendingMergeAmount);
+		if (bSourceIsPlayer)
+		{
+			Container->NotifyItemChanged(MergeTarget);
+		}
+		else
+		{
+			BroadcastPlayerItemChanged(MergeTarget);
+		}
+	}
+
+	const int32 NewSourceStackCount = SourceStackCount - QuantityToTransfer;
+	if (!Item->IsStackable() || NewSourceStackCount <= 0)
+	{
+		if (bSourceIsPlayer)
+		{
+			InventoryFastArray.RemoveEntry(Item);
+			if (ShouldBroadcastLocalInventoryEvents())
+			{
+				OnItemRemoved.Broadcast(Item);
+			}
+		}
+		else
+		{
+			Container->RemoveItem(Item);
+		}
+	}
+	else
+	{
+		Item->SetTotalStackCount(NewSourceStackCount);
+		if (bSourceIsPlayer)
+		{
+			BroadcastPlayerItemChanged(Item);
+		}
+		else
+		{
+			Container->NotifyItemChanged(Item);
+		}
+	}
+
+	return true;
 }
 
 void UINV_InventoryComponent::OpenInventoryMenuIfClosed()
@@ -743,6 +1004,23 @@ void UINV_InventoryComponent::Client_OpenContainer_Implementation(AActor* Contai
 void UINV_InventoryComponent::Client_CloseContainer_Implementation()
 {
 	SetActiveContainerLocal(nullptr);
+}
+
+void UINV_InventoryComponent::Server_TransferItemWithActiveContainer_Implementation(UINV_InventoryItem* Item, const int32 RequestedQuantity)
+{
+	if (!HasAuthorityOnOwner() || !IsValid(Item) || !ActiveContainer.IsValid())
+	{
+		return;
+	}
+
+	const bool bSourceIsPlayer = HasItem(Item);
+	const bool bSourceIsContainer = ActiveContainer->HasItem(Item);
+	if (bSourceIsPlayer == bSourceIsContainer)
+	{
+		return;
+	}
+
+	TransferItemBetweenStores(Item, RequestedQuantity, bSourceIsPlayer);
 }
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)

@@ -39,6 +39,9 @@ public:
 	TArray<UINV_InventoryItem*> GetAllItems() const;
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
+	bool HasItem(UINV_InventoryItem* Item) const;
+
+	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	bool IsEmpty() const;
 
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
@@ -67,6 +70,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "INV|Container")
 	FINV_ContainerItemEvent OnItemChanged;
+
+	void NotifyItemChanged(UINV_InventoryItem* Item);
 
 private:
 	void ConfigureFastArrayCallbacks();

@@ -45,6 +45,11 @@ TArray<UINV_InventoryItem*> UINV_ContainerComponent::GetAllItems() const
 	return InventoryFastArray.GetAllItems();
 }
 
+bool UINV_ContainerComponent::HasItem(UINV_InventoryItem* Item) const
+{
+	return IsValid(Item) && InventoryFastArray.GetAllItems().Contains(Item);
+}
+
 bool UINV_ContainerComponent::IsEmpty() const
 {
 	return InventoryFastArray.GetAllItems().Num() == 0;
@@ -100,6 +105,14 @@ bool UINV_ContainerComponent::RemoveItem(UINV_InventoryItem* Item)
 	InventoryFastArray.RemoveEntry(Item);
 	OnItemRemoved.Broadcast(Item);
 	return true;
+}
+
+void UINV_ContainerComponent::NotifyItemChanged(UINV_InventoryItem* Item)
+{
+	if (IsValid(Item))
+	{
+		OnItemChanged.Broadcast(Item);
+	}
 }
 
 UINV_InventoryItem* UINV_ContainerComponent::FindFirstItemByType(const FGameplayTag& ItemType, const bool bUseItemRarity,

@@ -116,9 +116,11 @@ void UINV_InventoryGrid::BindInventoryEvents()
 
 	InventoryComponent->OnItemAdded.RemoveDynamic(this, &ThisClass::AddItem);
 	InventoryComponent->OnItemRemoved.RemoveDynamic(this, &ThisClass::RemoveItem);
+	InventoryComponent->OnItemChanged.RemoveDynamic(this, &ThisClass::RefreshItem);
 	InventoryComponent->OnStackChange.RemoveDynamic(this, &ThisClass::AddStacks);
 	InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
 	InventoryComponent->OnItemRemoved.AddDynamic(this, &ThisClass::RemoveItem);
+	InventoryComponent->OnItemChanged.AddDynamic(this, &ThisClass::RefreshItem);
 	InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
 }
 
@@ -131,6 +133,7 @@ void UINV_InventoryGrid::UnbindInventoryEvents()
 
 	InventoryComponent->OnItemAdded.RemoveDynamic(this, &ThisClass::AddItem);
 	InventoryComponent->OnItemRemoved.RemoveDynamic(this, &ThisClass::RemoveItem);
+	InventoryComponent->OnItemChanged.RemoveDynamic(this, &ThisClass::RefreshItem);
 	InventoryComponent->OnStackChange.RemoveDynamic(this, &ThisClass::AddStacks);
 }
 
@@ -506,6 +509,32 @@ void UINV_InventoryGrid::RefreshItem(UINV_InventoryItem* Item)
 		const int32 StackCount = Item->IsStackable() ? Item->GetTotalStackCount() : 0;
 		GridSlots[UpperLeftIndex]->SetStackCount(StackCount);
 	}
+}
+
+bool UINV_InventoryGrid::TryQuickTransfer(UINV_InventoryItem* Item, const FPointerEvent& MouseEvent) const
+{
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	UINV_InventoryComponent* OwningInventoryComponent = UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
+	if (!IsValid(OwningInventoryComponent) || !IsValid(OwningInventoryComponent->GetActiveContainer()))
+	{
+		return false;
+	}
+
+	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
+		return false;
+	}
+
+	const int32 RequestedQuantity = (MouseEvent.IsShiftDown() && Item->IsStackable())
+		? FMath::Max(1, Item->GetTotalStackCount() / 2)
+		: FMath::Max(1, Item->GetTotalStackCount());
+
+	OwningInventoryComponent->Server_TransferItemWithActiveContainer(Item, RequestedQuantity);
+	return true;
 }
 
 void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem)
@@ -1232,6 +1261,17 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 {
 	if (bReadOnly)
 	{
+		if (GridSlots.IsValidIndex(GridIndex))
+		{
+			if (UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get(); IsValid(ClickedInventoryItem))
+			{
+				if (TryQuickTransfer(ClickedInventoryItem, MouseEvent))
+				{
+					return;
+				}
+			}
+		}
+
 		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && GridSlots.IsValidIndex(GridIndex))
 		{
 			if (UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get(); IsValid(ClickedInventoryItem))
@@ -1258,6 +1298,11 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
 
 	if (!IsValid(ClickedInventoryItem))
+	{
+		return;
+	}
+
+	if (TryQuickTransfer(ClickedInventoryItem, MouseEvent))
 	{
 		return;
 	}
