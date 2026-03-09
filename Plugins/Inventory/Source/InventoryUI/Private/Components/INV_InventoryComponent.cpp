@@ -7,6 +7,7 @@
 #include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
 #include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
+#include "EquipmentManagement/ProxyMesh/INV_ProxyMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
@@ -174,6 +175,78 @@ void UINV_InventoryComponent::ApplyPointerInputMode(const bool bIsOpen) const
 	OwningController->SetShowMouseCursor(bUseMousePointerUI);
 	OwningController->bEnableClickEvents = bUseMousePointerUI;
 	OwningController->bEnableMouseOverEvents = bUseMousePointerUI;
+}
+
+void UINV_InventoryComponent::EnsureProxyMeshSpawned()
+{
+	if (!OwningController.IsValid()) return;
+	if (!OwningController->IsLocalController()) return;
+	if (!IsValid(ProxyMeshClass)) return;
+
+	UWorld* World = GetWorld();
+	if (!IsValid(World)) return;
+
+	if (!IsValid(CachedProxyMesh))
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = OwningController.Get();
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		CachedProxyMesh = World->SpawnActor<AINV_ProxyMesh>(
+			ProxyMeshClass,
+			BuildProxyMeshSpawnTransform(),
+			SpawnParams);
+	}
+
+	if (!IsValid(CachedProxyMesh)) return;
+
+	CachedProxyMesh->SetActorTransform(BuildProxyMeshSpawnTransform());
+	CachedProxyMesh->InitializeProxy(OwningController.Get());
+}
+
+void UINV_InventoryComponent::UpdateProxyMeshVisibility(const bool bVisible)
+{
+	if (!IsValid(CachedProxyMesh)) return;
+
+	if (bVisible)
+	{
+		CachedProxyMesh->SetActorTransform(BuildProxyMeshSpawnTransform());
+		CachedProxyMesh->SetActorHiddenInGame(false);
+		CachedProxyMesh->SetActorEnableCollision(true);
+		return;
+	}
+
+	CachedProxyMesh->SetActorHiddenInGame(true);
+	CachedProxyMesh->SetActorEnableCollision(false);
+}
+
+FTransform UINV_InventoryComponent::BuildProxyMeshSpawnTransform() const
+{
+	if (!OwningController.IsValid())
+	{
+		return FTransform::Identity;
+	}
+
+	const APawn* ControlledPawn = OwningController->GetPawn();
+	if (!IsValid(ControlledPawn))
+	{
+		return FTransform::Identity;
+	}
+
+	const FVector PawnLocation = ControlledPawn->GetActorLocation();
+	const FVector Forward = ControlledPawn->GetActorForwardVector();
+	const FVector Left = -ControlledPawn->GetActorRightVector();
+	const FVector SpawnLocation = PawnLocation
+		+ Forward * ProxyPreviewForwardOffset
+		+ Left * ProxyPreviewLeftOffset
+		+ FVector::UpVector * ProxyPreviewVerticalOffset;
+
+	const FVector LookDirection = PawnLocation - SpawnLocation;
+	const FRotator SpawnRotation = LookDirection.IsNearlyZero()
+		? ControlledPawn->GetActorRotation()
+		: LookDirection.Rotation();
+
+	return FTransform(SpawnRotation, SpawnLocation);
 }
 
 void UINV_InventoryComponent::AddRepSubObj(UObject* SubObj)
@@ -415,8 +488,14 @@ void UINV_InventoryComponent::HandleInventoryMenu(ESlateVisibility Visibility, b
 	bInventoryMenuOpen = bIsOpen;
 	if (bIsOpen)
 	{
+		EnsureProxyMeshSpawned();
+		UpdateProxyMeshVisibility(true);
 		Inventory->SetIsFocusable(true);
 		Inventory->SetKeyboardFocus();
+	}
+	else
+	{
+		UpdateProxyMeshVisibility(false);
 	}
 	
 	if (!OwningController.IsValid()) return;

@@ -15,6 +15,7 @@ class INVENTORYUI_API AINV_ProxyMesh : public AActor
 
 public:
 	AINV_ProxyMesh();
+	UFUNCTION(BlueprintCallable, Category = "INV|Proxy")
 	void InitializeProxy(APlayerController* PlayerController);
 
 protected:
@@ -39,6 +40,6 @@ private:
 
 	void AttemptInitialization();
 	void ScheduleInitializationRetry();
-	APlayerController* ResolvePlayerController() const;
 	bool TryInitializeFromPlayerController(APlayerController* PlayerController);
+	bool HasAssignedTarget() const;
 };

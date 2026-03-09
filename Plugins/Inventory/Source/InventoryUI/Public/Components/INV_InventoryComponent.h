@@ -12,6 +12,7 @@ struct FINV_InventoryFastArray;
 class UINV_ItemComponent;
 class UINV_InventoryBase;
 class APawn;
+class AINV_ProxyMesh;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInventoryItemChange, UINV_InventoryItem*, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNoRoomInInventory);
@@ -78,6 +79,9 @@ private:
 	void RememberSuccessfulDropLocation(const FVector& DropLocation);
 	void TrimRecentDropLocations();
 	void ApplyPointerInputMode(bool bIsOpen) const;
+	void EnsureProxyMeshSpawned();
+	void UpdateProxyMeshVisibility(bool bVisible);
+	FTransform BuildProxyMeshSpawnTransform() const;
 
 	// Owning controller used for UI input mode and widget creation.
 	TWeakObjectPtr<APlayerController> OwningController { nullptr };
@@ -99,9 +103,24 @@ private:
 	// Actual widget instance for this component.
 	UPROPERTY()
 	TObjectPtr<UINV_InventoryBase> Inventory { nullptr };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
+	TSubclassOf<AINV_ProxyMesh> ProxyMeshClass { nullptr };
+
+	UPROPERTY()
+	TObjectPtr<AINV_ProxyMesh> CachedProxyMesh { nullptr };
 	
 	// Tracks menu state for toggle logic.
 	bool bInventoryMenuOpen = false;
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
+	float ProxyPreviewForwardOffset { 150.f };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
+	float ProxyPreviewLeftOffset { 100.f };
+
+	UPROPERTY(EditAnywhere, Category = "INV|Inventory|Proxy")
+	float ProxyPreviewVerticalOffset { 0.f };
 	
 	// Min/max angular offset (degrees) used for randomized drop direction from pawn forward.
 	UPROPERTY(EditAnywhere, Category = "INV|Inventory")

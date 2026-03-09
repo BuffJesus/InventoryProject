@@ -24,13 +24,19 @@ void AINV_ProxyMesh::InitializeProxy(APlayerController* PlayerController)
 {
 	ObservedPlayerController = PlayerController;
 	InitializationAttempts = 0;
+	SetActorHiddenInGame(false);
 	ScheduleInitializationRetry();
 }
 
 void AINV_ProxyMesh::BeginPlay()
 {
 	Super::BeginPlay();
-	ScheduleInitializationRetry();
+	SetActorHiddenInGame(!HasAssignedTarget());
+
+	if (HasAssignedTarget())
+	{
+		ScheduleInitializationRetry();
+	}
 }
 
 void AINV_ProxyMesh::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -45,7 +51,12 @@ void AINV_ProxyMesh::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AINV_ProxyMesh::AttemptInitialization()
 {
-	if (TryInitializeFromPlayerController(ResolvePlayerController()))
+	if (!HasAssignedTarget())
+	{
+		return;
+	}
+
+	if (TryInitializeFromPlayerController(ObservedPlayerController.Get()))
 	{
 		if (UWorld* World = GetWorld())
 		{
@@ -72,17 +83,6 @@ void AINV_ProxyMesh::ScheduleInitializationRetry()
 	TimerForNextTick = World->GetTimerManager().SetTimerForNextTick(this, &ThisClass::AttemptInitialization);
 }
 
-APlayerController* AINV_ProxyMesh::ResolvePlayerController() const
-{
-	if (ObservedPlayerController.IsValid())
-	{
-		return ObservedPlayerController.Get();
-	}
-
-	UWorld* World = GetWorld();
-	return IsValid(World) ? World->GetFirstPlayerController() : nullptr;
-}
-
 bool AINV_ProxyMesh::TryInitializeFromPlayerController(APlayerController* PlayerController)
 {
 	if (!IsValid(PlayerController)) return false;
@@ -104,4 +104,9 @@ bool AINV_ProxyMesh::TryInitializeFromPlayerController(APlayerController* Player
 
 	EquipmentComponent->InitializeEquipmentContext(PlayerController, Mesh, true);
 	return true;
+}
+
+bool AINV_ProxyMesh::HasAssignedTarget() const
+{
+	return ObservedPlayerController.IsValid();
 }
