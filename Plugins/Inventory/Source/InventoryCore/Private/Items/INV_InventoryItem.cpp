@@ -338,7 +338,7 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 		}
 	});
 
-	Manifest.ForEachFragment<FINV_LabeledNumberFragment>([this](const FINV_LabeledNumberFragment& Fragment)
+	Manifest.ForEachFragment<FINV_LabeledNumberFragment>([this, &InstanceState, &RuntimeValueSearchStartIndex](const FINV_LabeledNumberFragment& Fragment)
 	{
 		FINV_ItemStatLine& StatLine = CachedPresentationSnapshot.StatLines.AddDefaulted_GetRef();
 		StatLine.FragmentTag = Fragment.GetFragmentTag();
@@ -354,7 +354,7 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 			&Options);
 	});
 
-	Manifest.ForEachFragment<FINV_ConsumableFragment>([this](const FINV_ConsumableFragment& Fragment)
+	Manifest.ForEachFragment<FINV_ConsumableFragment>([this, &InstanceState, &RuntimeValueSearchStartIndex](const FINV_ConsumableFragment& Fragment)
 	{
 		for (const TInstancedStruct<FINV_ConsumeModifier>& Modifier : Fragment.GetConsumeModifiers())
 		{
@@ -374,7 +374,7 @@ void UINV_InventoryItem::RebuildPresentationSnapshot()
 		}
 	});
 
-	Manifest.ForEachFragment<FINV_EquipmentFragment>([this](const FINV_EquipmentFragment& Fragment)
+	Manifest.ForEachFragment<FINV_EquipmentFragment>([this, &InstanceState, &RuntimeValueSearchStartIndex](const FINV_EquipmentFragment& Fragment)
 	{
 		for (const TInstancedStruct<FINV_EquipModifier>& Modifier : Fragment.GetEquipModifiers())
 		{
