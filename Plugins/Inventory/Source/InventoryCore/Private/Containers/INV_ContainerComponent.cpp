@@ -147,6 +147,10 @@ void UINV_ContainerComponent::ConfigureFastArrayCallbacks()
 	{
 		OnItemRemoved.Broadcast(Item);
 	};
+	Callbacks.OnItemChanged = [this](UINV_InventoryItem* Item)
+	{
+		OnItemChanged.Broadcast(Item);
+	};
 	Callbacks.RegisterReplicatedSubObject = [this](UObject* SubObj)
 	{
 		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))

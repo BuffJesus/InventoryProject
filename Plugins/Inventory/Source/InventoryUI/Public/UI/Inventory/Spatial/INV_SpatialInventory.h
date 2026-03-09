@@ -9,11 +9,14 @@
 
 class UINV_EquippedGridSlot;
 class UINV_EquippedSlottedItem;
+class UINV_ContainerComponent;
 struct FGameplayTag;
 struct FKey;
 class UINV_ItemDescription;
 class UCanvasPanel;
 class UButton;
+class UTextBlock;
+class UWidget;
 class UWidgetSwitcher;
 class UINV_InventoryGrid;
 class UINV_InventoryComponent;
@@ -28,6 +31,7 @@ class INVENTORYUI_API UINV_SpatialInventory : public UINV_InventoryBase
 	
 public:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeDestruct() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FINV_SlotAvailabilityResult HasRoomForItem(UINV_ItemComponent* ItemComponent) const override;
@@ -53,6 +57,9 @@ private:
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UButton> Button_Consumable;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UButton> Button_Craftable;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UCanvasPanel> CanvasPanel;
+	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UWidget> ContainerSection;
+	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UTextBlock> Text_ContainerName;
+	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UINV_InventoryGrid> Grid_Container;
 	
 	UFUNCTION() void ShowEquippableGrid();
 	UFUNCTION() void ShowConsumableGrid();
@@ -79,6 +86,12 @@ private:
 	void UnbindEquippedSlottedItemDelegates(UINV_EquippedSlottedItem* EquippedSlottedItem);
 	UINV_EquippedGridSlot* FindSlotWithEquippedItem(UINV_InventoryItem* EquippedItem) const;
 	UINV_InventoryGrid* FindGridWithHoverItem() const;
+	void BindContainerEvents();
+	void UnbindContainerEvents();
+	UFUNCTION() void HandleContainerOpened(UINV_ContainerComponent* Container);
+	UFUNCTION() void HandleContainerClosed(UINV_ContainerComponent* Container);
+	void ShowActiveContainer(UINV_ContainerComponent* Container);
+	void HideActiveContainer();
 	
 	TWeakObjectPtr<UINV_InventoryGrid> ActiveGrid;
 	

@@ -11,6 +11,7 @@ enum class EINV_GridSlotState : uint8;
 class UINV_HoverItem;
 class UINV_SlottedItem;
 class UINV_InventoryItem;
+class UINV_ContainerComponent;
 struct FGameplayTag;
 struct FINV_ItemManifest;
 struct FINV_GridFragment;
@@ -38,6 +39,7 @@ public:
 	// Check if an item component can fit.
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_ItemComponent* ItemComponent);
 	virtual void NativeOnInitialized() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual void NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) override;
@@ -46,6 +48,10 @@ public:
 	UFUNCTION()
 	// Adds a replicated item to the UI grid.
 	void AddItem(UINV_InventoryItem* Item);
+	UFUNCTION()
+	void RemoveItem(UINV_InventoryItem* Item);
+	UFUNCTION()
+	void RefreshItem(UINV_InventoryItem* Item);
 	
 	void ShowCursor();
 	void HideCursor();
@@ -59,6 +65,11 @@ public:
 	UINV_HoverItem* GetHoverItem() const { return HoverItem; } 
 	
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
+	void BindToInventoryComponent(UINV_InventoryComponent* InInventoryComponent);
+	void BindToContainerComponent(UINV_ContainerComponent* InContainerComponent);
+	void ClearBoundDataSource();
+	void ResetGridLayout(const FIntPoint& NewGridSize);
+	void SetReadOnly(bool bInReadOnly) { bReadOnly = bInReadOnly; }
 	
 	FORCEINLINE bool HasHoverItem() const { return HoverItem.Get() != nullptr; }
 	
@@ -67,7 +78,15 @@ public:
 private:
 	// Owning inventory component for events.
 	TWeakObjectPtr<UINV_InventoryComponent> InventoryComponent { nullptr };
+	TWeakObjectPtr<UINV_ContainerComponent> ContainerComponent { nullptr };
 	TWeakObjectPtr<UCanvasPanel> OwningCanvasPanel { nullptr };
+	void BindInventoryEvents();
+	void UnbindInventoryEvents();
+	void BindContainerEvents();
+	void UnbindContainerEvents();
+	void ResetDisplayedItems();
+	void RebuildDisplayedItems();
+	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
 
 	// Private overloads for internal use
 	FINV_SlotAvailabilityResult HasRoomForItem(const UINV_InventoryItem* Item);
@@ -200,6 +219,7 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "INV|Grid") TSubclassOf<UINV_HoverItem> HoverItemClass;
 	UPROPERTY() TObjectPtr<UINV_HoverItem> HoverItem;
+	bool bReadOnly { false };
 	
 	FINV_TileParams TileParams;
 	FINV_TileParams LastTileParams;

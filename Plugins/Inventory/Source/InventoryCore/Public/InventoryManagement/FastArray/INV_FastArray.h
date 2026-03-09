@@ -20,6 +20,7 @@ struct FINV_FastArrayCallbacks
 	// Item lifecycle notifications.
 	TFunction<void(UINV_InventoryItem*)> OnItemAdded;
 	TFunction<void(UINV_InventoryItem*)> OnItemRemoved;
+	TFunction<void(UINV_InventoryItem*)> OnItemChanged;
 
 	// Replication subobject management hooks.
 	TFunction<void(UObject*)> RegisterReplicatedSubObject;
@@ -60,6 +61,7 @@ struct INVENTORYCORE_API FINV_InventoryFastArray : public FFastArraySerializer
 	// FFastArraySerializer contract
 	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
 	// End of contract
 	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParams)

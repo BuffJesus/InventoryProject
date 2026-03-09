@@ -6,6 +6,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Containers/INV_ContainerComponent.h"
 #include "Components/INV_InventoryComponent.h"
 #include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
@@ -68,13 +69,169 @@ void UINV_InventoryGrid::NativeOnInitialized()
 	
 	// Build slots and wire up inventory events.
 	ConstructGrid();
-	
-	InventoryComponent = UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
+
+	if (!InventoryComponent.IsValid() && !ContainerComponent.IsValid())
+	{
+		BindToInventoryComponent(UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer()));
+	}
+}
+
+void UINV_InventoryGrid::NativeDestruct()
+{
+	ClearBoundDataSource();
+	Super::NativeDestruct();
+}
+
+void UINV_InventoryGrid::BindToInventoryComponent(UINV_InventoryComponent* InInventoryComponent)
+{
+	ClearBoundDataSource();
+	InventoryComponent = InInventoryComponent;
+	BindInventoryEvents();
+	RebuildDisplayedItems();
+}
+
+void UINV_InventoryGrid::BindToContainerComponent(UINV_ContainerComponent* InContainerComponent)
+{
+	ClearBoundDataSource();
+	ContainerComponent = InContainerComponent;
+	BindContainerEvents();
+	RebuildDisplayedItems();
+}
+
+void UINV_InventoryGrid::ClearBoundDataSource()
+{
+	UnbindInventoryEvents();
+	UnbindContainerEvents();
+	InventoryComponent = nullptr;
+	ContainerComponent = nullptr;
+	ResetDisplayedItems();
+}
+
+void UINV_InventoryGrid::BindInventoryEvents()
+{
+	if (!InventoryComponent.IsValid())
+	{
+		return;
+	}
+
+	InventoryComponent->OnItemAdded.RemoveDynamic(this, &ThisClass::AddItem);
+	InventoryComponent->OnItemRemoved.RemoveDynamic(this, &ThisClass::RemoveItem);
+	InventoryComponent->OnStackChange.RemoveDynamic(this, &ThisClass::AddStacks);
+	InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
+	InventoryComponent->OnItemRemoved.AddDynamic(this, &ThisClass::RemoveItem);
+	InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
+}
+
+void UINV_InventoryGrid::UnbindInventoryEvents()
+{
+	if (!InventoryComponent.IsValid())
+	{
+		return;
+	}
+
+	InventoryComponent->OnItemAdded.RemoveDynamic(this, &ThisClass::AddItem);
+	InventoryComponent->OnItemRemoved.RemoveDynamic(this, &ThisClass::RemoveItem);
+	InventoryComponent->OnStackChange.RemoveDynamic(this, &ThisClass::AddStacks);
+}
+
+void UINV_InventoryGrid::BindContainerEvents()
+{
+	if (!ContainerComponent.IsValid())
+	{
+		return;
+	}
+
+	ContainerComponent->OnItemAdded.RemoveDynamic(this, &ThisClass::AddItem);
+	ContainerComponent->OnItemRemoved.RemoveDynamic(this, &ThisClass::RemoveItem);
+	ContainerComponent->OnItemChanged.RemoveDynamic(this, &ThisClass::RefreshItem);
+	ContainerComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
+	ContainerComponent->OnItemRemoved.AddDynamic(this, &ThisClass::RemoveItem);
+	ContainerComponent->OnItemChanged.AddDynamic(this, &ThisClass::RefreshItem);
+}
+
+void UINV_InventoryGrid::UnbindContainerEvents()
+{
+	if (!ContainerComponent.IsValid())
+	{
+		return;
+	}
+
+	ContainerComponent->OnItemAdded.RemoveDynamic(this, &ThisClass::AddItem);
+	ContainerComponent->OnItemRemoved.RemoveDynamic(this, &ThisClass::RemoveItem);
+	ContainerComponent->OnItemChanged.RemoveDynamic(this, &ThisClass::RefreshItem);
+}
+
+void UINV_InventoryGrid::ResetDisplayedItems()
+{
+	ClearHoverItem();
+
+	for (TPair<int32, TObjectPtr<UINV_SlottedItem>>& Entry : SlottedItems)
+	{
+		ReleaseSlottedItem(Entry.Value);
+	}
+	SlottedItems.Empty();
+
+	for (TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
+	{
+		if (!IsValid(GridSlot))
+		{
+			continue;
+		}
+
+		GridSlot->SetInventoryItem(nullptr);
+		GridSlot->SetUpperLeftIndex(INDEX_NONE);
+		GridSlot->SetStackCount(0);
+		GridSlot->SetAvailability(true);
+		GridSlot->SetUnoccupiedTexture();
+	}
+}
+
+void UINV_InventoryGrid::RebuildDisplayedItems()
+{
+	ResetDisplayedItems();
+
+	TArray<UINV_InventoryItem*> SourceItems;
 	if (InventoryComponent.IsValid())
 	{
-		InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
-		InventoryComponent->OnStackChange.AddDynamic(this, &ThisClass::AddStacks);
+		SourceItems = InventoryComponent->GetAllItems();
 	}
+	else if (ContainerComponent.IsValid())
+	{
+		SourceItems = ContainerComponent->GetAllItems();
+	}
+
+	for (UINV_InventoryItem* Item : SourceItems)
+	{
+		AddItem(Item);
+	}
+}
+
+int32 UINV_InventoryGrid::FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const
+{
+	if (!IsValid(Item))
+	{
+		return INDEX_NONE;
+	}
+
+	for (const TObjectPtr<UINV_GridSlot>& GridSlot : GridSlots)
+	{
+		if (!IsValid(GridSlot))
+		{
+			continue;
+		}
+
+		if (GridSlot->GetInventoryItem().Get() != Item)
+		{
+			continue;
+		}
+
+		if (GridSlot->GetTileIndex() == GridSlot->GetUpperLeftIndex())
+		{
+			return GridSlot->GetTileIndex();
+		}
+	}
+
+	return INDEX_NONE;
 }
 
 void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -306,6 +463,51 @@ void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 	AddItemToIndices(Result, Item);
 }
 
+void UINV_InventoryGrid::RemoveItem(UINV_InventoryItem* Item)
+{
+	if (!MatchesCategory(Item))
+	{
+		return;
+	}
+
+	const int32 UpperLeftIndex = FindUpperLeftIndexForItem(Item);
+	if (UpperLeftIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	RemoveItemFromGrid(Item, UpperLeftIndex);
+}
+
+void UINV_InventoryGrid::RefreshItem(UINV_InventoryItem* Item)
+{
+	if (!MatchesCategory(Item))
+	{
+		return;
+	}
+
+	const int32 UpperLeftIndex = FindUpperLeftIndexForItem(Item);
+	if (UpperLeftIndex == INDEX_NONE)
+	{
+		AddItem(Item);
+		return;
+	}
+
+	if (TObjectPtr<UINV_SlottedItem>* SlottedItem = SlottedItems.Find(UpperLeftIndex))
+	{
+		if (IsValid(*SlottedItem))
+		{
+			(*SlottedItem)->UpdateStackCount(Item->IsStackable() ? Item->GetTotalStackCount() : 0);
+		}
+	}
+
+	if (GridSlots.IsValidIndex(UpperLeftIndex))
+	{
+		const int32 StackCount = Item->IsStackable() ? Item->GetTotalStackCount() : 0;
+		GridSlots[UpperLeftIndex]->SetStackCount(StackCount);
+	}
+}
+
 void UINV_InventoryGrid::AddItemToIndices(const FINV_SlotAvailabilityResult& Result, UINV_InventoryItem* NewItem)
 {
 	for (const auto& Availability : Result.SlotAvailabilities)
@@ -496,6 +698,11 @@ void UINV_InventoryGrid::ConstructGrid()
 
 void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	if (bReadOnly)
+	{
+		return;
+	}
+
 	CloseActiveItemPopup();
 
 	// If we have a hover item, try to place it
@@ -575,6 +782,28 @@ void UINV_InventoryGrid::HideCursor()
 void UINV_InventoryGrid::SetOwningCanvas(UCanvasPanel* OwningCanvas)
 {
 	OwningCanvasPanel = OwningCanvas;
+}
+
+void UINV_InventoryGrid::ResetGridLayout(const FIntPoint& NewGridSize)
+{
+	if (NewGridSize.X <= 0 || NewGridSize.Y <= 0)
+	{
+		return;
+	}
+
+	ClearHoverItem();
+	SlottedItems.Empty();
+	SlottedItemPool.Empty();
+	GridSlots.Empty();
+
+	if (IsValid(CanvasPanel))
+	{
+		CanvasPanel->ClearChildren();
+	}
+
+	GridSize = NewGridSize;
+	ConstructGrid();
+	RebuildDisplayedItems();
 }
 
 void UINV_InventoryGrid::SetCursorWidget(UUserWidget* CursorWidget)
@@ -821,6 +1050,11 @@ void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const 
 
 void UINV_InventoryGrid::DropItem()
 {
+	if (bReadOnly)
+	{
+		return;
+	}
+
 	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
 	if (!IsValid(HoverInventoryItem)) return;
 	
@@ -996,6 +1230,21 @@ FINV_GridSwapCallbacks UINV_InventoryGrid::BuildGridSwapCallbacks()
 
 void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	if (bReadOnly)
+	{
+		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && GridSlots.IsValidIndex(GridIndex))
+		{
+			if (UINV_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get(); IsValid(ClickedInventoryItem))
+			{
+				UINV_InventoryStatics::ItemInspected(
+					GetOwningPlayer(),
+					ClickedInventoryItem,
+					UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer()));
+			}
+		}
+		return;
+	}
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_OnSlottedItemClicked);
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 	LastHoveredSlottedIndex = INDEX_NONE;
@@ -1145,6 +1394,7 @@ void UINV_InventoryGrid::BindItemPopupCallbacksIfNeeded()
 bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 {
 	if (!IsValid(Item)) return false;
+	if (ItemCategory == EINV_ItemCategory::None) return true;
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }
 

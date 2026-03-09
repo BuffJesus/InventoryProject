@@ -200,6 +200,11 @@ void UINV_InventoryComponent::ToggleInventoryMenu()
 		: HandleInventoryMenu(ESlateVisibility::Visible, true);
 }
 
+TArray<UINV_InventoryItem*> UINV_InventoryComponent::GetAllItems() const
+{
+	return InventoryFastArray.GetAllItems();
+}
+
 void UINV_InventoryComponent::RequestOpenContainer(AActor* ContainerActor)
 {
 	if (!IsValid(ContainerActor))

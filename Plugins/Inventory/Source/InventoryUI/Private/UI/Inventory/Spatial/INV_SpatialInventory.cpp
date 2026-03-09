@@ -8,7 +8,9 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/INV_InventoryComponent.h"
+#include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
+#include "Containers/INV_ContainerComponent.h"
 #include "EquipmentManagement/ProxyMesh/INV_ProxyMesh.h"
 #include "UI/Utils/INV_InventoryStatics.h"
 #include "UI/Utils/INV_WidgetUtils.h"
@@ -180,8 +182,16 @@ void UINV_SpatialInventory::NativeOnInitialized()
 			Grid->SetOwningCanvas(CanvasPanel);
 		}
 	});
+
+	if (IsValid(Grid_Container))
+	{
+		Grid_Container->SetOwningCanvas(CanvasPanel);
+		Grid_Container->SetReadOnly(true);
+	}
 	
 	ShowEquippableGrid();
+
+	HideActiveContainer();
 	
 	WidgetTree->ForEachWidget([this](UWidget* Widget)
 	{
@@ -191,6 +201,105 @@ void UINV_SpatialInventory::NativeOnInitialized()
 			EquippedGridSlot->EquippedGridSlotClicked.AddDynamic(this, &ThisClass::EquippedGridSlotClicked);
 		}
 	});
+
+	BindContainerEvents();
+
+	if (UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent(); IsValid(InventoryComponent))
+	{
+		ShowActiveContainer(InventoryComponent->GetActiveContainer());
+	}
+}
+
+void UINV_SpatialInventory::NativeDestruct()
+{
+	UnbindContainerEvents();
+	Super::NativeDestruct();
+}
+
+void UINV_SpatialInventory::BindContainerEvents()
+{
+	if (UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent(); IsValid(InventoryComponent))
+	{
+		InventoryComponent->OnContainerOpened.RemoveDynamic(this, &ThisClass::HandleContainerOpened);
+		InventoryComponent->OnContainerClosed.RemoveDynamic(this, &ThisClass::HandleContainerClosed);
+		InventoryComponent->OnContainerOpened.AddDynamic(this, &ThisClass::HandleContainerOpened);
+		InventoryComponent->OnContainerClosed.AddDynamic(this, &ThisClass::HandleContainerClosed);
+	}
+}
+
+void UINV_SpatialInventory::UnbindContainerEvents()
+{
+	if (UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent(); IsValid(InventoryComponent))
+	{
+		InventoryComponent->OnContainerOpened.RemoveDynamic(this, &ThisClass::HandleContainerOpened);
+		InventoryComponent->OnContainerClosed.RemoveDynamic(this, &ThisClass::HandleContainerClosed);
+	}
+}
+
+void UINV_SpatialInventory::HandleContainerOpened(UINV_ContainerComponent* Container)
+{
+	ShowActiveContainer(Container);
+}
+
+void UINV_SpatialInventory::HandleContainerClosed(UINV_ContainerComponent* Container)
+{
+	HideActiveContainer();
+}
+
+void UINV_SpatialInventory::ShowActiveContainer(UINV_ContainerComponent* Container)
+{
+	if (!IsValid(Grid_Container))
+	{
+		return;
+	}
+
+	if (IsValid(ContainerSection))
+	{
+		ContainerSection->SetVisibility(IsValid(Container) ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		Grid_Container->SetVisibility(IsValid(Container) ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	if (!IsValid(Container))
+	{
+		if (IsValid(Text_ContainerName))
+		{
+			Text_ContainerName->SetText(FText::GetEmpty());
+		}
+		Grid_Container->ClearBoundDataSource();
+		return;
+	}
+
+	if (IsValid(Text_ContainerName))
+	{
+		Text_ContainerName->SetText(Container->GetDisplayName());
+	}
+
+	Grid_Container->SetReadOnly(true);
+	Grid_Container->ResetGridLayout(Container->GetGridSize());
+	Grid_Container->BindToContainerComponent(Container);
+	Grid_Container->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UINV_SpatialInventory::HideActiveContainer()
+{
+	if (IsValid(Text_ContainerName))
+	{
+		Text_ContainerName->SetText(FText::GetEmpty());
+	}
+
+	if (IsValid(Grid_Container))
+	{
+		Grid_Container->ClearBoundDataSource();
+		Grid_Container->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (IsValid(ContainerSection))
+	{
+		ContainerSection->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UINV_SpatialInventory::EquippedGridSlotClicked(UINV_EquippedGridSlot* EquippedGridSlot,

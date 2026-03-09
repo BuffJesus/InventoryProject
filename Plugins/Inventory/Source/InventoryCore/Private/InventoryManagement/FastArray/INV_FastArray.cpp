@@ -51,6 +51,22 @@ void FINV_InventoryFastArray::PostReplicatedAdd(const TArrayView<int32> AddedInd
 	}
 }
 
+void FINV_InventoryFastArray::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+{
+	for (int32 Index : ChangedIndices)
+	{
+		if (!Entries.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		if (Callbacks.OnItemChanged)
+		{
+			Callbacks.OnItemChanged(Entries[Index].Item);
+		}
+	}
+}
+
 UINV_InventoryItem* FINV_InventoryFastArray::AddEntry(UINV_ItemComponent* ItemComponent)
 {
 	// Create a new item object from the pickup manifest.

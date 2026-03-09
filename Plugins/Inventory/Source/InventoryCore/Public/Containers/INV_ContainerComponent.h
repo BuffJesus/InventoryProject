@@ -65,6 +65,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "INV|Container")
 	FINV_ContainerItemEvent OnItemRemoved;
 
+	UPROPERTY(BlueprintAssignable, Category = "INV|Container")
+	FINV_ContainerItemEvent OnItemChanged;
+
 private:
 	void ConfigureFastArrayCallbacks();
 	void InitializeStarterContents();

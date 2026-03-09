@@ -62,6 +62,8 @@ public:
 	void SpawnDroppedItem(UINV_InventoryItem* Item, int32 StackCount);
 	FORCEINLINE UINV_InventoryBase* GetInventoryMenu() const { return Inventory; }
 	FORCEINLINE AINV_ProxyMesh* GetCachedProxyMesh() const { return CachedProxyMesh; }
+	UFUNCTION(BlueprintCallable, Category = "INV|Inventory")
+	TArray<UINV_InventoryItem*> GetAllItems() const;
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	UINV_ContainerComponent* GetActiveContainer() const { return ActiveContainer.Get(); }
 	void RequestOpenContainer(AActor* ContainerActor);
