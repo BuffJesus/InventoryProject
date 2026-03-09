@@ -188,6 +188,12 @@ AINV_EquipActor* UINV_EquipmentComponent::SpawnEquippedActor(FINV_EquipmentFragm
 	AINV_EquipActor* SpawnedEquipActor { EquipmentFragment->SpawnAttachedActor(OwningSkeletalMesh.Get()) };
 	if (!IsValid(SpawnedEquipActor)) return nullptr;
 
+	if (bIsProxy)
+	{
+		SpawnedEquipActor->SetReplicates(false);
+		SpawnedEquipActor->SetActorEnableCollision(false);
+	}
+
 	SpawnedEquipActor->SetEquipmentType(EquipmentFragment->GetEquipmentType());
 	SpawnedEquipActor->SetOwner(GetOwner());
 	EquipmentFragment->SetEquippedActor(SpawnedEquipActor);
