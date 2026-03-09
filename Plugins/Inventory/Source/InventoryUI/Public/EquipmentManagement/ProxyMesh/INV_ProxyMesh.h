@@ -18,6 +18,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "INV|Proxy")
 	void InitializeProxy(APlayerController* PlayerController);
 	void SetPreviewVisible(bool bVisible);
+	
+	USkeletalMeshComponent* GetMesh() const { return Mesh; }
 
 protected:
 	virtual void BeginPlay() override;
