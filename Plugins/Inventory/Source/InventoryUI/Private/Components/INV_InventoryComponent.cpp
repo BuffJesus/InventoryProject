@@ -44,6 +44,42 @@ void SyncLegacyStackCount(UINV_InventoryItem* Item)
 		StackableFragment->SetStackCount(Item->GetTotalStackCount());
 	}
 }
+
+FIntPoint ResolvePlacementFootprint(const UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement)
+{
+	if (!IsValid(Item))
+	{
+		return FIntPoint::ZeroValue;
+	}
+
+	const FINV_GridFragment* GridFragment = Item->GetCachedGridFragment();
+	const FIntPoint BaseFootprint = GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
+	return Placement.ResolveFootprint(BaseFootprint);
+}
+
+bool DoFootprintsOverlap(
+	const FINV_InventoryItemPlacement& APlacement,
+	const FIntPoint& AFootprint,
+	const FINV_InventoryItemPlacement& BPlacement,
+	const FIntPoint& BFootprint)
+{
+	if (!APlacement.IsValid() || !BPlacement.IsValid())
+	{
+		return false;
+	}
+
+	const int32 AMinX = APlacement.Anchor.X;
+	const int32 AMinY = APlacement.Anchor.Y;
+	const int32 AMaxX = AMinX + AFootprint.X;
+	const int32 AMaxY = AMinY + AFootprint.Y;
+	const int32 BMinX = BPlacement.Anchor.X;
+	const int32 BMinY = BPlacement.Anchor.Y;
+	const int32 BMaxX = BMinX + BFootprint.X;
+	const int32 BMaxY = BMinY + BFootprint.Y;
+
+	return AMinX < BMaxX && AMaxX > BMinX && AMinY < BMaxY && AMaxY > BMinY;
+}
+}
 }
 
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
@@ -278,6 +314,11 @@ bool UINV_InventoryComponent::CanPlaceItemAt(
 			return ThisClass::MatchesPlayerPlacementCategory(ExistingItem, ItemCategory);
 		},
 		IgnoredItem);
+}
+
+bool UINV_InventoryComponent::SetItemPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement)
+{
+	return InventoryFastArray.SetItemPlacement(Item, Placement);
 }
 
 void UINV_InventoryComponent::RequestOpenContainer(AActor* ContainerActor)
@@ -878,6 +919,327 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	return true;
 }
 
+bool UINV_InventoryComponent::PlaceItemWithActiveContainerExact(
+	UINV_InventoryItem* Item,
+	const bool bDestinationIsContainer,
+	const EINV_ItemCategory DestinationCategory,
+	const FIntPoint& DestinationAnchor,
+	const int32 RequestedQuantity)
+{
+	UINV_ContainerComponent* Container = ActiveContainer.Get();
+	if (!IsValid(Container) || !IsValid(Item) || !CanTransferItem(Item))
+	{
+		return false;
+	}
+
+	const bool bSourceIsPlayer = HasItem(Item);
+	const bool bSourceIsContainer = Container->HasItem(Item);
+	if (bSourceIsPlayer == bSourceIsContainer)
+	{
+		return false;
+	}
+
+	if (bDestinationIsContainer == bSourceIsContainer)
+	{
+		return false;
+	}
+
+	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	if (!bDestinationIsContainer && DestinationCategory != ItemCategory)
+	{
+		return false;
+	}
+
+	const int32 SourceStackCount = ResolveAuthoritativeStackCount(Item);
+	const int32 QuantityToTransfer = Item->IsStackable()
+		? FMath::Clamp(RequestedQuantity, 1, SourceStackCount)
+		: 1;
+
+	FINV_InventoryItemPlacement SourcePlacement;
+	const bool bHasSourcePlacement = bSourceIsPlayer
+		? GetItemPlacement(Item, SourcePlacement)
+		: Container->GetItemPlacement(Item, SourcePlacement);
+	if (!bHasSourcePlacement)
+	{
+		return false;
+	}
+
+	FINV_InventoryItemPlacement DestinationPlacement;
+	DestinationPlacement.Anchor = DestinationAnchor;
+
+	const FIntPoint DestinationGridSize = bDestinationIsContainer ? Container->GetGridSize() : GetPlayerGridSize(ItemCategory);
+	const FIntPoint DestinationFootprint = ResolvePlacementFootprint(Item, DestinationPlacement);
+	if (DestinationAnchor.X < 0 || DestinationAnchor.Y < 0 ||
+		DestinationAnchor.X + DestinationFootprint.X > DestinationGridSize.X ||
+		DestinationAnchor.Y + DestinationFootprint.Y > DestinationGridSize.Y)
+	{
+		return false;
+	}
+
+	TArray<UINV_InventoryItem*> DestinationItems = bDestinationIsContainer
+		? Container->GetAllItems()
+		: GetItemsForCategory(ItemCategory);
+
+	TArray<UINV_InventoryItem*> BlockingItems;
+	for (UINV_InventoryItem* DestinationItem : DestinationItems)
+	{
+		if (!IsValid(DestinationItem))
+		{
+			continue;
+		}
+
+		FINV_InventoryItemPlacement ExistingPlacement;
+		const bool bHasExistingPlacement = bDestinationIsContainer
+			? Container->GetItemPlacement(DestinationItem, ExistingPlacement)
+			: GetItemPlacement(DestinationItem, ExistingPlacement);
+		if (!bHasExistingPlacement)
+		{
+			return false;
+		}
+
+		const FIntPoint ExistingFootprint = ResolvePlacementFootprint(DestinationItem, ExistingPlacement);
+		if (DoFootprintsOverlap(DestinationPlacement, DestinationFootprint, ExistingPlacement, ExistingFootprint))
+		{
+			BlockingItems.Add(DestinationItem);
+		}
+	}
+
+	if (BlockingItems.Num() > 1)
+	{
+		return false;
+	}
+
+	if (BlockingItems.Num() == 1)
+	{
+		UINV_InventoryItem* BlockingItem = BlockingItems[0];
+		FINV_InventoryItemPlacement BlockingPlacement;
+		const bool bHasBlockingPlacement = bDestinationIsContainer
+			? Container->GetItemPlacement(BlockingItem, BlockingPlacement)
+			: GetItemPlacement(BlockingItem, BlockingPlacement);
+		if (!bHasBlockingPlacement)
+		{
+			return false;
+		}
+
+		if (Item->IsStackable() && UINV_InventoryItem::AreItemsStackCompatible(Item, BlockingItem) &&
+			BlockingPlacement.Anchor == DestinationPlacement.Anchor)
+		{
+			const FINV_StackableFragment* BlockingStackableFragment = BlockingItem->GetCachedStackableFragment();
+			const int32 MaxStackSize = BlockingStackableFragment ? BlockingStackableFragment->GetMaxStackSize() : 1;
+			const int32 RoomInBlockingStack = FMath::Max(0, MaxStackSize - ResolveAuthoritativeStackCount(BlockingItem));
+			const int32 AmountToMerge = FMath::Min(QuantityToTransfer, RoomInBlockingStack);
+			if (AmountToMerge <= 0)
+			{
+				return false;
+			}
+
+			BlockingItem->SetTotalStackCount(ResolveAuthoritativeStackCount(BlockingItem) + AmountToMerge);
+			SyncLegacyStackCount(BlockingItem);
+			if (bDestinationIsContainer)
+			{
+				Container->NotifyItemChanged(BlockingItem);
+			}
+			else
+			{
+				BroadcastPlayerItemChanged(BlockingItem);
+			}
+
+			const int32 RemainingSourceCount = SourceStackCount - AmountToMerge;
+			if (!Item->IsStackable() || RemainingSourceCount <= 0)
+			{
+				if (bSourceIsPlayer)
+				{
+					InventoryFastArray.RemoveEntry(Item);
+					if (ShouldBroadcastLocalInventoryEvents())
+					{
+						OnItemRemoved.Broadcast(Item);
+					}
+				}
+				else
+				{
+					Container->RemoveItem(Item);
+				}
+			}
+			else
+			{
+				Item->SetTotalStackCount(RemainingSourceCount);
+				SyncLegacyStackCount(Item);
+				if (bSourceIsPlayer)
+				{
+					BroadcastPlayerItemChanged(Item);
+				}
+				else
+				{
+					Container->NotifyItemChanged(Item);
+				}
+			}
+
+			return true;
+		}
+
+		const bool bCanSwap = QuantityToTransfer >= SourceStackCount &&
+			(bDestinationIsContainer
+				? Container->CanPlaceItemAt(Item, DestinationPlacement, BlockingItem)
+				: CanPlaceItemAt(Item, DestinationPlacement, BlockingItem)) &&
+			(bSourceIsPlayer
+				? CanPlaceItemAt(BlockingItem, SourcePlacement, Item)
+				: Container->CanPlaceItemAt(BlockingItem, SourcePlacement, Item));
+		if (!bCanSwap)
+		{
+			return false;
+		}
+
+		UObject* SourceOuter = bSourceIsPlayer ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(Container->GetOwner());
+		UObject* DestinationOuter = bDestinationIsContainer ? static_cast<UObject*>(Container->GetOwner()) : static_cast<UObject*>(GetOwner());
+		UINV_InventoryItem* ItemForDestination = CloneItemForOwner(Item, DestinationOuter, SourceStackCount);
+		UINV_InventoryItem* SwapForSource = CloneItemForOwner(BlockingItem, SourceOuter, ResolveAuthoritativeStackCount(BlockingItem));
+		if (!IsValid(ItemForDestination) || !IsValid(SwapForSource))
+		{
+			return false;
+		}
+
+		if (bSourceIsPlayer)
+		{
+			if (!Container->RemoveItem(BlockingItem))
+			{
+				return false;
+			}
+
+			InventoryFastArray.RemoveEntry(Item);
+			if (!Container->AddItemAtPlacement(ItemForDestination, DestinationPlacement) || !InventoryFastArray.AddEntry(SwapForSource))
+			{
+				return false;
+			}
+
+			if (!InventoryFastArray.SetItemPlacement(SwapForSource, SourcePlacement))
+			{
+				InventoryFastArray.RemoveEntry(SwapForSource);
+				return false;
+			}
+
+			BroadcastPlayerItemChanged(SwapForSource);
+			if (ShouldBroadcastLocalInventoryEvents())
+			{
+				OnItemRemoved.Broadcast(Item);
+				OnItemAdded.Broadcast(SwapForSource);
+			}
+		}
+		else
+		{
+			if (!Container->RemoveItem(Item))
+			{
+				return false;
+			}
+
+			InventoryFastArray.RemoveEntry(BlockingItem);
+			if (!InventoryFastArray.AddEntry(ItemForDestination) || !Container->AddItemAtPlacement(SwapForSource, SourcePlacement))
+			{
+				return false;
+			}
+
+			if (!InventoryFastArray.SetItemPlacement(ItemForDestination, DestinationPlacement))
+			{
+				InventoryFastArray.RemoveEntry(ItemForDestination);
+				return false;
+			}
+
+			BroadcastPlayerItemChanged(ItemForDestination);
+			if (ShouldBroadcastLocalInventoryEvents())
+			{
+				OnItemRemoved.Broadcast(BlockingItem);
+				OnItemAdded.Broadcast(ItemForDestination);
+			}
+		}
+
+		return true;
+	}
+
+	const bool bCanPlaceFree = bDestinationIsContainer
+		? Container->CanPlaceItemAt(Item, DestinationPlacement)
+		: CanPlaceItemAt(Item, DestinationPlacement);
+	if (!bCanPlaceFree)
+	{
+		return false;
+	}
+
+	UObject* DestinationOuter = bDestinationIsContainer ? static_cast<UObject*>(Container->GetOwner()) : static_cast<UObject*>(GetOwner());
+	UINV_InventoryItem* NewDestinationItem = CloneItemForOwner(Item, DestinationOuter, QuantityToTransfer);
+	if (!IsValid(NewDestinationItem))
+	{
+		return false;
+	}
+
+	if (bDestinationIsContainer)
+	{
+		if (!Container->AddItemAtPlacement(NewDestinationItem, DestinationPlacement))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		if (!InventoryFastArray.AddEntry(NewDestinationItem) || !InventoryFastArray.SetItemPlacement(NewDestinationItem, DestinationPlacement))
+		{
+			InventoryFastArray.RemoveEntry(NewDestinationItem);
+			return false;
+		}
+
+		BroadcastPlayerItemChanged(NewDestinationItem);
+		if (ShouldBroadcastLocalInventoryEvents())
+		{
+			OnItemAdded.Broadcast(NewDestinationItem);
+		}
+	}
+
+	const int32 RemainingSourceCount = SourceStackCount - QuantityToTransfer;
+	if (!Item->IsStackable() || RemainingSourceCount <= 0)
+	{
+		if (bSourceIsPlayer)
+		{
+			InventoryFastArray.RemoveEntry(Item);
+			if (ShouldBroadcastLocalInventoryEvents())
+			{
+				OnItemRemoved.Broadcast(Item);
+			}
+		}
+		else
+		{
+			Container->RemoveItem(Item);
+		}
+	}
+	else
+	{
+		Item->SetTotalStackCount(RemainingSourceCount);
+		SyncLegacyStackCount(Item);
+		if (bSourceIsPlayer)
+		{
+			BroadcastPlayerItemChanged(Item);
+		}
+		else
+		{
+			Container->NotifyItemChanged(Item);
+		}
+	}
+
+	return true;
+}
+
+void UINV_InventoryComponent::HandleActiveContainerPlacementResult(const bool bSuccess)
+{
+	if (!IsValid(Inventory))
+	{
+		return;
+	}
+
+	if (bSuccess)
+	{
+		Inventory->ClearActiveHoverItem();
+		return;
+	}
+
+	Inventory->ReturnActiveHoverItemToSource();
+}
+
 void UINV_InventoryComponent::OpenInventoryMenuIfClosed()
 {
 	if (!bInventoryMenuOpen)
@@ -1288,6 +1650,11 @@ void UINV_InventoryComponent::Client_CloseContainer_Implementation()
 	SetActiveContainerLocal(nullptr);
 }
 
+void UINV_InventoryComponent::Client_HandleActiveContainerPlacementResult_Implementation(const bool bSuccess)
+{
+	HandleActiveContainerPlacementResult(bSuccess);
+}
+
 void UINV_InventoryComponent::Server_TransferItemWithActiveContainer_Implementation(UINV_InventoryItem* Item, const int32 RequestedQuantity)
 {
 	if (!HasAuthorityOnOwner() || !IsValid(Item) || !ActiveContainer.IsValid())
@@ -1303,6 +1670,25 @@ void UINV_InventoryComponent::Server_TransferItemWithActiveContainer_Implementat
 	}
 
 	TransferItemBetweenStores(Item, RequestedQuantity, bSourceIsPlayer);
+}
+
+void UINV_InventoryComponent::Server_RequestPlaceItemWithActiveContainer_Implementation(
+	UINV_InventoryItem* Item,
+	const bool bDestinationIsContainer,
+	const EINV_ItemCategory DestinationCategory,
+	const FIntPoint DestinationAnchor,
+	const int32 RequestedQuantity)
+{
+	const bool bSuccess = HasAuthorityOnOwner() && IsValid(Item) && ActiveContainer.IsValid() &&
+		PlaceItemWithActiveContainerExact(Item, bDestinationIsContainer, DestinationCategory, DestinationAnchor, RequestedQuantity);
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetOwner()); IsValid(PlayerController) && PlayerController->IsLocalController())
+	{
+		HandleActiveContainerPlacementResult(bSuccess);
+		return;
+	}
+
+	Client_HandleActiveContainerPlacementResult(bSuccess);
 }
 
 void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponent* ItemComponent, int32 StackCount)

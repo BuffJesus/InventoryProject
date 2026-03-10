@@ -88,6 +88,11 @@ private:
 	void UnbindContainerEvents();
 	void ResetDisplayedItems();
 	void RebuildDisplayedItems();
+	UINV_HoverItem* GetActiveHoverItem() const;
+	UINV_InventoryGrid* GetHoverSourceGrid() const;
+	bool IsContainerGrid() const;
+	bool ShouldUseExactCrossStorePlacement(const UINV_InventoryGrid* HoverSourceGrid) const;
+	bool RequestExactCrossStorePlacement(int32 TargetIndex) const;
 	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
 	bool ResolveAuthoritativePlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const;
 	int32 ResolveAuthoritativeIndex(const UINV_InventoryItem* Item) const;

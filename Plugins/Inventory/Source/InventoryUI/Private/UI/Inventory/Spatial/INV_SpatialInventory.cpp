@@ -62,6 +62,7 @@ void UINV_SpatialInventory::ForEachInventoryGrid(TFunctionRef<void(UINV_Inventor
 	Visitor(Grid_Equippable);
 	Visitor(Grid_Consumable);
 	Visitor(Grid_Craftable);
+	Visitor(Grid_Container);
 }
 
 UINV_InventoryGrid* UINV_SpatialInventory::GetGridForCategory(const EINV_ItemCategory Category) const
@@ -186,7 +187,7 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	if (IsValid(Grid_Container))
 	{
 		Grid_Container->SetOwningCanvas(CanvasPanel);
-		Grid_Container->SetReadOnly(true);
+		Grid_Container->SetReadOnly(false);
 	}
 	
 	ShowEquippableGrid();
@@ -277,7 +278,7 @@ void UINV_SpatialInventory::ShowActiveContainer(UINV_ContainerComponent* Contain
 		Text_ContainerName->SetText(Container->GetDisplayName());
 	}
 
-	Grid_Container->SetReadOnly(true);
+	Grid_Container->SetReadOnly(false);
 	Grid_Container->ResetGridLayout(Container->GetGridSize());
 	Grid_Container->BindToContainerComponent(Container);
 	Grid_Container->SetVisibility(ESlateVisibility::Visible);
@@ -502,8 +503,17 @@ void UINV_SpatialInventory::NativeTick(const FGeometry& MyGeometry, float InDelt
 
 UINV_HoverItem* UINV_SpatialInventory::GetHoverItem() const
 {
-	if (!ActiveGrid.IsValid()) return nullptr;
-	return ActiveGrid->GetHoverItem();
+	if (UINV_InventoryGrid* HoverSourceGrid = FindGridWithHoverItem(); IsValid(HoverSourceGrid))
+	{
+		return HoverSourceGrid->GetHoverItem();
+	}
+
+	return nullptr;
+}
+
+UINV_InventoryGrid* UINV_SpatialInventory::GetHoverSourceGrid() const
+{
+	return FindGridWithHoverItem();
 }
 
 float UINV_SpatialInventory::GetTileSize() const
@@ -516,6 +526,13 @@ void UINV_SpatialInventory::ReturnActiveHoverItemToSource()
 	UINV_InventoryGrid* HoverSourceGrid = FindGridWithHoverItem();
 	if (!IsValid(HoverSourceGrid)) return;
 	HoverSourceGrid->ReturnHoverItemToPreviousSlot();
+}
+
+void UINV_SpatialInventory::ClearActiveHoverItem()
+{
+	UINV_InventoryGrid* HoverSourceGrid = FindGridWithHoverItem();
+	if (!IsValid(HoverSourceGrid)) return;
+	HoverSourceGrid->ClearHoverItem();
 }
 
 void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,

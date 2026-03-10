@@ -130,6 +130,29 @@ UINV_InventoryItem* UINV_ContainerComponent::AddItem(UINV_InventoryItem* Item)
 	return AddedItem;
 }
 
+UINV_InventoryItem* UINV_ContainerComponent::AddItemAtPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement)
+{
+	if (!HasAuthorityOnOwner() || !IsValid(Item) || !CanPlaceItemAt(Item, Placement))
+	{
+		return nullptr;
+	}
+
+	UINV_InventoryItem* AddedItem = InventoryFastArray.AddEntry(Item);
+	if (!IsValid(AddedItem))
+	{
+		return nullptr;
+	}
+
+	if (!InventoryFastArray.SetItemPlacement(AddedItem, Placement))
+	{
+		InventoryFastArray.RemoveEntry(AddedItem);
+		return nullptr;
+	}
+
+	OnItemAdded.Broadcast(AddedItem);
+	return AddedItem;
+}
+
 UINV_InventoryItem* UINV_ContainerComponent::AddItemFromPickup(UINV_ItemComponent* ItemComponent)
 {
 	if (!HasAuthorityOnOwner() || !IsValid(ItemComponent))

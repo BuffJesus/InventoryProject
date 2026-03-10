@@ -10,6 +10,7 @@
 class UINV_HoverItem;
 class UINV_ItemComponent;
 class UINV_InventoryItem;
+class UINV_InventoryGrid;
 struct FINV_SlotAvailabilityResult;
 /**
  * 
@@ -30,7 +31,9 @@ public:
 	virtual void OnItemUnhovered() {}
 	virtual void OnItemInspected(UINV_InventoryItem* Item, const FVector2D& OpenPosition) {}
 	virtual void ReturnActiveHoverItemToSource() {}
+	virtual void ClearActiveHoverItem() {}
 	virtual bool HasHoverItem() const { return false; }
 	virtual UINV_HoverItem* GetHoverItem() const { return nullptr; }
+	virtual UINV_InventoryGrid* GetHoverSourceGrid() const { return nullptr; }
 	virtual float GetTileSize() const { return 0.0f; }
 };

@@ -62,6 +62,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "INV|Container")
 	UINV_InventoryItem* AddItem(UINV_InventoryItem* Item);
+	UINV_InventoryItem* AddItemAtPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "INV|Container")
 	UINV_InventoryItem* AddItemFromPickup(UINV_ItemComponent* ItemComponent);

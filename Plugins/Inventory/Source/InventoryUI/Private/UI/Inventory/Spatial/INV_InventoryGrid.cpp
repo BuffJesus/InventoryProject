@@ -8,6 +8,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Containers/INV_ContainerComponent.h"
 #include "Components/INV_InventoryComponent.h"
+#include "UI/Base/INV_InventoryBase.h"
 #include "UI/Inventory/Placement/INV_GridPlacementEngine.h"
 #include "InventoryManagement/Utils/INV_GridIteration.h"
 #include "UI/Utils/INV_InventoryStatics.h"
@@ -212,6 +213,75 @@ void UINV_InventoryGrid::RebuildDisplayedItems()
 	}
 }
 
+UINV_HoverItem* UINV_InventoryGrid::GetActiveHoverItem() const
+{
+	if (IsValid(HoverItem))
+	{
+		return HoverItem;
+	}
+
+	return UINV_InventoryStatics::GetHoverItem(GetOwningPlayer());
+}
+
+UINV_InventoryGrid* UINV_InventoryGrid::GetHoverSourceGrid() const
+{
+	if (IsValid(HoverItem))
+	{
+		return const_cast<UINV_InventoryGrid*>(this);
+	}
+
+	if (UINV_InventoryBase* InventoryWidget = UINV_InventoryStatics::GetInventoryWidget(GetOwningPlayer()); IsValid(InventoryWidget))
+	{
+		return InventoryWidget->GetHoverSourceGrid();
+	}
+
+	return nullptr;
+}
+
+bool UINV_InventoryGrid::IsContainerGrid() const
+{
+	return ContainerComponent.IsValid();
+}
+
+bool UINV_InventoryGrid::ShouldUseExactCrossStorePlacement(const UINV_InventoryGrid* HoverSourceGrid) const
+{
+	return IsValid(HoverSourceGrid) &&
+		HoverSourceGrid != this &&
+		HoverSourceGrid->IsContainerGrid() != IsContainerGrid();
+}
+
+bool UINV_InventoryGrid::RequestExactCrossStorePlacement(const int32 TargetIndex) const
+{
+	UINV_HoverItem* ActiveHoverItem = GetActiveHoverItem();
+	UINV_InventoryGrid* HoverSourceGrid = GetHoverSourceGrid();
+	UINV_InventoryComponent* OwningInventoryComponent = UINV_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
+	if (!IsValid(ActiveHoverItem) || !IsValid(HoverSourceGrid) || !IsValid(OwningInventoryComponent) ||
+		!IsValid(OwningInventoryComponent->GetActiveContainer()) || !GridSlots.IsValidIndex(TargetIndex))
+	{
+		return false;
+	}
+
+	UINV_InventoryItem* HoveredItem = ActiveHoverItem->GetInventoryItem();
+	if (!IsValid(HoveredItem))
+	{
+		return false;
+	}
+
+	FINV_InventoryItemPlacement TargetPlacement = FINV_InventoryItemPlacement::FromIndex(TargetIndex, GridSize.X);
+	if (!TargetPlacement.IsValid())
+	{
+		return false;
+	}
+
+	OwningInventoryComponent->Server_RequestPlaceItemWithActiveContainer(
+		HoveredItem,
+		IsContainerGrid(),
+		ItemCategory,
+		TargetPlacement.Anchor,
+		FMath::Max(1, ActiveHoverItem->GetStackCount()));
+	return true;
+}
+
 void UINV_InventoryGrid::BindItemChangedEvent(UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item))
@@ -327,7 +397,8 @@ void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_NativeTick);
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	const bool bHasHoverItem = IsValid(HoverItem);
+	const UINV_HoverItem* ActiveHoverItem = GetActiveHoverItem();
+	const bool bHasHoverItem = IsValid(ActiveHoverItem);
 	const bool bHasOpenPopup = HasOpenItemPopup();
 
 	// Idle fast-path: no drag interaction and no active popup to manage.
@@ -404,7 +475,7 @@ FIntPoint UINV_InventoryGrid::GetItemDimensionsOrDefault(const UINV_InventoryIte
 void UINV_InventoryGrid::UpdateTileParams(const FVector2D& CanvasPos, const FVector2D& MousePos)
 {
 	if (!bMouseWithinCanvas) return;
-	if (!IsValid(HoverItem)) return;
+	if (!IsValid(GetActiveHoverItem())) return;
 	
 	// Calculate tile quadrant, index, and coords
 	const FIntPoint HoveredTileCoords { CalculateHoverCoordinates(CanvasPos, MousePos) };
@@ -448,10 +519,11 @@ void UINV_InventoryGrid::CloseItemPopup()
 void UINV_InventoryGrid::OnTileParamsUpdated(const FINV_TileParams& Params)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_OnTileParamsUpdated);
-	if (!IsValid(HoverItem)) return;
+	const UINV_HoverItem* ActiveHoverItem = GetActiveHoverItem();
+	if (!IsValid(ActiveHoverItem)) return;
 
 	// Get hover item dimensions
-	const FIntPoint Dimensions { HoverItem->GetGridDimensions() };
+	const FIntPoint Dimensions { ActiveHoverItem->GetGridDimensions() };
 
 	// Calculate starting coord for highlighting - delegate to placement engine
 	const FIntPoint StartingCoord { FINV_GridPlacementEngine::CalculateStartingCoordinate(Params.TileCoordinates, Dimensions, Params.TileQuadrant) };
@@ -855,6 +927,18 @@ void UINV_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 	CloseActiveItemPopup();
 
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if (UINV_InventoryGrid* HoverSourceGrid = GetHoverSourceGrid(); ShouldUseExactCrossStorePlacement(HoverSourceGrid))
+		{
+			const int32 RequestedIndex = GridSlots.IsValidIndex(ItemDropIndex) ? ItemDropIndex : GridIndex;
+			if (RequestExactCrossStorePlacement(RequestedIndex))
+			{
+				return;
+			}
+		}
+	}
+
 	// If we have a hover item, try to place it
 	if (!IsValid(HoverItem)) return;
 	// Guard against same-frame duplicate click routing (observed with simulated controller mouse input).
@@ -1060,7 +1144,7 @@ UUserWidget* UINV_InventoryGrid::GetHiddenCursorWidget()
 
 void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	if (IsValid(HoverItem)) return;
+	if (IsValid(GetActiveHoverItem())) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
 	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
@@ -1070,7 +1154,7 @@ void UINV_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent&
 
 void UINV_InventoryGrid::OnGridSlotUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	if (IsValid(HoverItem)) return;
+	if (IsValid(GetActiveHoverItem())) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	
 	UINV_GridSlot* GridSlot { GridSlots[GridIndex] };
@@ -1163,7 +1247,7 @@ void UINV_InventoryGrid::OnPopUpMenuInspect(int32 Index)
 
 void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	if (IsValid(HoverItem)) return;
+	if (IsValid(GetActiveHoverItem())) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	if (LastHoveredSlottedIndex == GridIndex) return;
 
@@ -1177,7 +1261,7 @@ void UINV_InventoryGrid::OnSlottedItemHovered(int32 GridIndex, const FPointerEve
 
 void UINV_InventoryGrid::OnSlottedItemUnhovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	if (IsValid(HoverItem)) return;
+	if (IsValid(GetActiveHoverItem())) return;
 	if (!GridSlots.IsValidIndex(GridIndex)) return;
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 
@@ -1207,6 +1291,12 @@ void UINV_InventoryGrid::DropItem()
 
 	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
 	if (!IsValid(HoverInventoryItem)) return;
+
+	if (!IsValid(InventoryComponent) || !InventoryComponent->HasItem(HoverInventoryItem))
+	{
+		ReturnHoverItemToPreviousSlot();
+		return;
+	}
 	
 	InventoryComponent->Server_DropItem(HoverInventoryItem, HoverItem->GetStackCount());
 	
@@ -1410,6 +1500,18 @@ void UINV_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	UINV_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 	LastHoveredSlottedIndex = INDEX_NONE;
 	CloseActiveItemPopup();
+
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if (UINV_InventoryGrid* HoverSourceGrid = GetHoverSourceGrid(); ShouldUseExactCrossStorePlacement(HoverSourceGrid))
+		{
+			const int32 RequestedIndex = ResolveControllerActionIndex(GridIndex);
+			if (RequestExactCrossStorePlacement(RequestedIndex))
+			{
+				return;
+			}
+		}
+	}
 
 	if (!GridSlots.IsValidIndex(GridIndex))
 	{

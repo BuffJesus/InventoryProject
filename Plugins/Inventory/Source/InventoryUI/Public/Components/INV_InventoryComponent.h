@@ -70,6 +70,7 @@ public:
 	bool HasItem(UINV_InventoryItem* Item) const;
 	bool GetItemPlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const;
 	bool CanPlaceItemAt(const UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement, const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	bool SetItemPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement);
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	UINV_ContainerComponent* GetActiveContainer() const { return ActiveContainer.Get(); }
 	void RequestOpenContainer(AActor* ContainerActor);
@@ -80,8 +81,15 @@ public:
 	UFUNCTION(Server, Reliable) void Server_RequestOpenContainer(AActor* ContainerActor);
 	UFUNCTION(Server, Reliable) void Server_CloseActiveContainer();
 	UFUNCTION(Server, Reliable) void Server_TransferItemWithActiveContainer(UINV_InventoryItem* Item, int32 RequestedQuantity);
+	UFUNCTION(Server, Reliable) void Server_RequestPlaceItemWithActiveContainer(
+		UINV_InventoryItem* Item,
+		bool bDestinationIsContainer,
+		EINV_ItemCategory DestinationCategory,
+		FIntPoint DestinationAnchor,
+		int32 RequestedQuantity);
 	UFUNCTION(Client, Reliable) void Client_OpenContainer(AActor* ContainerActor);
 	UFUNCTION(Client, Reliable) void Client_CloseContainer();
+	UFUNCTION(Client, Reliable) void Client_HandleActiveContainerPlacementResult(bool bSuccess);
 	
 	FInventoryItemChange OnItemAdded;
 	FInventoryItemChange OnItemRemoved;
@@ -121,6 +129,13 @@ private:
 	bool FindAvailablePlacementForItem(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement, const UINV_InventoryItem* IgnoredItem = nullptr) const;
 	static bool MatchesPlayerPlacementCategory(const UINV_InventoryItem* Item, EINV_ItemCategory Category);
 	bool TransferItemBetweenStores(UINV_InventoryItem* Item, int32 RequestedQuantity, bool bSourceIsPlayer);
+	bool PlaceItemWithActiveContainerExact(
+		UINV_InventoryItem* Item,
+		bool bDestinationIsContainer,
+		EINV_ItemCategory DestinationCategory,
+		const FIntPoint& DestinationAnchor,
+		int32 RequestedQuantity);
+	void HandleActiveContainerPlacementResult(bool bSuccess);
 	void BroadcastPlayerItemChanged(UINV_InventoryItem* Item);
 	bool ShouldBroadcastLocalInventoryEvents() const;
 	UFUNCTION() void HandleActiveContainerOwnerDestroyed(AActor* DestroyedActor);

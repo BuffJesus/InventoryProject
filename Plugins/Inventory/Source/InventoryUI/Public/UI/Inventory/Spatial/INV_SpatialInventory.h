@@ -39,8 +39,10 @@ public:
 	virtual bool HasHoverItem() const override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual UINV_HoverItem* GetHoverItem() const override;
+	virtual UINV_InventoryGrid* GetHoverSourceGrid() const override;
 	virtual float GetTileSize() const override;
 	virtual void ReturnActiveHoverItemToSource() override;
+	virtual void ClearActiveHoverItem() override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
