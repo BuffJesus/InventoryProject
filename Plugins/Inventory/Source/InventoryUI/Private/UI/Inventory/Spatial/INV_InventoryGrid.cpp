@@ -39,6 +39,11 @@
 
 namespace
 {
+EINV_ItemCategory ResolveGridCategory(const EINV_ItemCategory Category)
+{
+	return Category == EINV_ItemCategory::None ? EINV_ItemCategory::Equippable : Category;
+}
+
 int32 ResolveGridDisplayedStackCount(const UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item) || !Item->IsStackable())
@@ -1685,7 +1690,7 @@ bool UINV_InventoryGrid::MatchesCategory(const UINV_InventoryItem* Item) const
 {
 	if (!IsValid(Item)) return false;
 	if (ItemCategory == EINV_ItemCategory::None) return true;
-	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
+	return ResolveGridCategory(Item->GetItemManifest().GetItemCategory()) == ResolveGridCategory(ItemCategory);
 }
 
 bool UINV_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize,

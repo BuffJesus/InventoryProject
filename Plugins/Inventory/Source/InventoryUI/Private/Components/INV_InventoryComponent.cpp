@@ -20,6 +20,11 @@
 
 namespace
 {
+EINV_ItemCategory ResolvePlayerInventoryCategory(const EINV_ItemCategory Category)
+{
+	return Category == EINV_ItemCategory::None ? EINV_ItemCategory::Equippable : Category;
+}
+
 int32 ResolveAuthoritativeStackCount(const UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item) || !Item->IsStackable())
@@ -514,7 +519,7 @@ void UINV_InventoryComponent::UnbindActiveContainerLifecycle()
 
 FIntPoint UINV_InventoryComponent::GetPlayerGridSize(const EINV_ItemCategory Category) const
 {
-	switch (Category)
+	switch (ResolvePlayerInventoryCategory(Category))
 	{
 	case EINV_ItemCategory::Equippable:
 		return EquippableGridSize;
@@ -531,6 +536,7 @@ FIntPoint UINV_InventoryComponent::GetPlayerGridSize(const EINV_ItemCategory Cat
 TArray<UINV_InventoryItem*> UINV_InventoryComponent::GetItemsForCategory(const EINV_ItemCategory Category, const UINV_InventoryItem* IgnoredItem) const
 {
 	TArray<UINV_InventoryItem*> Results;
+	const EINV_ItemCategory ResolvedCategory = ResolvePlayerInventoryCategory(Category);
 	for (UINV_InventoryItem* Item : InventoryFastArray.GetAllItems())
 	{
 		if (!IsValid(Item) || Item == IgnoredItem)
@@ -538,7 +544,7 @@ TArray<UINV_InventoryItem*> UINV_InventoryComponent::GetItemsForCategory(const E
 			continue;
 		}
 
-		if (Item->GetItemManifest().GetItemCategory() != Category)
+		if (ResolvePlayerInventoryCategory(Item->GetItemManifest().GetItemCategory()) != ResolvedCategory)
 		{
 			continue;
 		}
@@ -571,7 +577,8 @@ UINV_InventoryItem* UINV_InventoryComponent::CloneItemForOwner(UINV_InventoryIte
 
 bool UINV_InventoryComponent::MatchesPlayerPlacementCategory(const UINV_InventoryItem* Item, const EINV_ItemCategory Category)
 {
-	return IsValid(Item) && Item->GetItemManifest().GetItemCategory() == Category;
+	return IsValid(Item) &&
+		ResolvePlayerInventoryCategory(Item->GetItemManifest().GetItemCategory()) == ResolvePlayerInventoryCategory(Category);
 }
 
 bool UINV_InventoryComponent::FindAvailablePlacementForItem(
@@ -585,7 +592,7 @@ bool UINV_InventoryComponent::FindAvailablePlacementForItem(
 		return false;
 	}
 
-	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	const EINV_ItemCategory ItemCategory = ResolvePlayerInventoryCategory(Item->GetItemManifest().GetItemCategory());
 	return InventoryFastArray.TryFindFirstAvailablePlacement(
 		Item,
 		GetPlayerGridSize(ItemCategory),
@@ -604,7 +611,7 @@ bool UINV_InventoryComponent::AssignPlacementForItem(UINV_InventoryItem* Item)
 		return false;
 	}
 
-	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	const EINV_ItemCategory ItemCategory = ResolvePlayerInventoryCategory(Item->GetItemManifest().GetItemCategory());
 	return InventoryFastArray.TryAutoPlaceItem(
 		Item,
 		GetPlayerGridSize(ItemCategory),
@@ -653,7 +660,7 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 		return false;
 	}
 
-	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	const EINV_ItemCategory ItemCategory = ResolvePlayerInventoryCategory(Item->GetItemManifest().GetItemCategory());
 	TArray<UINV_InventoryItem*> DestinationItems = bSourceIsPlayer
 		? Container->GetAllItems()
 		: GetItemsForCategory(ItemCategory);
@@ -943,8 +950,8 @@ bool UINV_InventoryComponent::PlaceItemWithActiveContainerExact(
 		return false;
 	}
 
-	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
-	if (!bDestinationIsContainer && DestinationCategory != ItemCategory)
+	const EINV_ItemCategory ItemCategory = ResolvePlayerInventoryCategory(Item->GetItemManifest().GetItemCategory());
+	if (!bDestinationIsContainer && ResolvePlayerInventoryCategory(DestinationCategory) != ItemCategory)
 	{
 		return false;
 	}
