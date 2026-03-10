@@ -1292,7 +1292,7 @@ void UINV_InventoryGrid::DropItem()
 	UINV_InventoryItem* HoverInventoryItem = GetHoverInventoryItem();
 	if (!IsValid(HoverInventoryItem)) return;
 
-	if (!IsValid(InventoryComponent) || !InventoryComponent->HasItem(HoverInventoryItem))
+	if (!InventoryComponent.IsValid() || !InventoryComponent->HasItem(HoverInventoryItem))
 	{
 		ReturnHoverItemToPreviousSlot();
 		return;

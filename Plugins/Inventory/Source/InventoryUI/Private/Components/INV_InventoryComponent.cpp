@@ -80,7 +80,6 @@ bool DoFootprintsOverlap(
 	return AMinX < BMaxX && AMaxX > BMinX && AMinY < BMaxY && AMaxY > BMinY;
 }
 }
-}
 
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
 {
