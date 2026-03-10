@@ -39,7 +39,7 @@
 
 namespace
 {
-int32 ResolveDisplayedStackCount(const UINV_InventoryItem* Item)
+int32 ResolveGridDisplayedStackCount(const UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item) || !Item->IsStackable())
 	{
@@ -291,7 +291,7 @@ bool UINV_InventoryGrid::RequestExactCrossStorePlacement(const int32 TargetIndex
 	const int32 RequestedQuantity = HoveredItem->IsStackable()
 		? (ActiveHoverItem->IsSplitStack()
 			? FMath::Max(1, ActiveHoverItem->GetStackCount())
-			: ResolveDisplayedStackCount(HoveredItem))
+			: ResolveGridDisplayedStackCount(HoveredItem))
 		: 1;
 
 	OwningInventoryComponent->Server_RequestPlaceItemWithActiveContainer(
@@ -658,7 +658,7 @@ void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 		RemoveItemFromGrid(Item, ExistingIndex);
 	}
 
-	PlaceItemAtIndex(Item, AuthoritativeIndex, Item->IsStackable(), ResolveDisplayedStackCount(Item));
+	PlaceItemAtIndex(Item, AuthoritativeIndex, Item->IsStackable(), ResolveGridDisplayedStackCount(Item));
 }
 
 void UINV_InventoryGrid::RemoveItem(UINV_InventoryItem* Item)
@@ -706,7 +706,7 @@ void UINV_InventoryGrid::RefreshItem(UINV_InventoryItem* Item)
 	if (CurrentUpperLeftIndex != AuthoritativeIndex)
 	{
 		RemoveItemFromGrid(Item, CurrentUpperLeftIndex);
-		PlaceItemAtIndex(Item, AuthoritativeIndex, Item->IsStackable(), ResolveDisplayedStackCount(Item));
+		PlaceItemAtIndex(Item, AuthoritativeIndex, Item->IsStackable(), ResolveGridDisplayedStackCount(Item));
 		return;
 	}
 
@@ -714,13 +714,13 @@ void UINV_InventoryGrid::RefreshItem(UINV_InventoryItem* Item)
 	{
 		if (IsValid(*SlottedItem))
 		{
-			(*SlottedItem)->UpdateStackCount(ResolveDisplayedStackCount(Item));
+			(*SlottedItem)->UpdateStackCount(ResolveGridDisplayedStackCount(Item));
 		}
 	}
 
 	if (GridSlots.IsValidIndex(AuthoritativeIndex))
 	{
-		const int32 StackCount = ResolveDisplayedStackCount(Item);
+		const int32 StackCount = ResolveGridDisplayedStackCount(Item);
 		GridSlots[AuthoritativeIndex]->SetStackCount(StackCount);
 	}
 }
@@ -744,8 +744,8 @@ bool UINV_InventoryGrid::TryQuickTransfer(UINV_InventoryItem* Item, const FPoint
 	}
 
 	const int32 RequestedQuantity = (MouseEvent.IsShiftDown() && Item->IsStackable())
-		? FMath::Max(1, ResolveDisplayedStackCount(Item) / 2)
-		: FMath::Max(1, ResolveDisplayedStackCount(Item));
+		? FMath::Max(1, ResolveGridDisplayedStackCount(Item) / 2)
+		: FMath::Max(1, ResolveGridDisplayedStackCount(Item));
 
 	OwningInventoryComponent->Server_TransferItemWithActiveContainer(Item, RequestedQuantity);
 	return true;

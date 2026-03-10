@@ -11,7 +11,7 @@
 
 namespace
 {
-int32 ResolveDisplayedStackCount(const UINV_InventoryItem* Item)
+int32 ResolveHoverDisplayedStackCount(const UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item) || !Item->IsStackable())
 	{
@@ -105,7 +105,7 @@ void FINV_HoverItemManager::ConfigureHoverItemProperties(
 
 	HoverItem->SetPreviousGridIndex(PreviousGridIndex);
 	HoverItem->SetIsSplitStack(false);
-	HoverItem->UpdateStackCount(ResolveDisplayedStackCount(InventoryItem));
+	HoverItem->UpdateStackCount(ResolveHoverDisplayedStackCount(InventoryItem));
 }
 
 void FINV_HoverItemManager::ClearHoverItem(TObjectPtr<UINV_HoverItem>& HoverItem)
