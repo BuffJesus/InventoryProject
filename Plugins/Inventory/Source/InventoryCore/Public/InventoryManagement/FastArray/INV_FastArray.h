@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InventoryManagement/Placement/INV_InventoryPlacementTypes.h"
 #include "Net/Serialization/FastArraySerializer.h"
+#include "Templates/Function.h"
 #include "INV_FastArray.generated.h"
 
 struct FGameplayTag;
@@ -39,6 +41,8 @@ private:
 	friend struct FINV_InventoryFastArray;
 	// The actual item object for this entry.
 	UPROPERTY() TObjectPtr<UINV_InventoryItem> Item { nullptr };
+	// Authoritative runtime placement for this item within the owning store.
+	UPROPERTY() FINV_InventoryItemPlacement Placement;
 };
 
 // Replicated list of inventory items.
@@ -54,6 +58,27 @@ struct INVENTORYCORE_API FINV_InventoryFastArray : public FFastArraySerializer
 	
 	// Returns all valid inventory item objects currently held in entries.
 	TArray<UINV_InventoryItem*> GetAllItems() const;
+	bool ContainsItem(const UINV_InventoryItem* Item) const;
+	bool GetItemPlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const;
+	bool SetItemPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement);
+	bool ClearItemPlacement(UINV_InventoryItem* Item);
+	bool CanPlaceItemAt(
+		const UINV_InventoryItem* Item,
+		const FINV_InventoryItemPlacement& Placement,
+		const FIntPoint& GridSize,
+		TFunctionRef<bool(const UINV_InventoryItem*)> ShouldIncludeItem,
+		const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	bool TryFindFirstAvailablePlacement(
+		const UINV_InventoryItem* Item,
+		const FIntPoint& GridSize,
+		FINV_InventoryItemPlacement& OutPlacement,
+		TFunctionRef<bool(const UINV_InventoryItem*)> ShouldIncludeItem,
+		const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	bool TryAutoPlaceItem(
+		UINV_InventoryItem* Item,
+		const FIntPoint& GridSize,
+		TFunctionRef<bool(const UINV_InventoryItem*)> ShouldIncludeItem,
+		const UINV_InventoryItem* IgnoredItem = nullptr);
 	// Const version of FindFirstItemByType for read-only access
 	const UINV_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType, bool bUseItemRarity,
 		const FGameplayTag& ItemRarityTag) const;
@@ -80,6 +105,8 @@ struct INVENTORYCORE_API FINV_InventoryFastArray : public FFastArraySerializer
 		const FGameplayTag& ItemRarityTag);
 
 private:
+	FINV_InventoryEntry* FindEntry(UINV_InventoryItem* Item);
+	const FINV_InventoryEntry* FindEntry(const UINV_InventoryItem* Item) const;
 	// FastArray entries replicated to clients.
 	UPROPERTY() TArray<FINV_InventoryEntry> Entries;
 	// Owning component used for callbacks.

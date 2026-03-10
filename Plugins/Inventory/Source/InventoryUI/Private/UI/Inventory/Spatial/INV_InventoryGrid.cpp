@@ -34,6 +34,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/PlatformTime.h"
+#include "InventoryManagement/Placement/INV_InventoryPlacementTypes.h"
 
 FINV_SlotAvailabilityResult UINV_InventoryGrid::HasRoomForItem(const UINV_ItemComponent* ItemComponent)
 {
@@ -286,6 +287,41 @@ int32 UINV_InventoryGrid::FindUpperLeftIndexForItem(const UINV_InventoryItem* It
 	return INDEX_NONE;
 }
 
+bool UINV_InventoryGrid::ResolveAuthoritativePlacement(
+	const UINV_InventoryItem* Item,
+	FINV_InventoryItemPlacement& OutPlacement) const
+{
+	if (!IsValid(Item))
+	{
+		OutPlacement.Reset();
+		return false;
+	}
+
+	if (InventoryComponent.IsValid())
+	{
+		return InventoryComponent->GetItemPlacement(Item, OutPlacement);
+	}
+
+	if (ContainerComponent.IsValid())
+	{
+		return ContainerComponent->GetItemPlacement(Item, OutPlacement);
+	}
+
+	OutPlacement.Reset();
+	return false;
+}
+
+int32 UINV_InventoryGrid::ResolveAuthoritativeIndex(const UINV_InventoryItem* Item) const
+{
+	FINV_InventoryItemPlacement Placement;
+	if (!ResolveAuthoritativePlacement(Item, Placement))
+	{
+		return INDEX_NONE;
+	}
+
+	return Placement.ToIndex(GridSize.X);
+}
+
 void UINV_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(INV_InventoryGrid_NativeTick);
@@ -510,10 +546,26 @@ void UINV_InventoryGrid::AddItem(UINV_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) return;
 	BindItemChangedEvent(Item);
-	
-	// Compute placement and update UI.
-	FINV_SlotAvailabilityResult Result { HasRoomForItem(Item) };
-	AddItemToIndices(Result, Item);
+
+	const int32 AuthoritativeIndex = ResolveAuthoritativeIndex(Item);
+	if (!GridSlots.IsValidIndex(AuthoritativeIndex))
+	{
+		return;
+	}
+
+	const int32 ExistingIndex = FindUpperLeftIndexForItem(Item);
+	if (ExistingIndex != INDEX_NONE)
+	{
+		if (ExistingIndex == AuthoritativeIndex)
+		{
+			RefreshItem(Item);
+			return;
+		}
+
+		RemoveItemFromGrid(Item, ExistingIndex);
+	}
+
+	PlaceItemAtIndex(Item, AuthoritativeIndex, Item->IsStackable(), Item->IsStackable() ? Item->GetTotalStackCount() : 0);
 }
 
 void UINV_InventoryGrid::RemoveItem(UINV_InventoryItem* Item)
@@ -541,14 +593,31 @@ void UINV_InventoryGrid::RefreshItem(UINV_InventoryItem* Item)
 		return;
 	}
 
-	const int32 UpperLeftIndex = FindUpperLeftIndexForItem(Item);
-	if (UpperLeftIndex == INDEX_NONE)
+	const int32 CurrentUpperLeftIndex = FindUpperLeftIndexForItem(Item);
+	const int32 AuthoritativeIndex = ResolveAuthoritativeIndex(Item);
+	if (AuthoritativeIndex == INDEX_NONE)
+	{
+		if (CurrentUpperLeftIndex != INDEX_NONE)
+		{
+			RemoveItemFromGrid(Item, CurrentUpperLeftIndex);
+		}
+		return;
+	}
+
+	if (CurrentUpperLeftIndex == INDEX_NONE)
 	{
 		AddItem(Item);
 		return;
 	}
 
-	if (TObjectPtr<UINV_SlottedItem>* SlottedItem = SlottedItems.Find(UpperLeftIndex))
+	if (CurrentUpperLeftIndex != AuthoritativeIndex)
+	{
+		RemoveItemFromGrid(Item, CurrentUpperLeftIndex);
+		PlaceItemAtIndex(Item, AuthoritativeIndex, Item->IsStackable(), Item->IsStackable() ? Item->GetTotalStackCount() : 0);
+		return;
+	}
+
+	if (TObjectPtr<UINV_SlottedItem>* SlottedItem = SlottedItems.Find(AuthoritativeIndex))
 	{
 		if (IsValid(*SlottedItem))
 		{
@@ -556,10 +625,10 @@ void UINV_InventoryGrid::RefreshItem(UINV_InventoryItem* Item)
 		}
 	}
 
-	if (GridSlots.IsValidIndex(UpperLeftIndex))
+	if (GridSlots.IsValidIndex(AuthoritativeIndex))
 	{
 		const int32 StackCount = Item->IsStackable() ? Item->GetTotalStackCount() : 0;
-		GridSlots[UpperLeftIndex]->SetStackCount(StackCount);
+		GridSlots[AuthoritativeIndex]->SetStackCount(StackCount);
 	}
 }
 

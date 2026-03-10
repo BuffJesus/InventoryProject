@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Containers/INV_ContainerTypes.h"
 #include "InventoryManagement/FastArray/INV_FastArray.h"
+#include "InventoryManagement/Placement/INV_InventoryPlacementTypes.h"
 #include "INV_ContainerComponent.generated.h"
 
 class AController;
@@ -45,6 +46,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	bool HasItem(UINV_InventoryItem* Item) const;
 
+	bool GetItemPlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const;
+	bool FindAvailablePlacementForItem(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement, const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	bool CanPlaceItemAt(const UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement, const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	bool SetItemPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement);
+
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	bool IsEmpty() const;
 
@@ -81,6 +87,7 @@ private:
 	void ConfigureFastArrayCallbacks();
 	void InitializeStarterContents();
 	bool HasAuthorityOnOwner() const;
+	bool AssignPlacementForItem(UINV_InventoryItem* Item);
 
 	UPROPERTY(Replicated, EditAnywhere, Category = "INV|Container")
 	FINV_ContainerMetadata ContainerMetadata;

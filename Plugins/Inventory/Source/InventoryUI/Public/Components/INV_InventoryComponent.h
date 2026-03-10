@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Containers/INV_ContainerComponent.h"
+#include "InventoryManagement/Placement/INV_InventoryPlacementTypes.h"
 #include "Types/INV_GridTypes.h"
 #include "InventoryManagement/FastArray/INV_FastArray.h"
 #include "INV_InventoryComponent.generated.h"
@@ -67,6 +68,8 @@ public:
 	TArray<UINV_InventoryItem*> GetAllItems() const;
 	UFUNCTION(BlueprintCallable, Category = "INV|Inventory")
 	bool HasItem(UINV_InventoryItem* Item) const;
+	bool GetItemPlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const;
+	bool CanPlaceItemAt(const UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement, const UINV_InventoryItem* IgnoredItem = nullptr) const;
 	UFUNCTION(BlueprintCallable, Category = "INV|Container")
 	UINV_ContainerComponent* GetActiveContainer() const { return ActiveContainer.Get(); }
 	void RequestOpenContainer(AActor* ContainerActor);
@@ -114,6 +117,9 @@ private:
 	TArray<UINV_InventoryItem*> GetItemsForCategory(EINV_ItemCategory Category, const UINV_InventoryItem* IgnoredItem = nullptr) const;
 	UINV_InventoryItem* CloneItemForOwner(UINV_InventoryItem* SourceItem, UObject* NewOuter, int32 StackCount) const;
 	bool CanTransferItem(UINV_InventoryItem* Item) const;
+	bool AssignPlacementForItem(UINV_InventoryItem* Item);
+	bool FindAvailablePlacementForItem(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement, const UINV_InventoryItem* IgnoredItem = nullptr) const;
+	static bool MatchesPlayerPlacementCategory(const UINV_InventoryItem* Item, EINV_ItemCategory Category);
 	bool TransferItemBetweenStores(UINV_InventoryItem* Item, int32 RequestedQuantity, bool bSourceIsPlayer);
 	void BroadcastPlayerItemChanged(UINV_InventoryItem* Item);
 	bool ShouldBroadcastLocalInventoryEvents() const;

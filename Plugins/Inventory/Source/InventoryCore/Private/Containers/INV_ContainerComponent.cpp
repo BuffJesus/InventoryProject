@@ -53,7 +53,43 @@ TArray<UINV_InventoryItem*> UINV_ContainerComponent::GetAllItems() const
 
 bool UINV_ContainerComponent::HasItem(UINV_InventoryItem* Item) const
 {
-	return IsValid(Item) && InventoryFastArray.GetAllItems().Contains(Item);
+	return IsValid(Item) && InventoryFastArray.ContainsItem(Item);
+}
+
+bool UINV_ContainerComponent::GetItemPlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const
+{
+	return InventoryFastArray.GetItemPlacement(Item, OutPlacement);
+}
+
+bool UINV_ContainerComponent::FindAvailablePlacementForItem(
+	const UINV_InventoryItem* Item,
+	FINV_InventoryItemPlacement& OutPlacement,
+	const UINV_InventoryItem* IgnoredItem) const
+{
+	return InventoryFastArray.TryFindFirstAvailablePlacement(
+		Item,
+		GridSize,
+		OutPlacement,
+		[](const UINV_InventoryItem*) { return true; },
+		IgnoredItem);
+}
+
+bool UINV_ContainerComponent::CanPlaceItemAt(
+	const UINV_InventoryItem* Item,
+	const FINV_InventoryItemPlacement& Placement,
+	const UINV_InventoryItem* IgnoredItem) const
+{
+	return InventoryFastArray.CanPlaceItemAt(
+		Item,
+		Placement,
+		GridSize,
+		[](const UINV_InventoryItem*) { return true; },
+		IgnoredItem);
+}
+
+bool UINV_ContainerComponent::SetItemPlacement(UINV_InventoryItem* Item, const FINV_InventoryItemPlacement& Placement)
+{
+	return InventoryFastArray.SetItemPlacement(Item, Placement);
 }
 
 bool UINV_ContainerComponent::IsEmpty() const
@@ -79,10 +115,18 @@ UINV_InventoryItem* UINV_ContainerComponent::AddItem(UINV_InventoryItem* Item)
 	}
 
 	UINV_InventoryItem* AddedItem = InventoryFastArray.AddEntry(Item);
-	if (IsValid(AddedItem))
+	if (!IsValid(AddedItem))
 	{
-		OnItemAdded.Broadcast(AddedItem);
+		return nullptr;
 	}
+
+	if (!AssignPlacementForItem(AddedItem))
+	{
+		InventoryFastArray.RemoveEntry(AddedItem);
+		return nullptr;
+	}
+
+	OnItemAdded.Broadcast(AddedItem);
 	return AddedItem;
 }
 
@@ -94,10 +138,18 @@ UINV_InventoryItem* UINV_ContainerComponent::AddItemFromPickup(UINV_ItemComponen
 	}
 
 	UINV_InventoryItem* AddedItem = InventoryFastArray.AddEntry(ItemComponent);
-	if (IsValid(AddedItem))
+	if (!IsValid(AddedItem))
 	{
-		OnItemAdded.Broadcast(AddedItem);
+		return nullptr;
 	}
+
+	if (!AssignPlacementForItem(AddedItem))
+	{
+		InventoryFastArray.RemoveEntry(AddedItem);
+		return nullptr;
+	}
+
+	OnItemAdded.Broadcast(AddedItem);
 	return AddedItem;
 }
 
@@ -223,4 +275,13 @@ bool UINV_ContainerComponent::HasAuthorityOnOwner() const
 {
 	const AActor* OwnerActor = GetOwner();
 	return IsValid(OwnerActor) && OwnerActor->HasAuthority();
+}
+
+bool UINV_ContainerComponent::AssignPlacementForItem(UINV_InventoryItem* Item)
+{
+	return InventoryFastArray.TryAutoPlaceItem(
+		Item,
+		GridSize,
+		[](const UINV_InventoryItem*) { return true; },
+		Item);
 }

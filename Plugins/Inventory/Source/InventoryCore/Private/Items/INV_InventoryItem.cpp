@@ -12,6 +12,7 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	// Replicate manifest data and stack count.
+	DOREPLIFETIME(ThisClass, ItemInstanceId);
 	DOREPLIFETIME(ThisClass, ItemManifest);
 	DOREPLIFETIME(ThisClass, TotalStackCount);
 	DOREPLIFETIME(ThisClass, bUseItemRarity);
@@ -20,6 +21,7 @@ void UINV_InventoryItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 void UINV_InventoryItem::SetItemManifest(const FINV_ItemManifest& Manifest)
 {
+	EnsureItemInstanceId();
 	ItemManifest = FInstancedStruct::Make<FINV_ItemManifest>(Manifest);
 	ResetFragmentCache();
 	BuildFragmentCache();
@@ -177,6 +179,14 @@ void UINV_InventoryItem::OnRep_TotalStackCount()
 void UINV_InventoryItem::OnRep_ItemRarityData()
 {
 	BroadcastItemChanged();
+}
+
+void UINV_InventoryItem::EnsureItemInstanceId()
+{
+	if (!ItemInstanceId.IsValid())
+	{
+		ItemInstanceId = FGuid::NewGuid();
+	}
 }
 
 void UINV_InventoryItem::ResetFragmentCache()

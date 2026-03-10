@@ -26,6 +26,7 @@ class INVENTORYCORE_API UINV_InventoryItem : public UObject
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsSupportedForNetworking() const override { return true; }
+	const FGuid& GetItemInstanceId() const { return ItemInstanceId; }
 	
 	// Store the item manifest inside this object.
 	void SetItemManifest(const FINV_ItemManifest& Manifest);
@@ -72,8 +73,11 @@ private:
 	UFUNCTION() void OnRep_ItemManifest();
 	UFUNCTION() void OnRep_TotalStackCount();
 	UFUNCTION() void OnRep_ItemRarityData();
+	void EnsureItemInstanceId();
 	void ResetFragmentCache();
 	void BroadcastItemChanged();
+	UPROPERTY(Replicated)
+	FGuid ItemInstanceId;
 	// Instanced manifest (fragments + tags).
 	UPROPERTY(VisibleAnywhere, Category = "INV|Inventory", meta = (BaseStruct = "/Script/InventoryCore.INV_ItemManifest"), ReplicatedUsing = OnRep_ItemManifest)
 	FInstancedStruct ItemManifest;

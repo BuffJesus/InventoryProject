@@ -21,6 +21,7 @@ struct FINV_GridWidgetFactoryConfig;
 class UINV_ItemComponent;
 struct FINV_GridClickExecutionCallbacks;
 struct FINV_GridSwapCallbacks;
+struct FINV_InventoryItemPlacement;
 
 #include "INV_InventoryGrid.generated.h"
 class UINV_InventoryComponent;
@@ -88,6 +89,8 @@ private:
 	void ResetDisplayedItems();
 	void RebuildDisplayedItems();
 	int32 FindUpperLeftIndexForItem(const UINV_InventoryItem* Item) const;
+	bool ResolveAuthoritativePlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const;
+	int32 ResolveAuthoritativeIndex(const UINV_InventoryItem* Item) const;
 	bool TryQuickTransfer(UINV_InventoryItem* Item, const FPointerEvent& MouseEvent) const;
 	void BindItemChangedEvent(UINV_InventoryItem* Item);
 	void UnbindItemChangedEvent(UINV_InventoryItem* Item);

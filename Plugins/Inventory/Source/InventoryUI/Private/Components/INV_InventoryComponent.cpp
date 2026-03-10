@@ -7,7 +7,6 @@
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
 #include "Items/Fragments/INV_ItemFragment.h"
-#include "InventoryManagement/Transfer/INV_StorageTransferUtils.h"
 #include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
 #include "InventoryManagement/Rules/INV_InventoryAddResolver.h"
 #include "InventoryManagement/Utils/INV_DropLocationCalculator.h"
@@ -251,7 +250,34 @@ TArray<UINV_InventoryItem*> UINV_InventoryComponent::GetAllItems() const
 
 bool UINV_InventoryComponent::HasItem(UINV_InventoryItem* Item) const
 {
-	return IsValid(Item) && InventoryFastArray.GetAllItems().Contains(Item);
+	return IsValid(Item) && InventoryFastArray.ContainsItem(Item);
+}
+
+bool UINV_InventoryComponent::GetItemPlacement(const UINV_InventoryItem* Item, FINV_InventoryItemPlacement& OutPlacement) const
+{
+	return InventoryFastArray.GetItemPlacement(Item, OutPlacement);
+}
+
+bool UINV_InventoryComponent::CanPlaceItemAt(
+	const UINV_InventoryItem* Item,
+	const FINV_InventoryItemPlacement& Placement,
+	const UINV_InventoryItem* IgnoredItem) const
+{
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	return InventoryFastArray.CanPlaceItemAt(
+		Item,
+		Placement,
+		GetPlayerGridSize(ItemCategory),
+		[ItemCategory](const UINV_InventoryItem* ExistingItem)
+		{
+			return ThisClass::MatchesPlayerPlacementCategory(ExistingItem, ItemCategory);
+		},
+		IgnoredItem);
 }
 
 void UINV_InventoryComponent::RequestOpenContainer(AActor* ContainerActor)
@@ -503,6 +529,52 @@ UINV_InventoryItem* UINV_InventoryComponent::CloneItemForOwner(UINV_InventoryIte
 	return ClonedItem;
 }
 
+bool UINV_InventoryComponent::MatchesPlayerPlacementCategory(const UINV_InventoryItem* Item, const EINV_ItemCategory Category)
+{
+	return IsValid(Item) && Item->GetItemManifest().GetItemCategory() == Category;
+}
+
+bool UINV_InventoryComponent::FindAvailablePlacementForItem(
+	const UINV_InventoryItem* Item,
+	FINV_InventoryItemPlacement& OutPlacement,
+	const UINV_InventoryItem* IgnoredItem) const
+{
+	if (!IsValid(Item))
+	{
+		OutPlacement.Reset();
+		return false;
+	}
+
+	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	return InventoryFastArray.TryFindFirstAvailablePlacement(
+		Item,
+		GetPlayerGridSize(ItemCategory),
+		OutPlacement,
+		[ItemCategory](const UINV_InventoryItem* ExistingItem)
+		{
+			return ThisClass::MatchesPlayerPlacementCategory(ExistingItem, ItemCategory);
+		},
+		IgnoredItem);
+}
+
+bool UINV_InventoryComponent::AssignPlacementForItem(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
+	return InventoryFastArray.TryAutoPlaceItem(
+		Item,
+		GetPlayerGridSize(ItemCategory),
+		[ItemCategory](const UINV_InventoryItem* ExistingItem)
+		{
+			return ThisClass::MatchesPlayerPlacementCategory(ExistingItem, ItemCategory);
+		},
+		Item);
+}
+
 bool UINV_InventoryComponent::CanTransferItem(UINV_InventoryItem* Item) const
 {
 	if (!IsValid(Item))
@@ -542,22 +614,41 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	}
 
 	const EINV_ItemCategory ItemCategory = Item->GetItemManifest().GetItemCategory();
-	TArray<UINV_InventoryItem*> SourceItems = bSourceIsPlayer
-		? GetItemsForCategory(ItemCategory)
-		: Container->GetAllItems();
 	TArray<UINV_InventoryItem*> DestinationItems = bSourceIsPlayer
 		? Container->GetAllItems()
 		: GetItemsForCategory(ItemCategory);
 
-	const FIntPoint SourceGridSize = bSourceIsPlayer ? GetPlayerGridSize(ItemCategory) : Container->GetGridSize();
-	const FIntPoint DestinationGridSize = bSourceIsPlayer ? Container->GetGridSize() : GetPlayerGridSize(ItemCategory);
 	const int32 SourceStackCount = ResolveAuthoritativeStackCount(Item);
 	const int32 QuantityToTransfer = Item->IsStackable()
 		? FMath::Clamp(RequestedQuantity, 1, SourceStackCount)
 		: 1;
 	const bool bFullTransfer = !Item->IsStackable() || QuantityToTransfer >= SourceStackCount;
+	FINV_InventoryItemPlacement SourcePlacement;
+	const bool bHasSourcePlacement = bSourceIsPlayer
+		? GetItemPlacement(Item, SourcePlacement)
+		: Container->GetItemPlacement(Item, SourcePlacement);
 
-	UINV_InventoryItem* MergeTarget = FINV_StorageTransferUtils::FindFirstMergeTarget(DestinationItems, Item);
+	UINV_InventoryItem* MergeTarget = nullptr;
+	if (Item->IsStackable())
+	{
+		const FINV_StackableFragment* CandidateStackFragment = Item->GetCachedStackableFragment();
+		const int32 CandidateMaxStackSize = CandidateStackFragment ? CandidateStackFragment->GetMaxStackSize() : 0;
+		for (UINV_InventoryItem* ExistingItem : DestinationItems)
+		{
+			if (!IsValid(ExistingItem) || !UINV_InventoryItem::AreItemsStackCompatible(Item, ExistingItem))
+			{
+				continue;
+			}
+
+			if (ResolveAuthoritativeStackCount(ExistingItem) >= CandidateMaxStackSize)
+			{
+				continue;
+			}
+
+			MergeTarget = ExistingItem;
+			break;
+		}
+	}
 	const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment();
 	const int32 MaxStackSize = StackableFragment ? StackableFragment->GetMaxStackSize() : SourceStackCount;
 	const int32 PendingMergeAmount = IsValid(MergeTarget)
@@ -568,14 +659,41 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	if (RemainingQuantity > 0)
 	{
 		UINV_InventoryItem* SwapCandidate = nullptr;
+		FINV_InventoryItemPlacement SwapCandidatePlacement;
 		if (bFullTransfer && RemainingQuantity == SourceStackCount)
 		{
-			SwapCandidate = FINV_StorageTransferUtils::FindSwapCandidate(
-				SourceItems,
-				SourceGridSize,
-				DestinationItems,
-				DestinationGridSize,
-				Item);
+			for (UINV_InventoryItem* DestinationItem : DestinationItems)
+			{
+				if (!IsValid(DestinationItem) || DestinationItem == Item)
+				{
+					continue;
+				}
+
+				FINV_InventoryItemPlacement DestinationPlacement;
+				const bool bHasDestinationPlacement = bSourceIsPlayer
+					? Container->GetItemPlacement(DestinationItem, DestinationPlacement)
+					: GetItemPlacement(DestinationItem, DestinationPlacement);
+				if (!bHasDestinationPlacement)
+				{
+					continue;
+				}
+
+				const bool bMovingFitsDestinationPlacement = bSourceIsPlayer
+					? Container->CanPlaceItemAt(Item, DestinationPlacement, DestinationItem)
+					: CanPlaceItemAt(Item, DestinationPlacement, DestinationItem);
+				const bool bSwapFitsSourcePlacement = bHasSourcePlacement && (bSourceIsPlayer
+					? CanPlaceItemAt(DestinationItem, SourcePlacement, Item)
+					: Container->CanPlaceItemAt(DestinationItem, SourcePlacement, Item));
+
+				if (!bMovingFitsDestinationPlacement || !bSwapFitsSourcePlacement)
+				{
+					continue;
+				}
+
+				SwapCandidate = DestinationItem;
+				SwapCandidatePlacement = DestinationPlacement;
+				break;
+			}
 		}
 
 		if (IsValid(SwapCandidate))
@@ -597,8 +715,19 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 				}
 
 				InventoryFastArray.RemoveEntry(Item);
-				Container->AddItem(ItemForDestination);
-				InventoryFastArray.AddEntry(SwapForSource);
+				if (!Container->AddItem(ItemForDestination) || !InventoryFastArray.AddEntry(SwapForSource))
+				{
+					return false;
+				}
+
+				if (!Container->SetItemPlacement(ItemForDestination, SwapCandidatePlacement) ||
+					!InventoryFastArray.SetItemPlacement(SwapForSource, SourcePlacement))
+				{
+					return false;
+				}
+
+				Container->NotifyItemChanged(ItemForDestination);
+				BroadcastPlayerItemChanged(SwapForSource);
 
 				if (ShouldBroadcastLocalInventoryEvents())
 				{
@@ -614,8 +743,19 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 				}
 
 				InventoryFastArray.RemoveEntry(SwapCandidate);
-				InventoryFastArray.AddEntry(ItemForDestination);
-				Container->AddItem(SwapForSource);
+				if (!InventoryFastArray.AddEntry(ItemForDestination) || !Container->AddItem(SwapForSource))
+				{
+					return false;
+				}
+
+				if (!InventoryFastArray.SetItemPlacement(ItemForDestination, SwapCandidatePlacement) ||
+					!Container->SetItemPlacement(SwapForSource, SourcePlacement))
+				{
+					return false;
+				}
+
+				BroadcastPlayerItemChanged(ItemForDestination);
+				Container->NotifyItemChanged(SwapForSource);
 
 				if (ShouldBroadcastLocalInventoryEvents())
 				{
@@ -627,7 +767,11 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 			return true;
 		}
 
-		if (!FINV_StorageTransferUtils::CanInventoryFitItem(DestinationItems, DestinationGridSize, Item))
+		FINV_InventoryItemPlacement DestinationPlacement;
+		const bool bHasDestinationPlacement = bSourceIsPlayer
+			? Container->FindAvailablePlacementForItem(Item, DestinationPlacement)
+			: FindAvailablePlacementForItem(Item, DestinationPlacement);
+		if (!bHasDestinationPlacement)
 		{
 			return false;
 		}
@@ -641,15 +785,27 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 
 		if (bSourceIsPlayer)
 		{
-			Container->AddItem(NewDestinationItem);
+			if (!Container->AddItem(NewDestinationItem) || !Container->SetItemPlacement(NewDestinationItem, DestinationPlacement))
+			{
+				return false;
+			}
+
+			Container->NotifyItemChanged(NewDestinationItem);
 		}
 		else
 		{
 			InventoryFastArray.AddEntry(NewDestinationItem);
+			if (!InventoryFastArray.SetItemPlacement(NewDestinationItem, DestinationPlacement))
+			{
+				InventoryFastArray.RemoveEntry(NewDestinationItem);
+				return false;
+			}
 			if (ShouldBroadcastLocalInventoryEvents())
 			{
 				OnItemAdded.Broadcast(NewDestinationItem);
 			}
+
+			BroadcastPlayerItemChanged(NewDestinationItem);
 		}
 	}
 
@@ -800,10 +956,27 @@ void UINV_InventoryComponent::SpawnDroppedItem(UINV_InventoryItem* Item, int32 S
 			Item->GetItemRarityTag()))
 		{
 			ExistingItem->SetTotalStackCount(ExistingItem->GetTotalStackCount() + StackCount);
+			SyncLegacyStackCount(ExistingItem);
+			BroadcastPlayerItemChanged(ExistingItem);
 		}
 		else
 		{
-			InventoryFastArray.AddEntry(Item);
+			UINV_InventoryItem* RestoredItem = InventoryFastArray.AddEntry(Item);
+			if (!IsValid(RestoredItem))
+			{
+				return;
+			}
+
+			if (!AssignPlacementForItem(RestoredItem))
+			{
+				InventoryFastArray.RemoveEntry(RestoredItem);
+				return;
+			}
+
+			if (ShouldBroadcastLocalInventoryEvents())
+			{
+				OnItemAdded.Broadcast(RestoredItem);
+			}
 		}
 	};
 
@@ -1139,7 +1312,18 @@ void UINV_InventoryComponent::Server_AddNewItem_Implementation(UINV_ItemComponen
 	
 	// Create and replicate a new item.
 	UINV_InventoryItem* NewItem { InventoryFastArray.AddEntry(ItemComponent) };
+	if (!IsValid(NewItem))
+	{
+		return;
+	}
+
 	NewItem->SetTotalStackCount(StackCount);
+	SyncLegacyStackCount(NewItem);
+	if (!AssignPlacementForItem(NewItem))
+	{
+		InventoryFastArray.RemoveEntry(NewItem);
+		return;
+	}
 	
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
 	{
