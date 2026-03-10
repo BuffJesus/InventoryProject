@@ -655,6 +655,28 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 		}
 	}
 
+	if (Item->IsStackable() && !bFullTransfer)
+	{
+		const int32 NewSourceStackCount = SourceStackCount - QuantityToTransfer;
+		if (NewSourceStackCount <= 0)
+		{
+			return false;
+		}
+
+		Item->SetTotalStackCount(NewSourceStackCount);
+		SyncLegacyStackCount(Item);
+		if (bSourceIsPlayer)
+		{
+			BroadcastPlayerItemChanged(Item);
+		}
+		else
+		{
+			Container->NotifyItemChanged(Item);
+		}
+
+		return true;
+	}
+
 	const int32 NewSourceStackCount = SourceStackCount - QuantityToTransfer;
 	if (!Item->IsStackable() || NewSourceStackCount <= 0)
 	{
