@@ -43,6 +43,7 @@ public:
 	virtual float GetTileSize() const override;
 	virtual void ReturnActiveHoverItemToSource() override;
 	virtual void ClearActiveHoverItem() override;
+	virtual void ActivatePlayerCategoryForItem(UINV_InventoryItem* Item) override;
 	
 private:	
 	UINV_ItemDescription* GetItemDescription();
@@ -70,8 +71,9 @@ private:
 	UFUNCTION() void EquippedSlottedItemClicked(UINV_EquippedSlottedItem* EquippedSlottedItem, const FPointerEvent& MouseEvent);
 	
 	void DisableButton(UButton* Button) const;
-	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button);
+	void SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button, bool bReturnHoverToSource = true);
 	UINV_InventoryGrid* GetGridForCategory(EINV_ItemCategory Category) const;
+	UButton* GetButtonForCategory(EINV_ItemCategory Category) const;
 	void ForEachInventoryGrid(TFunctionRef<void(UINV_InventoryGrid* Grid)> Visitor) const;
 	void ForEachCategoryButton(TFunctionRef<void(UButton* Button)> Visitor) const;
 	void BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutGrids, TArray<UButton*>& OutButtons) const;

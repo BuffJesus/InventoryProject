@@ -69,6 +69,7 @@ UINV_InventoryGrid* UINV_SpatialInventory::GetGridForCategory(const EINV_ItemCat
 {
 	switch (Category)
 	{
+	case EINV_ItemCategory::None:
 	case EINV_ItemCategory::Equippable:
 		return Grid_Equippable;
 	case EINV_ItemCategory::Consumable:
@@ -128,7 +129,7 @@ void UINV_SpatialInventory::BuildCategoryViews(TArray<UINV_InventoryGrid*>& OutG
 	AddCategoryView(Grid_Craftable, Button_Craftable);
 }
 
-void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button)
+void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* Button, const bool bReturnHoverToSource)
 {
 	if (ActiveGrid.Get() == Grid)
 	{
@@ -140,7 +141,10 @@ void UINV_SpatialInventory::SetActiveGrid(UINV_InventoryGrid* Grid, UButton* But
 		return;
 	}
 
-	ReturnActiveHoverItemToSource();
+	if (bReturnHoverToSource)
+	{
+		ReturnActiveHoverItemToSource();
+	}
 	if (ActiveGrid.IsValid()) ActiveGrid->HideCursor();
 	ActiveGrid = Grid;
 	if (ActiveGrid.IsValid()) ActiveGrid->ShowCursor();
@@ -208,6 +212,22 @@ void UINV_SpatialInventory::NativeOnInitialized()
 	if (UINV_InventoryComponent* InventoryComponent = ResolveInventoryComponent(); IsValid(InventoryComponent))
 	{
 		ShowActiveContainer(InventoryComponent->GetActiveContainer());
+	}
+}
+
+UButton* UINV_SpatialInventory::GetButtonForCategory(const EINV_ItemCategory Category) const
+{
+	switch (Category)
+	{
+	case EINV_ItemCategory::None:
+	case EINV_ItemCategory::Equippable:
+		return Button_Equippable;
+	case EINV_ItemCategory::Consumable:
+		return Button_Consumable;
+	case EINV_ItemCategory::Craftable:
+		return Button_Craftable;
+	default:
+		return Button_Equippable;
 	}
 }
 
@@ -533,6 +553,23 @@ void UINV_SpatialInventory::ClearActiveHoverItem()
 	UINV_InventoryGrid* HoverSourceGrid = FindGridWithHoverItem();
 	if (!IsValid(HoverSourceGrid)) return;
 	HoverSourceGrid->ClearHoverItem();
+}
+
+void UINV_SpatialInventory::ActivatePlayerCategoryForItem(UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return;
+	}
+
+	UINV_InventoryGrid* TargetGrid = GetGridForCategory(Item->GetItemManifest().GetItemCategory());
+	UButton* TargetButton = GetButtonForCategory(Item->GetItemManifest().GetItemCategory());
+	if (!IsValid(TargetGrid) || !IsValid(TargetButton))
+	{
+		return;
+	}
+
+	SetActiveGrid(TargetGrid, TargetButton, false);
 }
 
 void UINV_SpatialInventory::SetItemDescriptionSizeAndPosition(UINV_ItemDescription* Description,

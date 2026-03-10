@@ -1307,6 +1307,14 @@ void UINV_InventoryGrid::Pickup(UINV_InventoryItem* ClickedInventoryItem, const 
 	// Convert a slotted item into a hover item.
 	AssignHoverItem(ClickedInventoryItem, GridIndex, GridIndex);
 	RemoveItemFromGrid(ClickedInventoryItem, GridIndex);
+
+	if (IsContainerGrid())
+	{
+		if (UINV_InventoryBase* InventoryWidget = UINV_InventoryStatics::GetInventoryWidget(GetOwningPlayer()); IsValid(InventoryWidget))
+		{
+			InventoryWidget->ActivatePlayerCategoryForItem(ClickedInventoryItem);
+		}
+	}
 }
 
 void UINV_InventoryGrid::DropItem()
