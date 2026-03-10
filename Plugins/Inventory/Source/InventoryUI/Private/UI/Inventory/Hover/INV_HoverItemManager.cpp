@@ -9,6 +9,21 @@
 #include "GameFramework/PlayerController.h"
 #include "UI/Utils/INV_WidgetUtils.h"
 
+namespace
+{
+int32 ResolveDisplayedStackCount(const UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item) || !Item->IsStackable())
+	{
+		return 0;
+	}
+
+	const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment();
+	const int32 FragmentStackCount = StackableFragment ? StackableFragment->GetStackCount() : 0;
+	return FMath::Max3(Item->GetTotalStackCount(), FragmentStackCount, 1);
+}
+}
+
 UINV_HoverItem* FINV_HoverItemManager::AssignHoverItem(
 	UINV_HoverItem* HoverItem,
 	TSubclassOf<UINV_HoverItem> HoverItemClass,
@@ -90,7 +105,7 @@ void FINV_HoverItemManager::ConfigureHoverItemProperties(
 
 	HoverItem->SetPreviousGridIndex(PreviousGridIndex);
 	HoverItem->SetIsSplitStack(false);
-	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? InventoryItem->GetTotalStackCount() : 0);
+	HoverItem->UpdateStackCount(ResolveDisplayedStackCount(InventoryItem));
 }
 
 void FINV_HoverItemManager::ClearHoverItem(TObjectPtr<UINV_HoverItem>& HoverItem)
