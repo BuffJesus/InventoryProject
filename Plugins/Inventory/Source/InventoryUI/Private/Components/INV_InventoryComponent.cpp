@@ -21,6 +21,18 @@
 
 namespace
 {
+int32 ResolveAuthoritativeStackCount(const UINV_InventoryItem* Item)
+{
+	if (!IsValid(Item) || !Item->IsStackable())
+	{
+		return 1;
+	}
+
+	const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment();
+	const int32 LegacyStackCount = StackableFragment ? StackableFragment->GetStackCount() : 1;
+	return FMath::Max3(Item->GetTotalStackCount(), LegacyStackCount, 1);
+}
+
 void SyncLegacyStackCount(UINV_InventoryItem* Item)
 {
 	if (!IsValid(Item))
@@ -539,7 +551,7 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 
 	const FIntPoint SourceGridSize = bSourceIsPlayer ? GetPlayerGridSize(ItemCategory) : Container->GetGridSize();
 	const FIntPoint DestinationGridSize = bSourceIsPlayer ? Container->GetGridSize() : GetPlayerGridSize(ItemCategory);
-	const int32 SourceStackCount = Item->IsStackable() ? FMath::Max(Item->GetTotalStackCount(), 1) : 1;
+	const int32 SourceStackCount = ResolveAuthoritativeStackCount(Item);
 	const int32 QuantityToTransfer = Item->IsStackable()
 		? FMath::Clamp(RequestedQuantity, 1, SourceStackCount)
 		: 1;
@@ -549,7 +561,7 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment();
 	const int32 MaxStackSize = StackableFragment ? StackableFragment->GetMaxStackSize() : SourceStackCount;
 	const int32 PendingMergeAmount = IsValid(MergeTarget)
-		? FMath::Min(QuantityToTransfer, FMath::Max(0, MaxStackSize - MergeTarget->GetTotalStackCount()))
+		? FMath::Min(QuantityToTransfer, FMath::Max(0, MaxStackSize - ResolveAuthoritativeStackCount(MergeTarget)))
 		: 0;
 	int32 RemainingQuantity = QuantityToTransfer - PendingMergeAmount;
 
@@ -1057,13 +1069,15 @@ void UINV_InventoryComponent::Server_RequestOpenContainer_Implementation(AActor*
 	AController* RequestingController = Cast<AController>(GetOwner());
 	if (!IsValid(ContainerComponent) || !ContainerComponent->CanAccess(RequestingController))
 	{
+		SetActiveContainerLocal(nullptr);
 		Client_CloseContainer();
 		return;
 	}
 
+	SetActiveContainerLocal(ContainerComponent);
+
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetOwner()); IsValid(PlayerController) && PlayerController->IsLocalController())
 	{
-		SetActiveContainerLocal(ContainerComponent);
 		OpenInventoryMenuIfClosed();
 		return;
 	}
@@ -1073,9 +1087,10 @@ void UINV_InventoryComponent::Server_RequestOpenContainer_Implementation(AActor*
 
 void UINV_InventoryComponent::Server_CloseActiveContainer_Implementation()
 {
+	SetActiveContainerLocal(nullptr);
+
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetOwner()); IsValid(PlayerController) && PlayerController->IsLocalController())
 	{
-		SetActiveContainerLocal(nullptr);
 		return;
 	}
 
