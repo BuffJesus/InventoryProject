@@ -8,6 +8,16 @@
 #include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
 #include "Net/UnrealNetwork.h"
 
+namespace
+{
+int32 ResolveStarterStackCount(const FINV_ContainerStarterItem& StarterItem)
+{
+	const FINV_StackableFragment* StackableFragment = StarterItem.ItemManifest.GetFragmentOfType<FINV_StackableFragment>();
+	const int32 ManifestStackCount = StackableFragment ? StackableFragment->GetStackCount() : 0;
+	return FMath::Max3(StarterItem.StackCount, ManifestStackCount, 1);
+}
+}
+
 UINV_ContainerComponent::UINV_ContainerComponent() : InventoryFastArray(this)
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -286,12 +296,13 @@ void UINV_ContainerComponent::InitializeStarterContents()
 		}
 
 		Item->SetItemRarityOptions(StarterItem.bUseItemRarity, StarterItem.ItemRarityTag);
-		if (StarterItem.StackCount > 0)
+		if (Item->IsStackable())
 		{
-			Item->SetTotalStackCount(StarterItem.StackCount);
+			const int32 ResolvedStackCount = ResolveStarterStackCount(StarterItem);
+			Item->SetTotalStackCount(ResolvedStackCount);
 			if (FINV_StackableFragment* StackableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_StackableFragment>())
 			{
-				StackableFragment->SetStackCount(StarterItem.StackCount);
+				StackableFragment->SetStackCount(ResolvedStackCount);
 			}
 		}
 

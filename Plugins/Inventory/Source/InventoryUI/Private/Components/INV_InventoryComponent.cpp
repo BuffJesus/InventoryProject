@@ -79,17 +79,6 @@ bool DoFootprintsOverlap(
 
 	return AMinX < BMaxX && AMaxX > BMinX && AMinY < BMaxY && AMaxY > BMinY;
 }
-
-int32 ResolveFragmentStackCount(const UINV_InventoryItem* Item)
-{
-	if (!IsValid(Item) || !Item->IsStackable())
-	{
-		return 0;
-	}
-
-	const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment();
-	return StackableFragment ? StackableFragment->GetStackCount() : 0;
-}
 }
 
 bool UINV_InventoryComponent::HasAuthorityOnOwner() const
@@ -577,16 +566,6 @@ UINV_InventoryItem* UINV_InventoryComponent::CloneItemForOwner(UINV_InventoryIte
 	ClonedItem->SetItemRarityOptions(SourceItem->IsItemRarityEnabled(), SourceItem->GetItemRarityTag());
 	ClonedItem->SetTotalStackCount(StackCount);
 	SyncLegacyStackCount(ClonedItem);
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("INV CloneItemForOwner Source=%s SourceTotal=%d SourceFragment=%d RequestedCloneStack=%d CloneTotal=%d CloneFragment=%d"),
-		*GetNameSafe(SourceItem),
-		SourceItem->GetTotalStackCount(),
-		ResolveFragmentStackCount(SourceItem),
-		StackCount,
-		ClonedItem->GetTotalStackCount(),
-		ResolveFragmentStackCount(ClonedItem));
 	return ClonedItem;
 }
 
@@ -683,17 +662,6 @@ bool UINV_InventoryComponent::TransferItemBetweenStores(UINV_InventoryItem* Item
 	const int32 QuantityToTransfer = Item->IsStackable()
 		? FMath::Clamp(RequestedQuantity, 1, SourceStackCount)
 		: 1;
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("INV QuickTransfer Source=%s SourceIsPlayer=%d Requested=%d SourceTotal=%d SourceFragment=%d ResolvedSource=%d QuantityToTransfer=%d"),
-		*GetNameSafe(Item),
-		bSourceIsPlayer ? 1 : 0,
-		RequestedQuantity,
-		Item->GetTotalStackCount(),
-		ResolveFragmentStackCount(Item),
-		SourceStackCount,
-		QuantityToTransfer);
 	const bool bFullTransfer = !Item->IsStackable() || QuantityToTransfer >= SourceStackCount;
 	FINV_InventoryItemPlacement SourcePlacement;
 	const bool bHasSourcePlacement = bSourceIsPlayer
@@ -985,17 +953,6 @@ bool UINV_InventoryComponent::PlaceItemWithActiveContainerExact(
 	const int32 QuantityToTransfer = Item->IsStackable()
 		? FMath::Clamp(RequestedQuantity, 1, SourceStackCount)
 		: 1;
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("INV ExactTransfer Source=%s DestIsContainer=%d Requested=%d SourceTotal=%d SourceFragment=%d ResolvedSource=%d QuantityToTransfer=%d"),
-		*GetNameSafe(Item),
-		bDestinationIsContainer ? 1 : 0,
-		RequestedQuantity,
-		Item->GetTotalStackCount(),
-		ResolveFragmentStackCount(Item),
-		SourceStackCount,
-		QuantityToTransfer);
 
 	FINV_InventoryItemPlacement SourcePlacement;
 	const bool bHasSourcePlacement = bSourceIsPlayer
@@ -1210,14 +1167,6 @@ bool UINV_InventoryComponent::PlaceItemWithActiveContainerExact(
 	{
 		return false;
 	}
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("INV ExactTransfer NewDestinationItem=%s Quantity=%d DestTotal=%d DestFragment=%d"),
-		*GetNameSafe(NewDestinationItem),
-		QuantityToTransfer,
-		NewDestinationItem->GetTotalStackCount(),
-		ResolveFragmentStackCount(NewDestinationItem));
 
 	if (bDestinationIsContainer)
 	{
