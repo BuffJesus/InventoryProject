@@ -40,9 +40,8 @@ bool FINV_GridStackOperations::IsSameStackable(
 		return false;
 	}
 
-	const bool bIsSameItem = ClickedItem == HoverItem->GetInventoryItem();
-	const bool bIsStackable = HoverItem->IsStackable();
-	return bIsSameItem && bIsStackable;
+	const UINV_InventoryItem* HoveredInventoryItem = HoverItem->GetInventoryItem();
+	return HoverItem->IsStackable() && UINV_InventoryItem::AreItemsStackCompatible(HoveredInventoryItem, ClickedItem);
 }
 
 void FINV_GridStackOperations::SwapStackCounts(
