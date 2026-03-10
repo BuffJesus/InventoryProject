@@ -31,6 +31,8 @@ public:
 	FORCEINLINE void SetStackCount(int32 Count) { StackCount = Count; }
 	FORCEINLINE bool IsStackable() const { return bIsStackable; }
 	void SetIsStackable(bool bStacks);
+	FORCEINLINE bool IsSplitStack() const { return bIsSplitStack; }
+	FORCEINLINE void SetIsSplitStack(const bool bInIsSplitStack) { bIsSplitStack = bInIsSplitStack; }
 	FORCEINLINE int32 GetPreviousGridIndex() const { return PreviousGridIndex; }
 	FORCEINLINE void SetPreviousGridIndex(int32 Index) { PreviousGridIndex = Index; }
 	FORCEINLINE FIntPoint GetGridDimensions() const { return GridDimensions; }
@@ -71,6 +73,8 @@ private:
 	FGameplayTag CachedItemType { FGameplayTag::EmptyTag };
 	// Whether the item uses stacks.
 	bool bIsStackable { false };
+	// Whether the hover represents an explicitly split sub-stack instead of the full item stack.
+	bool bIsSplitStack { false };
 	// Stack count shown on hover.
 	int32 StackCount { 0 };
 };

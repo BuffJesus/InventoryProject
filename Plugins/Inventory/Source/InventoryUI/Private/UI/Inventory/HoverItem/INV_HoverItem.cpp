@@ -13,6 +13,7 @@ void UINV_HoverItem::Clear()
 	// Reset all hover state and visuals.
 	SetInventoryItem(nullptr);
 	SetIsStackable(false);
+	SetIsSplitStack(false);
 	SetPreviousGridIndex(INDEX_NONE);
 	SetStackCount(0);
 	SetImageBrush(FSlateNoResource());

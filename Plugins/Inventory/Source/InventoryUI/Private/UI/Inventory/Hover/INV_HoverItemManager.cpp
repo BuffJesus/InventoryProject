@@ -89,7 +89,8 @@ void FINV_HoverItemManager::ConfigureHoverItemProperties(
 	}
 
 	HoverItem->SetPreviousGridIndex(PreviousGridIndex);
-	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? GridSlot->GetStackCount() : 0);
+	HoverItem->SetIsSplitStack(false);
+	HoverItem->UpdateStackCount(InventoryItem->IsStackable() ? InventoryItem->GetTotalStackCount() : 0);
 }
 
 void FINV_HoverItemManager::ClearHoverItem(TObjectPtr<UINV_HoverItem>& HoverItem)

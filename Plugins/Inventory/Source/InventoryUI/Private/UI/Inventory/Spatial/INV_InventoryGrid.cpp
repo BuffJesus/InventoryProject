@@ -273,12 +273,18 @@ bool UINV_InventoryGrid::RequestExactCrossStorePlacement(const int32 TargetIndex
 		return false;
 	}
 
+	const int32 RequestedQuantity = HoveredItem->IsStackable()
+		? (ActiveHoverItem->IsSplitStack()
+			? FMath::Max(1, ActiveHoverItem->GetStackCount())
+			: FMath::Max(1, HoveredItem->GetTotalStackCount()))
+		: 1;
+
 	OwningInventoryComponent->Server_RequestPlaceItemWithActiveContainer(
 		HoveredItem,
 		IsContainerGrid(),
 		ItemCategory,
 		TargetPlacement.Anchor,
-		FMath::Max(1, ActiveHoverItem->GetStackCount()));
+		RequestedQuantity);
 	return true;
 }
 
@@ -1195,6 +1201,7 @@ void UINV_InventoryGrid::OnPopUpMenuSplit(int32 SplitAmount, int32 Index)
 		{
 			if (IsValid(HoverItem))
 			{
+				HoverItem->SetIsSplitStack(true);
 				HoverItem->UpdateStackCount(StackCount);
 			}
 		});

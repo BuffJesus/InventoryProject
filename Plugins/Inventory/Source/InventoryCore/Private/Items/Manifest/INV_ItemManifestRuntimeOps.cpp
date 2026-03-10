@@ -18,6 +18,11 @@ UINV_InventoryItem* FINV_ItemManifestRuntimeOps::CreateItemFromManifest(FINV_Ite
 		Fragment.GetMutable().InitializeRuntimeState();
 	}
 
+	if (const FINV_StackableFragment* StackableFragment = Item->GetCachedStackableFragment())
+	{
+		Item->SetTotalStackCount(FMath::Max(1, StackableFragment->GetStackCount()));
+	}
+
 	// Source pickup manifest is consumed after runtime item creation.
 	SourceManifest.GetFragmentsMutable().Empty();
 	return Item;

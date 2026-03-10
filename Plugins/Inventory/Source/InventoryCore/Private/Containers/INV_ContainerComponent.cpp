@@ -4,6 +4,7 @@
 
 #include "Items/INV_InventoryItem.h"
 #include "Items/INV_ItemComponent.h"
+#include "Items/Fragments/INV_ItemFragment.h"
 #include "Items/Manifest/INV_ItemManifestRuntimeOps.h"
 #include "Net/UnrealNetwork.h"
 
@@ -288,6 +289,10 @@ void UINV_ContainerComponent::InitializeStarterContents()
 		if (StarterItem.StackCount > 0)
 		{
 			Item->SetTotalStackCount(StarterItem.StackCount);
+			if (FINV_StackableFragment* StackableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FINV_StackableFragment>())
+			{
+				StackableFragment->SetStackCount(StarterItem.StackCount);
+			}
 		}
 
 		AddItem(Item);
